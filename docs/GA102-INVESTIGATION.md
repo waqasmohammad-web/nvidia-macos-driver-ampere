@@ -831,3 +831,51 @@ state are scheduled on the main run loop; strict Swift 6 migration is unvalidate
 No source-only change in this milestone modifies driver execution. All additions
 are diagnostics, validation logic and documentation. Installed components,
 system graphics, EFI, SIP and display/power settings remain unchanged.
+
+### Durable repeated-run acceptance milestone
+
+The high-contrast probe now supports `--result-json NEW_FILE` in
+`tools/ga102_run_metal.py`. The artifact records probe-source SHA256, numeric
+metrics, per-run verdicts and system-wide display counter deltas. It excludes
+raw driver logs, paths, environment variables and process identities. Existing
+files are never overwritten. `tools/ga102_visual_validation.py::repeated_result`
+requires evidence from every requested run; exit code zero alone cannot imply
+visual validation. Three complete visual PASS runs are required for the
+aggregate reproducibility PASS. Even then physical scanout, desktop smoothness
+and installed-driver improvement remain separate, unverified claims. This
+300 ms/frame correctness workload is not a 60 Hz performance benchmark.
+
+A substantiated verdict defect was corrected: a negative/reset error-counter
+delta could previously satisfy healthy display activity. Reset error counters
+now yield NOT VERIFIED, while positive errors still yield FAIL. Mandatory GPU
+completion and framebuffer waits are unchanged.
+
+Fourteen Python regression tests PASS, including durable-artifact privacy,
+deadline/incomplete execution, missing evidence, repeated negative controls and
+counter-reset handling. A new isolated three-process runtime batch completed:
+each verified **12/12 correct GPU frames and 12 distinct patterns**; each had
+**zero visible eligibility samples, zero positive timestamps and zero framebuffer
+flip deltas**, with zero new errors. Consequently GPU frame contents PASS,
+but presentation, capture and full visual reproducibility are NOT VERIFIED.
+The sanitized durable evidence is
+[`evidence/ga102-visual-ineligible-repeat.json`](evidence/ga102-visual-ineligible-repeat.json).
+This reproduces GPU success without eligible presentation and confirms that
+the validator does not mistake it for visible output. No display wake or setting
+change was attempted, and screen-capture permission was not requested.
+
+Reproduction when the session is naturally active:
+
+```sh
+python3 tools/ga102_run_metal.py ga102_visual_present --repeat 3 --isolated-cache --result-json /private/tmp/ga102-visual-new-results.json
+python3 -m unittest tools.test_ga102_result_artifact tools.test_ga102_visual_validation tools.test_ga102_display_counters
+```
+
+Remaining targeted experiments are the display-linked/timer pacing comparison
+and own-window capture of the Core Animation workload. The former needs a
+naturally active GUI session; the latter is BLOCKED by unavailable capture
+authorization, with no repeated permission request. Protected WindowServer
+stack sampling and full framebuffer compilation remain blocked as documented
+above. Source review of `NVMTLObjects.m::commitAndWaitUntilSubmitted` and
+`NVRMNVDAFramebuffer::submitConfig` still provides no verified alternative that
+would justify removing completion waits. These are diagnostic/test corrections,
+not an installed-driver fix. The desktop responsiveness objective remains open.

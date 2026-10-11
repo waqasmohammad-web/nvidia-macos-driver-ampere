@@ -7,6 +7,7 @@ scratch directories to compare process starts (other compiler caches remain).
 Logs stay in a new private temporary directory, never auto-committed.
 """
 import argparse
+import hashlib
 import json
 import os
 import signal
@@ -14,9 +15,9 @@ from pathlib import Path
 import subprocess
 import tempfile
 try:
-    from .ga102_visual_validation import evaluate as evaluate_visual
+    from .ga102_visual_validation import evaluate as evaluate_visual, repeated_result
 except ImportError:
-    from ga102_visual_validation import evaluate as evaluate_visual
+    from ga102_visual_validation import evaluate as evaluate_visual, repeated_result
 
 ROOT = Path(__file__).resolve().parent.parent
 PROBES = ("ga102_metal_smoketest", "ga102_metal_render_smoketest", "ga102_metal_benchmark",
@@ -86,7 +87,12 @@ def main():
     parser.add_argument("--graphics-copy-queue", action="store_true", help="Attempt test-process-only NVRM_610_CECHAN=0; verify engine selection in logs (installed builds may differ)")
     parser.add_argument("--negative-control", choices=("static", "timestamps", "hidden"))
     parser.add_argument("--display-linked", action="store_true")
+    parser.add_argument("--result-json", type=Path, help="Save scoped visual-probe verdicts and numeric metrics, excluding raw logs and machine identities")
     args = parser.parse_args()
+    if args.result_json and args.probe != "ga102_visual_present":
+        parser.error("--result-json currently requires ga102_visual_present")
+    if args.result_json and args.result_json.exists():
+        parser.error("--result-json must name a new file; existing evidence is never overwritten")
     if args.display_linked and args.probe != "ga102_metal_present":
         parser.error("--display-linked requires ga102_metal_present")
     if args.negative_control and args.probe != "ga102_visual_present":
@@ -106,6 +112,8 @@ def main():
             env[key] = str(folder)
     compile_command = ["xcrun", "swiftc", "-O", "-module-cache-path", str(scratch / "modules"),
                        str(ROOT / "tools" / f"{args.probe}.swift"), "-o", str(executable)]
+    runs = []
+    source_hash = hashlib.sha256((ROOT / "tools" / f"{args.probe}.swift").read_bytes()).hexdigest()
     try:
         with (scratch / "compile.log").open("w") as log:
             code = run_owned(compile_command, log, 90)
@@ -135,20 +143,37 @@ def main():
                                     "pipeline_creation_ms_in_order:", "result:")):
                     print(line, flush=True)
             if args.probe == "ga102_visual_present":
+                verdict = None
+                metrics = {}
                 for line in lines:
                     if line.startswith("result: "):
                         evidence = json.loads(line[8:])
                         if evidence.get("probe") == "visual":
+                            metrics = {key: value for key, value in evidence.items()
+                                       if key in ("frames", "gpu_correct_frames", "gpu_distinct_patterns",
+                                                  "positive_timestamps", "distinct_timestamps", "timestamps_increasing",
+                                                  "visible_frames", "capture_permission", "capture_attempted",
+                                                  "capture_received_frames", "capture_correct_frames", "capture_distinct_patterns")
+                                       and isinstance(value, (int, float, bool))}
                             verdict = evaluate_visual(evidence, correlation)
                             print("result: " + json.dumps(verdict, sort_keys=True), flush=True)
                             if verdict["automated_visual_validation"] == "FAIL":
                                 code = 1
+                runs.append({"exit_code": code, "metrics": metrics, "verdict": verdict or {},
+                             "display_correlation": correlation})
             if code:
                 print(f"Failure details remain in {output}", flush=True)
                 return code
     except subprocess.TimeoutExpired as error:
         print(f"FAIL: external deadline {error.timeout}s exceeded; owned child terminated", flush=True)
         return 124
+    finally:
+        if args.result_json:
+            report = repeated_result(runs, args.repeat, source_hash, args.negative_control)
+            with args.result_json.open("x") as output:
+                json.dump(report, output, indent=2, sort_keys=True, allow_nan=False)
+                output.write("\n")
+            print("Scoped results saved; physical scanout and desktop smoothness remain NOT VERIFIED", flush=True)
     return 0
 
 

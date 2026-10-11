@@ -1,5 +1,5 @@
 import unittest
-from tools.ga102_visual_validation import evaluate
+from tools.ga102_visual_validation import evaluate, repeated_result
 class VisualValidationTests(unittest.TestCase):
     def evidence(self):
         return dict(frames=12,gpu_correct_frames=12,gpu_distinct_patterns=12,positive_timestamps=10,timestamps_increasing=True,distinct_timestamps=10,
@@ -25,3 +25,34 @@ class VisualValidationTests(unittest.TestCase):
     def test_drop(self):
         c=self.correlation();c['deltas']['debug.nvaccel_iop_async_drop']=1
         self.assertEqual(evaluate(self.evidence(),c)['automated_visual_validation'],'FAIL')
+    def test_counter_reset_is_not_healthy_activity(self):
+        c = self.correlation(); c['deltas']['debug.nvaccel_iop_fail'] = -2
+        self.assertEqual(evaluate(self.evidence(), c)['checks']['system_display_activity'], 'NOT VERIFIED')
+
+    def run_result(self, evidence=None, exit_code=0):
+        return {'exit_code': exit_code, 'verdict': evaluate(evidence or self.evidence(), self.correlation())}
+
+    def test_repeat_gate_and_claim_scope(self):
+        one = repeated_result([self.run_result()], 1, 'hash')
+        self.assertEqual(one['automated_visual_validation'], 'PASS')
+        self.assertEqual(one['reproducibility'], 'NOT VERIFIED')
+        three = repeated_result([self.run_result()] * 3, 3, 'hash')
+        self.assertEqual(three['reproducibility'], 'PASS')
+        self.assertEqual(three['physical_scanout'], 'NOT VERIFIED')
+        self.assertEqual(three['desktop_smoothness'], 'NOT VERIFIED')
+        self.assertFalse(three['installed_driver_fixed'])
+
+    def test_repeated_controls_and_missing_evidence(self):
+        for key, value, expected in [('gpu_distinct_patterns', 1, 'FAIL'),
+                                     ('positive_timestamps', 0, 'NOT VERIFIED'),
+                                     ('visible_frames', 0, 'NOT VERIFIED'),
+                                     ('capture_permission', False, 'NOT VERIFIED')]:
+            e = self.evidence(); e[key] = value
+            r = repeated_result([self.run_result(e)] * 3, 3, 'hash')
+            self.assertEqual(r['automated_visual_validation'], expected)
+            self.assertEqual(r['reproducibility'], 'NOT VERIFIED')
+        for runs in ([], [self.run_result()], [{'exit_code': 0}] * 3):
+            r = repeated_result(runs, 3, 'hash')
+            self.assertNotEqual(r['automated_visual_validation'], 'PASS')
+        r = repeated_result([self.run_result(exit_code=124)], 1, 'hash')
+        self.assertEqual(r['execution'], 'FAIL')
