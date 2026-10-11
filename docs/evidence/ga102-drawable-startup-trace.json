@@ -1,0 +1,389 @@
+{
+  "comparison": [
+    {
+      "automated_pacing_validation": "PASS",
+      "drawable_count": 3,
+      "probe_source_sha256": "b449f04b0eaaa8a0ea762c0a64703b8ab32965fb6ca4d859e567a061f7b05991",
+      "runs": [
+        {
+          "completed": 120,
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 292,
+              "debug.nvaccel_iop_ok": 291,
+              "debug.nvrmfb_flip_n": 292,
+              "debug.nvrmfb_flip_us_sum": 3481243
+            },
+            "mean_flip_call_us": 11922.065068493152,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "drawable_acquisition": {
+            "max_ms": 0.8847070021147374,
+            "p50_ms": 0.011047999578295276,
+            "p95_ms": 0.03575799928512424,
+            "samples": 120
+          },
+          "first_six_local_surface_slots": [
+            0,
+            1,
+            2,
+            0,
+            1,
+            2
+          ],
+          "positive_presented_times": 119,
+          "steady_presentation": {
+            "max_ms": 17.57772400014801,
+            "p50_ms": 16.759010999521706,
+            "p95_ms": 17.394124002748867,
+            "samples": 108
+          },
+          "submission_trace": {
+            "late_intervals": [
+              {
+                "acquisition_ms": 0.7565779997094069,
+                "classification": "client_completed_promptly",
+                "commit_interval_ms": 16.57143400007044,
+                "commit_to_completion_ms": 0.22127000192995183,
+                "completion_to_reported_presentation_ms": 33.14529300041613,
+                "frame": 2,
+                "gpu_ms": 0.006144000508356839,
+                "presentation_interval_ms": 34.29159000006621,
+                "previous_commit_to_completion_ms": 0.12037900160066783,
+                "previous_frame": 1,
+                "startup": true,
+                "surface_slot": 2,
+                "system_flip_delta_between_callbacks": 2
+              }
+            ],
+            "note": "CPU callback observations are not raw fence instants; system counters are shared; classification is not a root-cause attribution",
+            "physical_scanout": "NOT VERIFIED",
+            "trace_collection": "PASS"
+          }
+        },
+        {
+          "completed": 120,
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 299,
+              "debug.nvaccel_iop_ok": 300,
+              "debug.nvrmfb_flip_n": 299,
+              "debug.nvrmfb_flip_us_sum": 3521211
+            },
+            "mean_flip_call_us": 11776.6254180602,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "drawable_acquisition": {
+            "max_ms": 1.363217001198791,
+            "p50_ms": 0.012755001080222428,
+            "p95_ms": 0.06235999899217859,
+            "samples": 120
+          },
+          "first_six_local_surface_slots": [
+            0,
+            1,
+            2,
+            0,
+            1,
+            2
+          ],
+          "positive_presented_times": 119,
+          "steady_presentation": {
+            "max_ms": 17.619045000174083,
+            "p50_ms": 16.72273700023652,
+            "p95_ms": 17.514750998088857,
+            "samples": 108
+          },
+          "submission_trace": {
+            "late_intervals": [
+              {
+                "acquisition_ms": 1.363217001198791,
+                "classification": "client_completed_promptly",
+                "commit_interval_ms": 17.22304999930202,
+                "commit_to_completion_ms": 0.20452099852263927,
+                "completion_to_reported_presentation_ms": 32.338917000743095,
+                "frame": 2,
+                "gpu_ms": 0.0051200004236306995,
+                "presentation_interval_ms": 33.06288800013135,
+                "previous_commit_to_completion_ms": 0.13204399874666706,
+                "previous_frame": 1,
+                "startup": true,
+                "surface_slot": 2,
+                "system_flip_delta_between_callbacks": 2
+              }
+            ],
+            "note": "CPU callback observations are not raw fence instants; system counters are shared; classification is not a root-cause attribution",
+            "physical_scanout": "NOT VERIFIED",
+            "trace_collection": "PASS"
+          }
+        },
+        {
+          "completed": 120,
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 289,
+              "debug.nvaccel_iop_ok": 289,
+              "debug.nvrmfb_flip_n": 289,
+              "debug.nvrmfb_flip_us_sum": 3368400
+            },
+            "mean_flip_call_us": 11655.363321799308,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "drawable_acquisition": {
+            "max_ms": 0.9669470018707216,
+            "p50_ms": 0.01221799902850762,
+            "p95_ms": 0.04948700006934814,
+            "samples": 120
+          },
+          "first_six_local_surface_slots": [
+            0,
+            1,
+            2,
+            0,
+            1,
+            2
+          ],
+          "positive_presented_times": 119,
+          "steady_presentation": {
+            "max_ms": 17.726162001054035,
+            "p50_ms": 16.688296000211267,
+            "p95_ms": 17.503661001683213,
+            "samples": 108
+          },
+          "submission_trace": {
+            "late_intervals": [
+              {
+                "acquisition_ms": 0.9669470018707216,
+                "classification": "client_completed_promptly",
+                "commit_interval_ms": 16.718378999939887,
+                "commit_to_completion_ms": 0.24275099713122472,
+                "completion_to_reported_presentation_ms": 33.05344600084936,
+                "frame": 2,
+                "gpu_ms": 0.005119996785651892,
+                "presentation_interval_ms": 33.831884000392165,
+                "previous_commit_to_completion_ms": 0.13920899800723419,
+                "previous_frame": 1,
+                "startup": true,
+                "surface_slot": 2,
+                "system_flip_delta_between_callbacks": 2
+              }
+            ],
+            "note": "CPU callback observations are not raw fence instants; system counters are shared; classification is not a root-cause attribution",
+            "physical_scanout": "NOT VERIFIED",
+            "trace_collection": "PASS"
+          }
+        }
+      ]
+    },
+    {
+      "automated_pacing_validation": "PASS",
+      "drawable_count": 2,
+      "probe_source_sha256": "b449f04b0eaaa8a0ea762c0a64703b8ab32965fb6ca4d859e567a061f7b05991",
+      "runs": [
+        {
+          "completed": 120,
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 321,
+              "debug.nvaccel_iop_ok": 322,
+              "debug.nvrmfb_flip_n": 321,
+              "debug.nvrmfb_flip_us_sum": 3797247
+            },
+            "mean_flip_call_us": 11829.429906542056,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "drawable_acquisition": {
+            "max_ms": 1.20249999963562,
+            "p50_ms": 0.7339080002566334,
+            "p95_ms": 0.8532639985787682,
+            "samples": 120
+          },
+          "first_six_local_surface_slots": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            1
+          ],
+          "positive_presented_times": 119,
+          "steady_presentation": {
+            "max_ms": 17.57927899961942,
+            "p50_ms": 16.720042000088142,
+            "p95_ms": 17.24962200023583,
+            "samples": 108
+          },
+          "submission_trace": {
+            "late_intervals": [
+              {
+                "acquisition_ms": 0.8591619989601895,
+                "classification": "client_completed_promptly",
+                "commit_interval_ms": 16.502129001310095,
+                "commit_to_completion_ms": 0.20568099716911092,
+                "completion_to_reported_presentation_ms": 32.84261200315086,
+                "frame": 2,
+                "gpu_ms": 0.0051200004236306995,
+                "presentation_interval_ms": 33.3853080010158,
+                "previous_commit_to_completion_ms": 0.1364089985145256,
+                "previous_frame": 1,
+                "startup": true,
+                "surface_slot": 0,
+                "system_flip_delta_between_callbacks": 2
+              }
+            ],
+            "note": "CPU callback observations are not raw fence instants; system counters are shared; classification is not a root-cause attribution",
+            "physical_scanout": "NOT VERIFIED",
+            "trace_collection": "PASS"
+          }
+        },
+        {
+          "completed": 120,
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 285,
+              "debug.nvaccel_iop_ok": 285,
+              "debug.nvrmfb_flip_n": 285,
+              "debug.nvrmfb_flip_us_sum": 3326128
+            },
+            "mean_flip_call_us": 11670.624561403509,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "drawable_acquisition": {
+            "max_ms": 1.0316529987903778,
+            "p50_ms": 0.8144109997374471,
+            "p95_ms": 0.914771000680048,
+            "samples": 120
+          },
+          "first_six_local_surface_slots": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            1
+          ],
+          "positive_presented_times": 119,
+          "steady_presentation": {
+            "max_ms": 17.66660900102579,
+            "p50_ms": 16.683136000210652,
+            "p95_ms": 17.526937001093756,
+            "samples": 108
+          },
+          "submission_trace": {
+            "late_intervals": [
+              {
+                "acquisition_ms": 0.8486780025123153,
+                "classification": "client_completed_promptly",
+                "commit_interval_ms": 16.67340599669842,
+                "commit_to_completion_ms": 0.21351900068111718,
+                "completion_to_reported_presentation_ms": 32.50593300253968,
+                "frame": 2,
+                "gpu_ms": 0.006144000508356839,
+                "presentation_interval_ms": 32.99133300242829,
+                "previous_commit_to_completion_ms": 0.13181299800635315,
+                "previous_frame": 1,
+                "startup": true,
+                "surface_slot": 0,
+                "system_flip_delta_between_callbacks": 2
+              }
+            ],
+            "note": "CPU callback observations are not raw fence instants; system counters are shared; classification is not a root-cause attribution",
+            "physical_scanout": "NOT VERIFIED",
+            "trace_collection": "PASS"
+          }
+        },
+        {
+          "completed": 120,
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 292,
+              "debug.nvaccel_iop_ok": 292,
+              "debug.nvrmfb_flip_n": 292,
+              "debug.nvrmfb_flip_us_sum": 3390402
+            },
+            "mean_flip_call_us": 11610.965753424658,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "drawable_acquisition": {
+            "max_ms": 1.0237890019197948,
+            "p50_ms": 0.7697989967709873,
+            "p95_ms": 0.8793950000836048,
+            "samples": 120
+          },
+          "first_six_local_surface_slots": [
+            0,
+            1,
+            0,
+            1,
+            0,
+            1
+          ],
+          "positive_presented_times": 119,
+          "steady_presentation": {
+            "max_ms": 17.516513998998562,
+            "p50_ms": 16.77164200009429,
+            "p95_ms": 17.367147000186378,
+            "samples": 108
+          },
+          "submission_trace": {
+            "late_intervals": [
+              {
+                "acquisition_ms": 0.8788609993644059,
+                "classification": "client_completed_promptly",
+                "commit_interval_ms": 16.893585998332128,
+                "commit_to_completion_ms": 0.19720000273082405,
+                "completion_to_reported_presentation_ms": 32.126860998687334,
+                "frame": 2,
+                "gpu_ms": 0.006112000846769661,
+                "presentation_interval_ms": 33.334692001517396,
+                "previous_commit_to_completion_ms": 0.12299399895709939,
+                "previous_frame": 1,
+                "startup": true,
+                "surface_slot": 0,
+                "system_flip_delta_between_callbacks": 2
+              }
+            ],
+            "note": "CPU callback observations are not raw fence instants; system counters are shared; classification is not a root-cause attribution",
+            "physical_scanout": "NOT VERIFIED",
+            "trace_collection": "PASS"
+          }
+        }
+      ]
+    }
+  ],
+  "desktop_smoothness": "NOT VERIFIED",
+  "installed_driver_fixed": false,
+  "physical_scanout": "NOT VERIFIED",
+  "schema_version": 1,
+  "scope": "AppKit display-linked clear-only pacing, three bounded runs per own-layer drawable count; no capture during timing"
+}

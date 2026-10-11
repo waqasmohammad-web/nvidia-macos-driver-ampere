@@ -31,7 +31,8 @@ Branch: `dev/ga102-3080ti-diagnostics`. Starting revision: `c52e088`.
   accounting, within the build/test limits documented below. No changed driver
   has been installed. Existing synchronization waits are preserved.
 - **Latest safe work:** isolated capture broker, explicit color-space matching,
-  private source snapshots and scoped acceptance; 27 Python tests pass.
+  private source snapshots and scoped acceptance; per-frame submission traces and
+  a two/three-drawable startup comparison; 31 Python tests pass.
   Objective remains open.
 
 ## Scope and operating constraints
@@ -1174,3 +1175,50 @@ concurrency warnings remain. Evidence:
 Capture validation remains a separate sampled-content experiment; these timing
 runs do not independently verify every rendered frame or physical scanout.
 All active graphics components and synchronization contracts remain unchanged.
+
+
+### Per-frame completion tracing and drawable-pool control
+
+Added read-only, process-local tracing in `tools/ga102_metal_present.swift::draw`:
+relative draw/acquisition/encode/commit/scheduled/completed/presented clocks,
+GPU duration, and six startup samples of the existing system flip counter.
+IOSurface identities are mapped to local slot numbers; global surface IDs are
+not exported. The runner retains full traces privately and adds independent
+analysis from `tools/ga102_presentation_trace.py::analyze` to future pacing
+verdicts. Its classification is separate from the pacing gate and does not
+claim a raw GPU fence timestamp or a driver root cause. Missing traces are
+NOT VERIFIED; invalid or reversed clocks FAIL. No completion wait changed.
+
+**PASS, controlled observation:** three display-linked runs each at two and
+three drawables completed 120/120 commands, 119 positive timestamps, no skipped
+draws, eligible sampled visibility and clean error/drop counters. Steady-state
+p95 intervals remain below 20 ms in all six. Only the probe's own CAMetalLayer
+`maximumDrawableCount` changed between groups, using the SDK-supported 2/3
+values. This does not alter the active framebuffer or display configuration.
+
+**Confirmed startup symptom:** all six retain a frame-2 interval of
+32.991–34.292 ms. Frame 2 completed 0.197–0.243 ms after commit, with the preceding
+frame completing 0.120–0.139 ms after commit. Commit spacing was
+16.502–17.223 ms. Reported presentation followed completion by 32.127–33.145 ms;
+two additional system-wide flips occurred between the two presented callbacks.
+The GPU duration was about 0.005–0.006 ms. These CPU callbacks include the
+plugin's completion bookkeeping; they are not hardware fence instants.
+
+With three drawables the local slot sequence is 0/1/2/0/1/2; with two it is
+0/1/0/1/0/1. The same late frame 2 therefore occurs on a reused surface in the
+two-drawable group. **The hypothesis that first use of the third drawable alone
+causes this startup gap is not supported.** Nor does the evidence support
+removing GPU completion waits, changing the desktop drawable count, or treating
+the shared flip-call mean as this window's latency. First-command completion
+still takes about 10 ms, but the later frame-2 gap persists after prompt client
+completion and is a separate observation.
+
+Public, aggregated evidence with exact compiled source hashes:
+[`evidence/ga102-drawable-startup-trace.json`](evidence/ga102-drawable-startup-trace.json).
+Full numeric traces remain private. Thirty-one Python tests PASS. Both Swift
+modes compiled and executed; the existing default-mode concurrency warning
+remains. These are test/instrumentation changes, not an installed-driver fix.
+Physical scanout and actual desktop responsiveness remain NOT VERIFIED.
+Next: extend window-only capture to ordinary Core Animation content so that
+compositor output, rather than only a CAMetalLayer client, is independently
+validated before pursuing a rendering/synchronization correction.

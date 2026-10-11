@@ -6,6 +6,8 @@ import QuartzCore
 import Metal
 import Dispatch
 import CoreGraphics
+import Darwin
+import IOSurface
 func fail(_ text: String) -> Never { fputs("FAIL: \(text)\n", stderr); exit(1) }
 func stats(_ samples: [Double]) -> [String: Double] {
     let s = samples.sorted()
@@ -27,7 +29,8 @@ let view = NSView(frame: NSRect(x: 0, y: 0, width: 640, height: 360))
 let layer = CAMetalLayer()
 layer.device = device; layer.pixelFormat = .bgra8Unorm
 layer.framebufferOnly = true; layer.displaySyncEnabled = true
-layer.maximumDrawableCount = 3; layer.allowsNextDrawableTimeout = true
+let drawableCount=CommandLine.arguments.contains("--double-buffered") ? 2:3
+layer.maximumDrawableCount = drawableCount; layer.allowsNextDrawableTimeout = true
 layer.drawableSize = CGSize(width: 640, height: 360)
 view.wantsLayer = true; view.layer = layer
 window.contentView = view; window.center(); window.orderFront(nil)
@@ -38,6 +41,13 @@ var presented = [Int: Double](), acquisition = [Double](), gpu = [Double]()
 var drawStarts = [Double]()
 var encoding = [Double](), commitReturn = [Double](), scheduledLatency = [Double](), completionLatency = [Double]()
 var visibility = [[String: Any]]()
+let traceStart=CACurrentMediaTime()
+var frameTrace=[Int:[String:Double]]()
+var surfaceSlots=[UInt32:Int]()
+func flipCount()->Double? {
+    var value:Int64=0;var size=MemoryLayout<Int64>.size
+    return sysctlbyname("debug.nvrmfb_flip_n",&value,&size,nil,0)==0 && size==MemoryLayout<Int64>.size ? Double(value):nil
+}
 func snapshot() -> [String: Any] {
     let session = CGSessionCopyCurrentDictionary() as? [String: Any]
     let display = (window.screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? CGMainDisplayID()
@@ -88,25 +98,46 @@ func draw() {
     let encodedAt = CACurrentMediaTime()
     encoding.append(encodedAt - acquired)
     let id = attempted; attempted += 1; acquisition.append(acquired - t)
+    lock.lock()
+    frameTrace[id] = ["draw_start_ms":(t-traceStart)*1000,"acquisition_ms":(acquired-t)*1000,
+                      "encode_ms":(encodedAt-acquired)*1000]
+    lock.unlock()
+    if let surface=drawable.texture.iosurface {
+        let identity=IOSurfaceGetID(surface)
+        if surfaceSlots[identity] == nil {surfaceSlots[identity]=surfaceSlots.count}
+        lock.lock();frameTrace[id]?["surface_slot"]=Double(surfaceSlots[identity]!);lock.unlock()
+    }
+    if id < 6,let count=flipCount() {lock.lock();frameTrace[id]?["system_flips_at_draw"]=count;lock.unlock()}
     drawable.addPresentedHandler { shown in
-        lock.lock(); presented[id] = shown.presentedTime; lock.unlock()
+        let observed=CACurrentMediaTime(), count=id < 6 ? flipCount():nil
+        lock.lock(); presented[id] = shown.presentedTime
+        frameTrace[id]?["presented_callback_ms"]=(observed-traceStart)*1000
+        frameTrace[id]?["presented_time_available"]=shown.presentedTime > 0 ? 1:0
+        if shown.presentedTime > 0 {frameTrace[id]?["presented_time_ms"]=(shown.presentedTime-traceStart)*1000}
+        if let count=count {frameTrace[id]?["system_flips_at_presented_callback"]=count}
+        lock.unlock()
     }
     lock.lock(); inFlight += 1; lock.unlock()
     let commitAt = CACurrentMediaTime()
+    lock.lock();frameTrace[id]?["commit_start_ms"]=(commitAt-traceStart)*1000;lock.unlock()
     commands.addScheduledHandler { _ in
         let observedAt = CACurrentMediaTime()
-        lock.lock(); scheduledLatency.append(observedAt - commitAt); lock.unlock()
+        lock.lock(); scheduledLatency.append(observedAt - commitAt)
+        frameTrace[id]?["scheduled_callback_ms"]=(observedAt-traceStart)*1000;lock.unlock()
     }
     commands.addCompletedHandler { command in
+        let observedAt=CACurrentMediaTime()
         lock.lock(); defer { lock.unlock() }
         inFlight -= 1; completed += 1
-        completionLatency.append(CACurrentMediaTime() - commitAt)
+        completionLatency.append(observedAt - commitAt)
+        frameTrace[id]?["completed_callback_ms"]=(observedAt-traceStart)*1000
         if command.status != .completed { errors += 1 }
         let a = command.gpuStartTime, b = command.gpuEndTime
-        if a > 0 && b >= a { gpu.append(b - a) }
+        if a > 0 && b >= a { gpu.append(b - a);frameTrace[id]?["gpu_ms"]=(b-a)*1000 }
     }
     commands.present(drawable); commands.commit()
-    commitReturn.append(CACurrentMediaTime() - commitAt)
+    let returned=CACurrentMediaTime();commitReturn.append(returned - commitAt)
+    lock.lock();frameTrace[id]?["commit_return_ms"]=(returned-traceStart)*1000;lock.unlock()
 }
 let tick = DisplayTick { draw() }
 func startWhenReady() {
@@ -132,6 +163,9 @@ DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) {
     let shown = presented.filter { $0.value > 0 }.sorted { $0.key < $1.key }
     let finish = completed, failure = errors, outstanding = inFlight, callbackCount = presented.count
     let GPU = gpu, scheduled = scheduledLatency, completion = completionLatency
+    let trace=frameTrace.sorted{$0.key<$1.key}.map {key,value -> [String:Double] in
+        var row=value;row["frame"]=Double(key);return row
+    }
     lock.unlock()
     // presentedTime is an API observation; physical scanout is not independently measured.
     let latePairs = zip(shown.dropFirst(), shown).filter { $0.0.value - $0.1.value > 0.025 }
@@ -150,6 +184,8 @@ DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) {
     let result: [String: Any] = ["probe": "pacing", "pacing": linked ? "AppKit display link" : "60 Hz timer", "attempted": attempted, "completed": finish,
         "visibility_samples": states, "command_errors": failure, "outstanding": outstanding, "timer_skips": skipped,
         "preflight_ready":preflightReady,"preflight_wait_ms":preflightMs,
+        "frame_trace":trace,
+        "drawable_count":drawableCount,
         "display_width": mode?.width ?? 0, "display_height": mode?.height ?? 0, "display_refresh_hz": mode?.refreshRate ?? 0,
         "presented_callbacks": callbackCount, "positive_presented_times": shown.count,
         "presented_frame_ids": shown.map { $0.key }, "presented_times": shown.map { $0.value },

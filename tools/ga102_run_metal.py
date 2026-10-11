@@ -21,11 +21,13 @@ try:
     from .ga102_pacing_validation import evaluate as evaluate_pacing, repeated_pacing_result
     from .ga102_core_validation import CORE_PROBES, FIELDS, evaluate as evaluate_core, repeated_core_result
     from .ga102_capture_bridge import CaptureBroker
+    from .ga102_presentation_trace import analyze as analyze_trace
 except ImportError:
     from ga102_visual_validation import evaluate as evaluate_visual, repeated_result
     from ga102_pacing_validation import evaluate as evaluate_pacing, repeated_pacing_result
     from ga102_core_validation import CORE_PROBES, FIELDS, evaluate as evaluate_core, repeated_core_result
     from ga102_capture_bridge import CaptureBroker
+    from ga102_presentation_trace import analyze as analyze_trace
 
 ROOT = Path(__file__).resolve().parent.parent
 PROBES = ("ga102_metal_smoketest", "ga102_metal_render_smoketest", "ga102_metal_benchmark",
@@ -104,6 +106,7 @@ def main():
     parser.add_argument("--graphics-copy-queue", action="store_true", help="Attempt test-process-only NVRM_610_CECHAN=0; verify engine selection in logs (installed builds may differ)")
     parser.add_argument("--negative-control", choices=("static", "timestamps", "hidden"))
     parser.add_argument("--display-linked", action="store_true")
+    parser.add_argument("--double-buffered", action="store_true", help="Use two drawables in this probe's CAMetalLayer only; no framebuffer/display changes")
     parser.add_argument("--capture-bridge", action="store_true", help="Capture only the owned visual window via ScreenCaptureKit in this Python process; never requests permission")
     parser.add_argument("--result-json", type=Path, help="Save scoped visual-probe verdicts and numeric metrics, excluding raw logs and machine identities")
     args = parser.parse_args()
@@ -115,6 +118,8 @@ def main():
         parser.error("--result-json must name a new file; existing evidence is never overwritten")
     if args.display_linked and args.probe != "ga102_metal_present":
         parser.error("--display-linked requires ga102_metal_present")
+    if args.double_buffered and args.probe != 'ga102_metal_present':
+        parser.error('--double-buffered requires ga102_metal_present')
     if args.negative_control and args.probe != "ga102_visual_present":
         parser.error("--negative-control requires ga102_visual_present")
     if args.surface_comparison and args.probe != "ga102_metal_benchmark":
@@ -173,6 +178,8 @@ def main():
                 command = [str(executable)] + (["--surface-comparison"] if args.surface_comparison else [])
                 if args.display_linked:
                     command.append("--display-linked")
+                if args.double_buffered:
+                    command.append('--double-buffered')
                 if args.negative_control:
                     command.append(args.negative_control)
                 code = (run_owned(command, log, 45, env, broker.poll) if broker else run_owned(command, log, 45, env))
@@ -184,6 +191,12 @@ def main():
             # into public reports; print only probe-owned result lines here.
             lines = output.read_text(errors="replace").splitlines()
             for line in lines:
+                if args.probe == 'ga102_metal_present' and line.startswith('result: '):
+                    summary = json.loads(line[8:])
+                    for key in ('frame_trace', 'presented_times', 'presented_frame_ids'):
+                        if key in summary: summary[key] = 'full data retained in private log/result artifact'
+                    print('result: ' + json.dumps(summary, sort_keys=True), flush=True)
+                    continue
                 if line.startswith(("Metal GPU:", "Computed values:", "Center pixel", "PASS", "FAIL", "NOT VERIFIED", "BLOCKED",
                                     "device:", "device_creation_ms:", "library_creation_ms:",
                                     "pipeline_creation_ms_in_order:", "result:")):
@@ -224,6 +237,8 @@ def main():
                         if evidence.get("probe") == "pacing":
                             keys = ("attempted", "completed", "command_errors", "outstanding", "timer_skips",
                                     "preflight_ready", "preflight_wait_ms",
+                                    "frame_trace",
+                                    "drawable_count",
                                     "display_width", "display_height", "display_refresh_hz",
                                     "positive_presented_times", "presented_frame_ids", "presented_times",
                                     "visibility_samples", "presentation_intervals", "drawable_acquisition", "gpu",
@@ -231,6 +246,7 @@ def main():
                                     "commit_to_completed_callback", "late_frame_correlations")
                             metrics = {key: evidence[key] for key in keys if key in evidence}
                             verdict = evaluate_pacing(evidence, correlation)
+                            verdict['submission_trace'] = analyze_trace(evidence)
                             print("result: " + json.dumps(verdict, sort_keys=True), flush=True)
                             if verdict["automated_pacing_validation"] == "FAIL":
                                 code = 1
