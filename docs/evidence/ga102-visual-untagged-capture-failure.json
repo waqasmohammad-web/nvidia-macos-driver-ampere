@@ -1,0 +1,69 @@
+{
+  "automated_visual_validation": "FAIL",
+  "capture_helper_source_sha256": "20cbcd9e2e949fb1dd106b8156812d07b38122af10384f74e98626e2a2394d0f",
+  "capture_method": "ScreenCaptureKit owned-window broker",
+  "checks": {
+    "gpu_frame_contents": "NOT VERIFIED",
+    "own_window_capture": "FAIL",
+    "presentation_timestamps": "NOT VERIFIED",
+    "system_display_activity": "NOT VERIFIED",
+    "visible_window_state": "NOT VERIFIED"
+  },
+  "completed_runs": 1,
+  "desktop_smoothness": "NOT VERIFIED",
+  "execution": "FAIL",
+  "installed_driver_fixed": false,
+  "negative_control": null,
+  "physical_scanout": "NOT VERIFIED",
+  "probe": "ga102_visual_present",
+  "probe_source_sha256": "80b511effd3984779e8aca12d68e3e921e6c0c18b89e1a533383f1dd88142e70",
+  "reproducibility": "NOT VERIFIED",
+  "requested_runs": 1,
+  "runs": [
+    {
+      "display_correlation": {
+        "available_counters": 7,
+        "deltas": {
+          "debug.nvaccel_iop_async_drop": 0,
+          "debug.nvaccel_iop_async_refused": 0,
+          "debug.nvaccel_iop_fail": 0,
+          "debug.nvaccel_iop_flips": 312,
+          "debug.nvaccel_iop_ok": 313,
+          "debug.nvrmfb_flip_n": 312,
+          "debug.nvrmfb_flip_us_sum": 3778184
+        },
+        "mean_flip_call_us": 12109.564102564103,
+        "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+        "visible_presentation": "candidate"
+      },
+      "exit_code": 1,
+      "metrics": {
+        "capture_attempted": 12,
+        "capture_correct_frames": 4,
+        "capture_distinct_patterns": 12,
+        "capture_permission": true,
+        "capture_received_frames": 12,
+        "distinct_timestamps": 12,
+        "frames": 12,
+        "gpu_correct_frames": 12,
+        "gpu_distinct_patterns": 12,
+        "positive_timestamps": 12,
+        "timestamps_increasing": true,
+        "visible_frames": 12
+      },
+      "verdict": {
+        "automated_visual_validation": "FAIL",
+        "checks": {
+          "gpu_frame_contents": "PASS",
+          "own_window_capture": "FAIL",
+          "presentation_timestamps": "PASS",
+          "system_display_activity": "PASS",
+          "visible_window_state": "PASS"
+        },
+        "installed_driver_fixed": false,
+        "physical_scanout": "NOT VERIFIED"
+      }
+    }
+  ],
+  "schema_version": 1
+}

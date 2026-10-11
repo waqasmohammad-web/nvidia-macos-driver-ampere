@@ -1,0 +1,138 @@
+{
+  "capture_helper_source_sha256": "9558b341767bca31c3634e7948cb05ea9753f267b5cc34274b66cd766ddb549d",
+  "controls": [
+    {
+      "acceptance": "PASS",
+      "control": "static",
+      "display_correlation": {
+        "available_counters": 7,
+        "deltas": {
+          "debug.nvaccel_iop_async_drop": 0,
+          "debug.nvaccel_iop_async_refused": 0,
+          "debug.nvaccel_iop_fail": 0,
+          "debug.nvaccel_iop_flips": 315,
+          "debug.nvaccel_iop_ok": 315,
+          "debug.nvrmfb_flip_n": 315,
+          "debug.nvrmfb_flip_us_sum": 3732130
+        },
+        "mean_flip_call_us": 11848.031746031746,
+        "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+        "visible_presentation": "candidate"
+      },
+      "expected": "FAIL",
+      "metrics": {
+        "capture_correct_frames": 1,
+        "capture_distinct_patterns": 1,
+        "capture_permission": true,
+        "capture_received_frames": 12,
+        "frames": 12,
+        "gpu_correct_frames": 1,
+        "gpu_distinct_patterns": 1,
+        "positive_timestamps": 12,
+        "visible_frames": 12
+      },
+      "verdict": {
+        "automated_visual_validation": "FAIL",
+        "checks": {
+          "gpu_frame_contents": "FAIL",
+          "own_window_capture": "FAIL",
+          "presentation_timestamps": "PASS",
+          "system_display_activity": "PASS",
+          "visible_window_state": "PASS"
+        },
+        "installed_driver_fixed": false,
+        "physical_scanout": "NOT VERIFIED"
+      }
+    },
+    {
+      "acceptance": "PASS",
+      "control": "timestamps",
+      "display_correlation": {
+        "available_counters": 7,
+        "deltas": {
+          "debug.nvaccel_iop_async_drop": 0,
+          "debug.nvaccel_iop_async_refused": 0,
+          "debug.nvaccel_iop_fail": 0,
+          "debug.nvaccel_iop_flips": 320,
+          "debug.nvaccel_iop_ok": 321,
+          "debug.nvrmfb_flip_n": 320,
+          "debug.nvrmfb_flip_us_sum": 3967511
+        },
+        "mean_flip_call_us": 12398.471875,
+        "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+        "visible_presentation": "candidate"
+      },
+      "expected": "NOT VERIFIED",
+      "metrics": {
+        "capture_correct_frames": 12,
+        "capture_distinct_patterns": 12,
+        "capture_permission": true,
+        "capture_received_frames": 12,
+        "frames": 12,
+        "gpu_correct_frames": 12,
+        "gpu_distinct_patterns": 12,
+        "positive_timestamps": 0,
+        "visible_frames": 12
+      },
+      "verdict": {
+        "automated_visual_validation": "NOT VERIFIED",
+        "checks": {
+          "gpu_frame_contents": "PASS",
+          "own_window_capture": "PASS",
+          "presentation_timestamps": "NOT VERIFIED",
+          "system_display_activity": "PASS",
+          "visible_window_state": "PASS"
+        },
+        "installed_driver_fixed": false,
+        "physical_scanout": "NOT VERIFIED"
+      }
+    },
+    {
+      "acceptance": "PASS",
+      "control": "hidden",
+      "display_correlation": {
+        "available_counters": 7,
+        "deltas": {
+          "debug.nvaccel_iop_async_drop": 0,
+          "debug.nvaccel_iop_async_refused": 0,
+          "debug.nvaccel_iop_fail": 0,
+          "debug.nvaccel_iop_flips": 187,
+          "debug.nvaccel_iop_ok": 187,
+          "debug.nvrmfb_flip_n": 187,
+          "debug.nvrmfb_flip_us_sum": 2217160
+        },
+        "mean_flip_call_us": 11856.470588235294,
+        "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+        "visible_presentation": "candidate"
+      },
+      "expected": "NOT VERIFIED",
+      "metrics": {
+        "capture_correct_frames": 0,
+        "capture_distinct_patterns": 0,
+        "capture_permission": true,
+        "capture_received_frames": 0,
+        "frames": 12,
+        "gpu_correct_frames": 12,
+        "gpu_distinct_patterns": 12,
+        "positive_timestamps": 0,
+        "visible_frames": 0
+      },
+      "verdict": {
+        "automated_visual_validation": "NOT VERIFIED",
+        "checks": {
+          "gpu_frame_contents": "PASS",
+          "own_window_capture": "NOT VERIFIED",
+          "presentation_timestamps": "NOT VERIFIED",
+          "system_display_activity": "PASS",
+          "visible_window_state": "NOT VERIFIED"
+        },
+        "installed_driver_fixed": false,
+        "physical_scanout": "NOT VERIFIED"
+      }
+    }
+  ],
+  "installed_driver_fixed": false,
+  "physical_scanout": "NOT VERIFIED",
+  "probe_source_sha256": "78be4af607f3e9f5e0c255f6aa36bcbd4a169f887ad0a2adbab16eaf9c8447e9",
+  "schema_version": 1
+}

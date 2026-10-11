@@ -1,7 +1,7 @@
 # GA102 desktop acceleration investigation
 
 Status: autonomous visual validation and compositor tracing in progress;
-GPU pattern/negative controls validated; own-window capture unavailable;
+GPU patterns and owned-window ScreenCaptureKit capture validated via broker;
 desktop root cause and installed-driver improvement unresolved, 2026-10-11.
 Branch: `dev/ga102-3080ti-diagnostics`. Starting revision: `c52e088`.
 
@@ -15,18 +15,23 @@ Branch: `dev/ga102-3080ti-diagnostics`. Starting revision: `c52e088`.
   predate the new raw-timestamp/target-mode gate; do not retroactively label them
   full-suite PASS. Core Animation animation phases increased WindowServer CPU
   to about 44–45% of one core, with clean flip counters; causality is unresolved.
-- **NOT VERIFIED:** latest three-run batch rendered correct patterns while
-  visibly ineligible, with no presentation timestamps or display activity.
-  Full visual reproducibility, physical scanout and desktop improvement remain
-  unverified. Display-linked versus timer pacing needs a naturally active GUI.
-- **BLOCKED:** own-window capture authorization, protected WindowServer stack
-  access, and full framebuffer build inputs (missing generated `nvkms.h`).
+- **PASS, owned-window capture scope:** authorized Python broker captured and
+  checked 36/36 changing frames over three runs after explicit sRGB tagging.
+  GPU pixels, sampled visibility, ordered timestamps and clean display counters
+  also passed. Screenshots do not verify physical scanout or desktop smoothness.
+- **NOT VERIFIED:** physical scanout and desktop improvement remain unverified.
+  Latest timer batch has two scoped pacing PASS runs; the third has only 117
+  positive timestamps and does not meet the strict gate. No steady-state stall
+  was measured. Display-linked versus timer comparison remains pending.
+- **BLOCKED:** protected WindowServer stack access and full framebuffer build
+  inputs (missing generated `nvkms.h`). Capture now works in the broker process.
   No permission request, privilege escalation or stub replacement was used.
 - **SOURCE VALIDATED only:** shader-cache helper and framebuffer completion
   accounting, within the build/test limits documented below. No changed driver
   has been installed. Existing synchronization waits are preserved.
-- **Latest safe work:** durable scoped artifacts, repeated-run acceptance and
-  conservative 60 Hz timing gates; 19 Python tests pass. Objective remains open.
+- **Latest safe work:** isolated capture broker, explicit color-space matching,
+  private source snapshots and scoped acceptance; 26 Python tests pass.
+  Objective remains open.
 
 ## Scope and operating constraints
 
@@ -1032,3 +1037,85 @@ isolated device-binding harness is not yet established. No experimental bundle
 was executed, no active component replaced, and no graphics services restarted.
 Previously built candidates remain AWAITING LIVE VALIDATION. Offline tests and
 source development continue independently of this deployment limitation.
+
+### ScreenCaptureKit owned-window validation after app restart
+
+Permission is process-dependent in this session: three temporary Swift probe
+runs still returned `CGPreflightScreenCaptureAccess=false`, while a separate
+read-only call in the Python diagnostic process returned true. Those Swift runs
+had 12/12 correct GPU patterns, positive ordered timestamps and visibility in
+each run, but no capture. This supports different effective authorization for
+the temporary executable; no permission database, security setting or additional
+authorization prompt was accessed. A separate authorization for that executable
+was avoided by moving capture into the already authorized Python process.
+
+`tools/ga102_window_capture.m` is a small helper dylib loaded only into that
+diagnostic process, not a driver/plugin replacement. It links public AppKit,
+Foundation, CoreGraphics and ScreenCaptureKit, has no NVK/driver initialization,
+and captures only a `desktopIndependentWindow` filter matched against both the
+owned child's PID and window ID. `tools/ga102_capture_bridge.py` also verifies
+the request belongs to its live child before calling the helper. A private
+request/response channel keeps each rendered pattern stable until capture ends.
+Only 24 synthetic RGB sample points are returned; no screenshot files or pixels
+from other windows are collected. Process/window identifiers stay in private
+scratch and are excluded from public evidence. An unavailable API stops further
+capture calls in that run, and a missing broker response stops retries in the
+Swift child. The suite's presentation/control profiles now select this broker.
+
+Two harness failures were resolved transparently. The first helper attempt
+aborted because ScreenCaptureKit required an initialized AppKit/CoreGraphics
+client in the Python host. Only the surviving owned probe group was terminated,
+after verifying its executable and process-group identity. The helper now creates
+an accessory NSApplication client without focus activation or service changes.
+A subsequent build failed because the source changed during compilation; the
+runner now compiles private source snapshots and hashes those exact bytes.
+Neither failure indicates a GPU/WindowServer defect. No experimental driver
+component, kext or active framebuffer was replaced.
+
+The first functioning capture run correctly yielded **FAIL**: GPU output was
+12/12 correct and captured frames were all distinct, but only 4/12 captured
+frames matched the original expected RGB values. This reproduced in a second
+run. Sampled red was `[242,55,20]`, green `[99,253,60]`, and blue `[0,0,249]`.
+A CPU-owned BGRA fixture independently passed the helper's RGB normalization
+control. SDK headers document that a nil CAMetalLayer colorspace performs no
+color matching and capture defaults to the display's color space. The test
+previously compared these unspecified color semantics against canonical sRGB.
+Explicit sRGB on both the probe layer and capture configuration resolved the
+mismatch without increasing the existing tolerance or altering display settings.
+This substantiates a test color-space definition error; the exact contribution
+of each of the two tagging changes was not separately isolated. It does not
+establish an installed-driver color or performance defect.
+
+**PASS, repeated owned-window validation:** three sRGB broker runs each had
+12/12 correct, distinct GPU patterns; 12/12 correct, distinct captured frames;
+12 positive ordered timestamps; and 12 eligible visibility samples. System-wide
+successful flip deltas were 318/318/317, with no new drops/refusals/failures.
+Thus all claimed automated visual categories and three-run reproducibility PASS.
+Physical scanout and real desktop smoothness remain NOT VERIFIED. This slow
+300 ms/frame correctness probe does not measure 60 Hz animation performance.
+
+**PASS, live negative-control rejection:** reusing the same built probe/helper
+avoided recompilation. Static output yielded GPU/capture correctness 1/12 and
+one distinct pattern, hence visual FAIL. Forced zero timestamps had 12/12 correct
+captured patterns but remained NOT VERIFIED. Hidden output had correct GPU
+patterns, zero visible samples/timestamps and zero captured frames, hence
+NOT VERIFIED. No control received a full visual-validation PASS. Twenty-six
+Python tests PASS, including independent pattern sampling, owner rejection,
+hidden-window refusal, source snapshots and existing acceptance gates. The
+capture helper compiles with `-Wall -Wextra -Werror`.
+
+Public evidence: [`evidence/ga102-visual-capture-srgb.json`](evidence/ga102-visual-capture-srgb.json),
+[`evidence/ga102-visual-untagged-capture-failure.json`](evidence/ga102-visual-untagged-capture-failure.json),
+and [`evidence/ga102-capture-negative-controls.json`](evidence/ga102-capture-negative-controls.json).
+Probe/helper hashes identify exact built snapshots. The direct probe remains
+available, while `--capture-bridge` supplies the authorized-process capture path.
+
+An active-session three-run timer batch also completed 120 commands per run
+with no display errors and no intervals above 25 ms. Two runs passed the new
+gate (p95 17.159/17.257 ms); the middle run had only 117 positive timestamps,
+for IDs 3–119, and remains NOT VERIFIED under the unchanged minimum-118 rule
+despite steady-state p95 17.126 ms. The gate was not relaxed to force a PASS.
+Acquisition p95 varied from 0.062/7.965/0.079 ms while completion-callback p95
+was 0.261/0.227/0.252 ms; this variation motivates the pending display-linked
+comparison rather than removal of mandatory waits. Saved timing evidence is
+[`evidence/ga102-timer-active.json`](evidence/ga102-timer-active.json).

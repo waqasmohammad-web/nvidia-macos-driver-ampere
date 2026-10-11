@@ -15,6 +15,8 @@ let window=NSWindow(contentRect:NSRect(x:0,y:0,width:width,height:height),styleM
 window.isReleasedWhenClosed=false
 let view=NSView(frame:NSRect(x:0,y:0,width:width,height:height));view.wantsLayer=true
 let layer=CAMetalLayer();layer.device=device;layer.pixelFormat = .bgra8Unorm;layer.framebufferOnly=false
+// Define the expected rendered color space; nil bypasses layer color matching.
+layer.colorspace=CGColorSpace(name:CGColorSpace.sRGB)
 layer.drawableSize=CGSize(width:width,height:height);layer.displaySyncEnabled=true;layer.allowsNextDrawableTimeout=true
 view.layer=layer;window.contentView=view;window.center()
 if negative != "hidden" {window.orderFront(nil)}
@@ -61,11 +63,13 @@ func complete(_ commands:MTLCommandBuffer) async {
 }
 var gpuCorrect=0,captureCorrect=0,captureAttempted=0,captureReceived=0,visibleFrames=0
 var distinct=Set<String>(),captureDistinct=Set<String>()
-let captureAllowed=CGPreflightScreenCaptureAccess()
+let captureIPC = ProcessInfo.processInfo.environment["GA102_CAPTURE_IPC"].map { URL(fileURLWithPath:$0,isDirectory:true) }
+let captureAllowed = captureIPC != nil ? ProcessInfo.processInfo.environment["GA102_CAPTURE_PERMISSION"] == "1" : CGPreflightScreenCaptureAccess()
 var captureState=captureAllowed ? "available":"NOT VERIFIED: screen-capture permission unavailable; not requested"
+var captureBrokerStopped=false
 Task { @MainActor in
     var filter:SCContentFilter?
-    if captureAllowed && negative != "hidden" {
+    if captureIPC == nil && captureAllowed && negative != "hidden" {
         do {
             let shared=try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:true)
             if let own=shared.windows.first(where:{$0.windowID==UInt32(window.windowNumber) && $0.owningApplication?.processID==getpid()}) {
@@ -97,9 +101,28 @@ Task { @MainActor in
         // Keep each pattern stable for capture; this is visual correctness, not a 60 Hz pacing test.
         try? await Task.sleep(nanoseconds:300_000_000)
         if visible(){visibleFrames+=1}
+        if let root=captureIPC, captureAllowed && !captureBrokerStopped {
+            captureAttempted+=1
+            let request:[String:Any] = ["frame":id,"window_id":window.windowNumber,"pid":getpid()]
+            let data=try! JSONSerialization.data(withJSONObject:request)
+            try! data.write(to:root.appendingPathComponent("request.json"),options:.atomic)
+            let response=root.appendingPathComponent("response-\(id).json")
+            let deadline=Date().addingTimeInterval(6)
+            while !FileManager.default.fileExists(atPath:response.path) && Date()<deadline {
+                try? await Task.sleep(nanoseconds:10_000_000)
+            }
+            if let data=try? Data(contentsOf:response),let value=(try? JSONSerialization.jsonObject(with:data)) as? [String:Any] {
+                if value["received"] as? Bool == true {captureReceived+=1}
+                if value["correct"] as? Bool == true {captureCorrect+=1}
+                // The broker retains signatures, never images. Count arrives independently of GPU readback.
+                if let count=value["distinct_patterns"] as? Int {for n in 0..<count {captureDistinct.insert(String(n))}}
+                if value["received"] as? Bool != true {captureState="NOT VERIFIED: own-window broker capture unavailable"}
+            }else{captureState="NOT VERIFIED: own-window broker deadline";captureBrokerStopped=true}
+        }
         if let f=filter {
             captureAttempted+=1
             let cfg=SCStreamConfiguration();cfg.width=width;cfg.height=height;cfg.showsCursor=false;cfg.ignoreShadowsSingleWindow=true
+            cfg.colorSpaceName=CGColorSpace.sRGB
             do {
                 let image=try await SCScreenshotManager.captureImage(contentFilter:f,configuration:cfg)
                 captureReceived+=1
@@ -123,6 +146,7 @@ Task { @MainActor in
     let ordered=observed.sorted{$0.key<$1.key}.map{$0.value}.filter{$0>0}
     let increasing=zip(ordered.dropFirst(),ordered).allSatisfy{$0>$1}
     let result:[String:Any]=["probe":"visual","frames":frames,"negative_control":negative,"gpu_correct_frames":gpuCorrect,"gpu_distinct_patterns":distinct.count,
+        "capture_method":captureIPC != nil ? "ScreenCaptureKit owned-window broker":"ScreenCaptureKit in probe",
         "positive_timestamps":positive,"timestamps_increasing":increasing,"distinct_timestamps":Set(ordered).count,"zero_timestamp_ids":zeroIDs,"visible_frames":visibleFrames,
         "capture_permission":captureAllowed,"capture_state":captureState,"capture_attempted":captureAttempted,"capture_received_frames":captureReceived,"capture_correct_frames":captureCorrect,"capture_distinct_patterns":captureDistinct.count,
         "physical_scanout":"NOT VERIFIED"]

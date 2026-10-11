@@ -26,6 +26,10 @@ class ResultArtifactTests(unittest.TestCase):
             return {'debug.nvrmfb_flip_n': count * 100, 'debug.nvaccel_iop_async_drop': 0,
                     'debug.nvaccel_iop_async_refused': 0, 'debug.nvaccel_iop_fail': 0}
         def fake_run(command, log, timeout, env=None):
+            if timeout == 90:
+                snapshot = Path(command[-3])
+                self.assertEqual(snapshot.parent, scratch)
+                self.assertEqual(snapshot.read_bytes(), (runner.ROOT / 'tools/ga102_metal_present.swift').read_bytes())
             if timeout == 45: log.write('result: ' + json.dumps(evidence) + '\n')
             return 0
         with tempfile.TemporaryDirectory() as directory:

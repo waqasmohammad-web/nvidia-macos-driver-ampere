@@ -25,11 +25,11 @@ def plan(profile, repeat):
     if profile in ('correctness', 'all'):
         jobs += [(probe, [], repeat, None) for probe in CORE_PROBES]
     if profile in ('presentation', 'all'):
-        jobs += [('ga102_visual_present', [], repeat, None),
+        jobs += [('ga102_visual_present', ['--capture-bridge'], repeat, None),
                  ('ga102_metal_present', [], repeat, None),
                  ('ga102_metal_present', ['--display-linked'], repeat, None)]
     if profile in ('negative-controls', 'all'):
-        jobs += [('ga102_visual_present', ['--negative-control', mode], 1, expected)
+        jobs += [('ga102_visual_present', ['--capture-bridge', '--negative-control', mode], 1, expected)
                  for mode, expected in (('static', 'FAIL'), ('timestamps', 'NOT VERIFIED'), ('hidden', 'NOT VERIFIED'))]
     return jobs
 

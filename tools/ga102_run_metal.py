@@ -15,27 +15,39 @@ import signal
 from pathlib import Path
 import subprocess
 import tempfile
+import time
 try:
     from .ga102_visual_validation import evaluate as evaluate_visual, repeated_result
     from .ga102_pacing_validation import evaluate as evaluate_pacing, repeated_pacing_result
     from .ga102_core_validation import CORE_PROBES, FIELDS, evaluate as evaluate_core, repeated_core_result
+    from .ga102_capture_bridge import CaptureBroker
 except ImportError:
     from ga102_visual_validation import evaluate as evaluate_visual, repeated_result
     from ga102_pacing_validation import evaluate as evaluate_pacing, repeated_pacing_result
     from ga102_core_validation import CORE_PROBES, FIELDS, evaluate as evaluate_core, repeated_core_result
+    from ga102_capture_bridge import CaptureBroker
 
 ROOT = Path(__file__).resolve().parent.parent
 PROBES = ("ga102_metal_smoketest", "ga102_metal_render_smoketest", "ga102_metal_benchmark",
           "ga102_metal_memory", "ga102_metal_present", "ga102_metal_composite", "ga102_metal_crossprocess", "ga102_metal_events", "ga102_core_animation", "ga102_visual_present")
 
 
-def run_owned(command, log, timeout, env=None):
+def run_owned(command, log, timeout, env=None, observer=None):
     """Deadline applies to our process group, including compiler children."""
     with subprocess.Popen(command, env=env, stdout=log, stderr=subprocess.STDOUT,
                           start_new_session=True) as child:
         try:
-            return child.wait(timeout=timeout)
-        except subprocess.TimeoutExpired:
+            if observer is None:
+                return child.wait(timeout=timeout)
+            deadline = time.monotonic() + timeout
+            while child.poll() is None:
+                observer(child)
+                remaining = deadline - time.monotonic()
+                if remaining <= 0: raise subprocess.TimeoutExpired(command, timeout)
+                try: return child.wait(timeout=min(.05, remaining))
+                except subprocess.TimeoutExpired: pass
+            return child.returncode
+        except BaseException:
             # Signal only the session we created, never WindowServer/services.
             try:
                 os.killpg(child.pid, signal.SIGTERM)
@@ -92,8 +104,11 @@ def main():
     parser.add_argument("--graphics-copy-queue", action="store_true", help="Attempt test-process-only NVRM_610_CECHAN=0; verify engine selection in logs (installed builds may differ)")
     parser.add_argument("--negative-control", choices=("static", "timestamps", "hidden"))
     parser.add_argument("--display-linked", action="store_true")
+    parser.add_argument("--capture-bridge", action="store_true", help="Capture only the owned visual window via ScreenCaptureKit in this Python process; never requests permission")
     parser.add_argument("--result-json", type=Path, help="Save scoped visual-probe verdicts and numeric metrics, excluding raw logs and machine identities")
     args = parser.parse_args()
+    if args.capture_bridge and args.probe != 'ga102_visual_present':
+        parser.error('--capture-bridge requires ga102_visual_present')
     if args.result_json and args.probe not in (*CORE_PROBES, "ga102_visual_present", "ga102_metal_present"):
         parser.error("--result-json requires a core correctness or presentation probe")
     if args.result_json and args.result_json.exists():
@@ -117,26 +132,50 @@ def main():
             folder.mkdir(mode=0o700)
             env[key] = str(folder)
         print("Cache isolation scope: Mesa override requested; AIR override may be stripped by release-plugin initialization", flush=True)
+    source_bytes = (ROOT / "tools" / f"{args.probe}.swift").read_bytes()
+    compile_input = scratch / f'{args.probe}.swift'
+    compile_input.write_bytes(source_bytes)
     compile_command = ["xcrun", "swiftc", "-O", "-module-cache-path", str(scratch / "modules"),
-                       str(ROOT / "tools" / f"{args.probe}.swift"), "-o", str(executable)]
+                       str(compile_input), "-o", str(executable)]
     runs = []
-    source_hash = hashlib.sha256((ROOT / "tools" / f"{args.probe}.swift").read_bytes()).hexdigest()
+    source_hash = hashlib.sha256(source_bytes).hexdigest()
+    capture_source_hash = None
     try:
         with (scratch / "compile.log").open("w") as log:
             code = run_owned(compile_command, log, 90)
         if code:
             print((scratch / "compile.log").read_text()[-6000:])
             return code
+        capture_library = scratch / 'window-capture.dylib'
+        if args.capture_bridge:
+            capture_source = scratch / 'ga102_window_capture.m'
+            capture_bytes = (ROOT / 'tools/ga102_window_capture.m').read_bytes()
+            capture_source.write_bytes(capture_bytes)
+            capture_source_hash = hashlib.sha256(capture_bytes).hexdigest()
+            command = ['xcrun', 'clang', '-dynamiclib', '-fobjc-arc', '-Wall', '-Wextra', '-Werror',
+                       str(capture_source), '-framework', 'Foundation', '-framework', 'AppKit',
+                       '-framework', 'ScreenCaptureKit', '-framework', 'CoreGraphics', '-o', str(capture_library)]
+            with (scratch / 'capture-compile.log').open('w') as log:
+                code = run_owned(command, log, 60)
+            if code:
+                print('BLOCKED: own-window capture helper did not compile; details in private scratch', flush=True)
+                return code
         for iteration in range(args.repeat):
             output = scratch / f"run-{iteration + 1}.log"
             before = display_counters() if args.probe in ("ga102_metal_present", "ga102_visual_present") else {}
+            broker = None
+            if args.capture_bridge:
+                channel = scratch / f'capture-{iteration}'; channel.mkdir(mode=0o700)
+                broker = CaptureBroker(capture_library, channel)
+                env['GA102_CAPTURE_IPC'] = str(channel)
+                env['GA102_CAPTURE_PERMISSION'] = '1' if broker.allowed else '0'
             with output.open("w") as log:
                 command = [str(executable)] + (["--surface-comparison"] if args.surface_comparison else [])
                 if args.display_linked:
                     command.append("--display-linked")
                 if args.negative_control:
                     command.append(args.negative_control)
-                code = run_owned(command, log, 45, env)
+                code = (run_owned(command, log, 45, env, broker.poll) if broker else run_owned(command, log, 45, env))
             if args.probe in ("ga102_metal_present", "ga102_visual_present"):
                 correlation = display_delta(before, display_counters())
                 print("result: " + json.dumps({"display_correlation": correlation}, sort_keys=True), flush=True)
@@ -209,6 +248,9 @@ def main():
                       else repeated_result(runs, args.repeat, source_hash, args.negative_control))
             if args.probe == "ga102_metal_present":
                 report['pacing'] = 'AppKit display link' if args.display_linked else '60 Hz timer'
+            if args.probe == 'ga102_visual_present':
+                report['capture_method'] = 'ScreenCaptureKit owned-window broker' if args.capture_bridge else 'ScreenCaptureKit in probe'
+                if capture_source_hash: report['capture_helper_source_sha256'] = capture_source_hash
             with args.result_json.open("x") as output:
                 json.dump(report, output, indent=2, sort_keys=True, allow_nan=False)
                 output.write("\n")
