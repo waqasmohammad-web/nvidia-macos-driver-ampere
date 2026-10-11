@@ -149,6 +149,12 @@ The older scripts above reference external author build trees, and
 [build remediation](docs/GA102-INVESTIGATION.md#build-remediation--11-october-2026)
 for the verified component status and remaining dependencies.
 
+For the isolated framebuffer instrumentation alternative using authenticated
+1.11.0 prebuilt dependencies, see
+[candidate preparation](docs/GA102-INVESTIGATION.md#authentic-dependency-search-and-minimal-candidate--11-october-2026).
+`build/prepare_fb_candidate.py` creates candidate/rollback bundles without
+installing them. This is not a complete NVRM source rebuild.
+
 ## License
 
 Free of charge, source code included. Nobody may sell it or use it to make money.

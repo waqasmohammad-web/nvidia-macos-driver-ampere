@@ -1926,3 +1926,93 @@ comparing frame pacing tails and >25 ms intervals alongside corruption/errors.
 The candidate must first explain the selected critical-path wait, then preserve
 ordering while measurably reducing it. **No live deployment approval is requested
 yet:** the complete release and recovery prerequisites are not ready.
+
+### Authentic dependency search and minimal candidate — 11 October 2026
+
+Bounded search covered local build/cache/download/application-support artifacts,
+all local Git history, upstream main and relevant support branches, upstream
+1401 tree and release listings. No Darwin archive producer, `compile_cmds.sh`,
+`libnvkernel.a` or `libnvkms.a` was found in those sources. The initial commit's
+only `libnvkernel.a` reference is `rmcc.py` consuming prior build commands.
+This establishes unavailable inputs in the searched published/local material,
+not proof that the author lacks them or that they are proprietary. Stop
+speculative port reconstruction. Missing inputs remain the authenticated
+610.57.04 Darwin vendor patches/build recipe, paired archives/compile commands
+and complete NVRM link/packaging command. A full NVRM/Mesa source build remains
+**BLOCKED**, and no complete source-built release is claimed.
+
+**Concrete alternative:** downloaded the authentic
+[NullMoth v1.11.0 release](https://github.com/nullmoth/nvidia-macos-driver/releases/tag/v1.11.0),
+verified SHA-256 `6e568e28ee34c3b41f4dfda980fd8feb50fdd0a69cf6d0f6e54338873b8ec2e7`
+against GitHub's asset digest, and checked its 100 archive members. It contains
+finished NVRM/NVK/translator/Metal binaries, no build archives or recipe. The
+locally retained original installer has the same digest. Of 39 regular payload
+files compared under Extensions/GPUBundles, 38 match installed on-disk files.
+Only `nvrm610.conf` differs; its contents are neither published nor replaced.
+These checks do not establish exact loaded bytes or physical runtime behavior.
+
+Pinned release source is `e404ab30b94d6588bdf63b3724d59f1e713ad963`.
+All 82 corresponding existing kernel inputs except the instrumented framebuffer
+translation unit match our checkout, including shared VRAM/GPUVA/surface ABI
+headers, NVAccel implementation and `610-display-completion.patch`. NVRM's
+published binary contains 610.57.04 identity strings. Keep this matched prebuilt
+core and user-space stack fixed rather than mixing an unqualified reconstructed
+RM with our framebuffer.
+
+Resolved missing `xz` locally using `build/compress_nvkms_shaders.py`, a narrowly
+scoped equivalent of the exact upstream `-ce -C none` invocation. Python LZMA
+uses XZ format, preset 6/extreme and CHECK_NONE. The real upstream Ampere shader
+target built; decompression reproduced every source byte and confirmed CHECK_NONE.
+No system tool install or shader replacement occurred. This removes an ordinary
+tool blocker, not the absent Darwin port/ELF-to-Mach-O recipe.
+
+**Prepared artifact:** `build/prepare_fb_candidate.py` verifies the published
+release digest, pinned clean baseline source, unchanged shared kernel inputs,
+current built kernel-input hashes and framebuffer binary proof. It creates a
+new offline candidate bundle plus the original rollback bundle, and refuses
+existing output. It copies no replacement Metal/NVK/NVRM binaries and no graphics
+configuration. Candidate uses the existing completion-observability change from
+`b6b9505`; its 100-query/1 ms sleep contracts, query-failure behavior, fault latch
+and surface pinning are preserved. Read-only prior/submitted wait counts,
+durations, poll/sleep totals and long-tail counters enable the selected flip-wait
+measurement. This does not directly measure WindowServer GPU waits or constitute
+a performance optimization. Accounting overhead and loaded behavior are untested.
+
+Static validation: x86_64 Mach-O kext, rollback binary byte-identical to installed
+on-disk framebuffer, 82 matching baseline kernel inputs, verified candidate hash,
+existing-output rejection. Compared undefined imports add only
+`_absolutetime_to_nanoseconds`, already imported by the installed driver set;
+none are removed. Kernel-loader compatibility is **NOT VERIFIED** by that check.
+The earlier repeated component build and 39 sanitizer assertions remain the
+correctness baseline; no GPU or presentation experiments were repeated.
+Evidence: [`evidence/ga102-authentic-baseline-candidate.json`](evidence/ga102-authentic-baseline-candidate.json).
+
+Candidate and rollback bundles are retained locally in
+`/private/tmp/ga102-fb-instrumentation-candidate/`; this temporary location must be
+copied to durable recovery media before deployment. Reproduce assembly after the
+documented component build using:
+
+```bash
+python3 build/prepare_fb_candidate.py --release /path/to/nullmoth-nvidia-1.11.0.tar.gz --release-source /path/to/clean/v1.11.0-source --display-build /path/to/display-build --output /new/candidate-directory
+```
+
+**Next approval decision:** authorize a supervised maintenance window, first
+confirming a tested external recovery route, APFS access/unlock credentials and
+a durable copy of the original working installer/rollback bundle. Only after
+that prerequisite is met should a separately approved single-framebuffer
+replacement, privileged kernel-collection rebuild and necessary reboot be
+considered. No hot swap or graphics-service restart is proposed. Rollback must
+restore the original entire NVRMFB bundle and required owner/modes, rebuild the
+appropriate kernel collection and restart; if boot fails, do this from the
+prevalidated recovery environment. The installer and byte-identical rollback
+binary are verified; recovery boot/access/rebuild remains **NOT VERIFIED**.
+Do not assume an EFI uninstall entry exists or alter EFI to create one.
+
+With approval and recovery in place, run one fixed everyday animation/scroll
+workload at unchanged 3440×1440/60 Hz with capture disabled, collecting counter
+deltas against existing frame-pacing evidence. Distinguish prior from submitted
+completion waits and detect query failures/exhaustion. If legitimate pending
+scanout dominates, retain the waits; a large wait alone is not wasted work.
+This measurement gates any later supported fence/polling optimization and its
+baseline/candidate comparison. No source performance benefit, live fix or safe
+boot guarantee is claimed. No installed component or system setting changed.
