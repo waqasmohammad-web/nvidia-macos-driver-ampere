@@ -2585,3 +2585,48 @@ roughly 17–19 ms first-pipeline initialization. Those samples do not justify a
 Vulkan pipeline cache or pipeline-object sharing patch. A bounded same-function
 comparison is required before selecting such a change. No further kernel build
 reconstruction, capture experiments or live-driver deployment is authorized.
+
+### Follow-on pipeline comparison BLOCKED: current NVIDIA stack unavailable
+
+Added optional `--same-function` to the existing bounded pipeline probe: retain
+one Metal function and recreate eight pipeline states, still checking every GPU
+output. The Swift executable compiles. Runtime validation is **BLOCKED**, not a
+passing measurement. Two launches failed before obtaining a GA102 device/queue,
+including a launch under the source's explicitly accepted `nvmtltest` name.
+No driver allow-list was edited. No pipeline timing or GPU completion result was
+obtained. The attempt to distinguish process-name admission from device absence
+ended with independent read-only confirmation that Metal enumerates zero devices.
+
+Current observed state after the source milestone:
+
+- macOS 15.8.1, build 24H32.
+- `kmutil showloaded` via `kextstat -l`: no NVRM/NVAccel/NullMoth matches.
+- `debug.nvaccelfb`: unknown sysctl OID.
+- `MTLCopyAllDevices()`: empty.
+- System Profiler: NVIDIA PCI ID 0x2208, PCIe x16, generic 22 MB VRAM,
+  "No Kext Loaded", display resolution still 3440×1440.
+- SIP enabled; authenticated-root enabled. This differs from the previously
+  recorded recovered SSD session's custom SIP mask/authenticated-root disabled.
+- Installed NVRMFB still matches original baseline SHA256
+  `a2a3cf961df1aae872d500142b8c146ecd660a369f364d843f42c3fb4bd21e71`.
+- Installed auxiliary collection SHA256 now
+  `68033b5f1c897245f1889c5381a365f4ad0626919dd46e19047aa5e7a5477071`,
+  differing from the recorded original restored collection
+  `362eb218919f7783440035cf19f02fb05b73a749836fa942e8a9b90f1d973526`.
+
+**Confirmed: the current observed desktop does not expose the previously working
+accelerated stack.** The earlier 72-dispatch installed-driver cache comparison
+completed successfully; these later checks must not be merged into that earlier
+state or presented as a result of the source-only cache patch. Cause and timing
+of the state change are **NOT VERIFIED**. An alternate boot configuration is a
+hypothesis consistent with the prior USB recovery observation, not established
+by these checks. No EFI inspection/change, security change, install, kernel
+collection replacement, reboot or service restart was performed in this cycle.
+
+GPU experiments are stopped rather than repeatedly retrying. CPU/source work
+has delivered the validated cache performance improvement and concurrency fix
+in `2707eeb`. Resolving this new installed-stack/boot-state blocker requires user
+clarification and separately authorized system recovery if needed. Do not
+blindly disable SIP or install the candidate. The compiled same-function probe
+is ready for the original working driver once that stack is available; it is
+not justification for a pipeline-sharing performance patch.
