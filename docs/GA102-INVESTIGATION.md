@@ -5,6 +5,29 @@ GPU pattern/negative controls validated; own-window capture unavailable;
 desktop root cause and installed-driver improvement unresolved, 2026-10-11.
 Branch: `dev/ga102-3080ti-diagnostics`. Starting revision: `c52e088`.
 
+## Current progress at a glance
+
+- **PASS, installed-runtime scope:** compute/render smoke, bounded composite
+  pixels, cross-process synthetic IOSurface round trips, shared-event ordering,
+  and changing GPU patterns. These do not prove complete desktop acceleration.
+- **PASS, previously sampled active-window scope:** three isolated timer runs
+  had presentation p95 17.266–17.417 ms and zero intervals above 25 ms. These
+  predate the new raw-timestamp/target-mode gate; do not retroactively label them
+  full-suite PASS. Core Animation animation phases increased WindowServer CPU
+  to about 44–45% of one core, with clean flip counters; causality is unresolved.
+- **NOT VERIFIED:** latest three-run batch rendered correct patterns while
+  visibly ineligible, with no presentation timestamps or display activity.
+  Full visual reproducibility, physical scanout and desktop improvement remain
+  unverified. Display-linked versus timer pacing needs a naturally active GUI.
+- **BLOCKED:** own-window capture authorization, protected WindowServer stack
+  access, and full framebuffer build inputs (missing generated `nvkms.h`).
+  No permission request, privilege escalation or stub replacement was used.
+- **SOURCE VALIDATED only:** shader-cache helper and framebuffer completion
+  accounting, within the build/test limits documented below. No changed driver
+  has been installed. Existing synchronization waits are preserved.
+- **Latest safe work:** durable scoped artifacts, repeated-run acceptance and
+  conservative 60 Hz timing gates; 19 Python tests pass. Objective remains open.
+
 ## Scope and operating constraints
 
 RTX 3080 Ti / GA102 (`10de:2208`), Intel i9-12900K, MSI Z690, OpenCore,
@@ -879,3 +902,54 @@ above. Source review of `NVMTLObjects.m::commitAndWaitUntilSubmitted` and
 `NVRMNVDAFramebuffer::submitConfig` still provides no verified alternative that
 would justify removing completion waits. These are diagnostic/test corrections,
 not an installed-driver fix. The desktop responsiveness objective remains open.
+
+### Explicit frame-pacing regression gate
+
+`tools/ga102_pacing_validation.py::evaluate` now scores the timing probe using
+raw positive presentation timestamps and frame IDs, rather than trusting its
+collection PASS string or process exit code. The Swift probe previously
+discarded non-positive interval differences; repeated/reversed API times could
+therefore disappear from its statistics. All differences are now retained.
+No timing/synchronization behavior in the driver was modified.
+
+Acceptance is deliberately limited to this simple 60 Hz workload: sampled
+visibility eligible throughout, reported 3440×1440 mode with 59–61 Hz refresh,
+120 commands completed without errors, at least 118 positive timestamps,
+strict timestamp/frame-ID order, no gaps after ten warm-up presentations,
+no skipped draws, p95 interval at most 20 ms and maximum interval at most 25 ms,
+plus positive system-wide flip activity and no incrementing/reset error counters.
+The 20 ms p95 allows modest scheduling jitter around 16.67 ms; 25 ms detects
+intervals appreciably beyond one nominal refresh. These are initial regression
+thresholds, not proof of perceptual quality or a universal performance standard.
+Unknown refresh, inactive visibility or insufficient timestamps yield
+NOT VERIFIED; measured stalls/order violations in an eligible run yield FAIL.
+Command errors remain FAIL even when presentation is inactive.
+
+The runner's `--result-json` also supports `ga102_metal_present`; artifacts retain
+pacing mode, raw timing/IDs, counter deltas, thresholds, metrics and scoped
+verdicts. Three full pacing PASS runs are required for pacing reproducibility.
+Frame-content checks remain a separate probe, and physical scanout/desktop
+smoothness/installed-driver improvement cannot become PASS from timing alone.
+
+Nineteen Python tests PASS, covering injected stalls, repeated/reversed times,
+missing IDs, skipped draws, hidden sessions, unknown/wrong display mode, resets,
+errors, repeated aggregation and end-to-end artifact routing with mocked GUI
+execution. Updated Swift passes default-mode typechecking with a scratch module
+cache; the previously documented Swift 6 concurrency warning remains. The first
+typecheck used the compiler's default non-writable cache and failed; redirecting
+the cache resolved that tooling restriction. The revised timing gate has not
+yet been exercised against an eligible live window. No redundant inactive GUI
+benchmark batch was run at this milestone.
+
+Next eligible-session commands (each artifact path must be new):
+
+```sh
+python3 tools/ga102_run_metal.py ga102_metal_present --repeat 3 --isolated-cache --result-json /private/tmp/ga102-timer-new-results.json
+python3 tools/ga102_run_metal.py ga102_metal_present --repeat 3 --isolated-cache --display-linked --result-json /private/tmp/ga102-linked-new-results.json
+```
+
+Run these sequentially without another probe/compiler workload overlapping;
+compare acquisition, scheduling/completion, raw intervals and late-frame
+correlations before attributing latency to any mandatory wait. Previous isolated
+GPU execution was roughly 0.005 ms while acquisition varied by several ms,
+which motivates the scheduling-phase experiment but does not prove a defect.

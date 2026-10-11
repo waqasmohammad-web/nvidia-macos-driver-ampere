@@ -16,8 +16,10 @@ import subprocess
 import tempfile
 try:
     from .ga102_visual_validation import evaluate as evaluate_visual, repeated_result
+    from .ga102_pacing_validation import evaluate as evaluate_pacing, repeated_pacing_result
 except ImportError:
     from ga102_visual_validation import evaluate as evaluate_visual, repeated_result
+    from ga102_pacing_validation import evaluate as evaluate_pacing, repeated_pacing_result
 
 ROOT = Path(__file__).resolve().parent.parent
 PROBES = ("ga102_metal_smoketest", "ga102_metal_render_smoketest", "ga102_metal_benchmark",
@@ -89,8 +91,8 @@ def main():
     parser.add_argument("--display-linked", action="store_true")
     parser.add_argument("--result-json", type=Path, help="Save scoped visual-probe verdicts and numeric metrics, excluding raw logs and machine identities")
     args = parser.parse_args()
-    if args.result_json and args.probe != "ga102_visual_present":
-        parser.error("--result-json currently requires ga102_visual_present")
+    if args.result_json and args.probe not in ("ga102_visual_present", "ga102_metal_present"):
+        parser.error("--result-json requires ga102_visual_present or ga102_metal_present")
     if args.result_json and args.result_json.exists():
         parser.error("--result-json must name a new file; existing evidence is never overwritten")
     if args.display_linked and args.probe != "ga102_metal_present":
@@ -161,6 +163,26 @@ def main():
                                 code = 1
                 runs.append({"exit_code": code, "metrics": metrics, "verdict": verdict or {},
                              "display_correlation": correlation})
+            elif args.probe == "ga102_metal_present":
+                verdict = None
+                metrics = {}
+                for line in lines:
+                    if line.startswith("result: "):
+                        evidence = json.loads(line[8:])
+                        if evidence.get("probe") == "pacing":
+                            keys = ("attempted", "completed", "command_errors", "outstanding", "timer_skips",
+                                    "display_width", "display_height", "display_refresh_hz",
+                                    "positive_presented_times", "presented_frame_ids", "presented_times",
+                                    "visibility_samples", "presentation_intervals", "drawable_acquisition", "gpu",
+                                    "cpu_draw_intervals", "encode", "commit_return", "commit_to_scheduled_callback",
+                                    "commit_to_completed_callback", "late_frame_correlations")
+                            metrics = {key: evidence[key] for key in keys if key in evidence}
+                            verdict = evaluate_pacing(evidence, correlation)
+                            print("result: " + json.dumps(verdict, sort_keys=True), flush=True)
+                            if verdict["automated_pacing_validation"] == "FAIL":
+                                code = 1
+                runs.append({"exit_code": code, "metrics": metrics, "verdict": verdict or {},
+                             "display_correlation": correlation})
             if code:
                 print(f"Failure details remain in {output}", flush=True)
                 return code
@@ -169,7 +191,10 @@ def main():
         return 124
     finally:
         if args.result_json:
-            report = repeated_result(runs, args.repeat, source_hash, args.negative_control)
+            report = (repeated_pacing_result(runs, args.repeat, source_hash) if args.probe == "ga102_metal_present"
+                      else repeated_result(runs, args.repeat, source_hash, args.negative_control))
+            if args.probe == "ga102_metal_present":
+                report['pacing'] = 'AppKit display link' if args.display_linked else '60 Hz timer'
             with args.result_json.open("x") as output:
                 json.dump(report, output, indent=2, sort_keys=True, allow_nan=False)
                 output.write("\n")

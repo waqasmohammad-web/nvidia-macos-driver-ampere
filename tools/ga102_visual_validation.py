@@ -26,7 +26,7 @@ def evaluate(evidence, correlation):
             'physical_scanout': 'NOT VERIFIED', 'installed_driver_fixed': False}
 
 
-def repeated_result(runs, requested_runs, source_sha256, negative_control=None):
+def repeated_result(runs, requested_runs, source_sha256, negative_control=None, check_names=None):
     """Aggregate scoped verdicts, never infer validation from a process exit code.
 
     Only verdicts and numeric probe metrics enter the durable artifact. Raw logs,
@@ -35,7 +35,7 @@ def repeated_result(runs, requested_runs, source_sha256, negative_control=None):
     slow content probe cannot establish 60 Hz desktop animation performance.
     """
     checks = {}
-    names = ('gpu_frame_contents', 'presentation_timestamps', 'visible_window_state',
+    names = check_names or ('gpu_frame_contents', 'presentation_timestamps', 'visible_window_state',
              'own_window_capture', 'system_display_activity')
     complete = len(runs) == requested_runs and all(r.get('exit_code') == 0 for r in runs)
     for name in names:

@@ -127,15 +127,19 @@ DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) {
                 "cpu_draw_interval_ms": id > 0 && id < drawStarts.count ? (drawStarts[id] - drawStarts[id-1]) * 1000 : -1]
     }
     let times = shown.dropFirst(10).map { $0.value }
-    let intervals = zip(times.dropFirst(), times).map { $0 - $1 }.filter { $0 > 0 }
+    let intervals = zip(times.dropFirst(), times).map { $0 - $1 }
     let states = visibility + [snapshot()]
     let eligible = states.allSatisfy { state in
         ["window_visible", "window_on_active_space", "window_unoccluded", "window_in_onscreen_list", "session_on_console", "display_active"].allSatisfy { state[$0] as? Bool == true }
         && state["display_asleep"] as? Bool == false
     }
-    let result: [String: Any] = ["pacing": linked ? "AppKit display link" : "60 Hz timer", "attempted": attempted, "completed": finish,
+    let display = (window.screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? CGMainDisplayID()
+    let mode = CGDisplayCopyDisplayMode(display)
+    let result: [String: Any] = ["probe": "pacing", "pacing": linked ? "AppKit display link" : "60 Hz timer", "attempted": attempted, "completed": finish,
         "visibility_samples": states, "command_errors": failure, "outstanding": outstanding, "timer_skips": skipped,
+        "display_width": mode?.width ?? 0, "display_height": mode?.height ?? 0, "display_refresh_hz": mode?.refreshRate ?? 0,
         "presented_callbacks": callbackCount, "positive_presented_times": shown.count,
+        "presented_frame_ids": shown.map { $0.key }, "presented_times": shown.map { $0.value },
         "presentation_intervals": stats(intervals), "intervals_above_25ms": intervals.filter { $0 > 0.025 }.count,
         "late_frame_correlations": lateCorrelation, "cpu_draw_intervals": stats(zip(drawStarts.dropFirst(), drawStarts).map { $0 - $1 }),
         "encode": stats(encoding), "commit_return": stats(commitReturn),
