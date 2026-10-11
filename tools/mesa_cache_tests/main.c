@@ -43,15 +43,23 @@ int main(int argc, char **argv)
     // Reject regular files and symlinks, including at the Darwin fallback.
     unsetenv("MESA_SHADER_CACHE_DIR"); CHECK(rmdir(final) == 0);
     FILE *f = fopen(final, "w"); CHECK(f != NULL); CHECK(fclose(f) == 0);
+    // Reproduce AIR's former write-only predicate accepting a regular file.
+    CHECK(access(final, W_OK) == 0);
+    CHECK(!nvmtl_cache_directory_usable(final));
     CHECK(nvmtl_mesa_cache_configure(darwin, out, sizeof out) == NVMTL_MESA_CACHE_UNAVAILABLE);
     CHECK(getenv("MESA_SHADER_CACHE_DIR") == NULL); CHECK(unlink(final) == 0);
     CHECK(symlink(expected, final) == 0);
+    CHECK(nvmtl_cache_directory_usable(final)); // AIR may use a directory symlink.
     CHECK(nvmtl_mesa_cache_configure(darwin, out, sizeof out) == NVMTL_MESA_CACHE_UNAVAILABLE);
     CHECK(getenv("MESA_SHADER_CACHE_DIR") == NULL); CHECK(unlink(final) == 0);
     // Search permission is essential even if a directory is writable.
     CHECK(mkdir(final, 0700) == 0); CHECK(chmod(final, 0600) == 0);
+    CHECK(access(final, W_OK) == 0);
+    CHECK(!nvmtl_cache_directory_usable(final));
     CHECK(nvmtl_mesa_cache_configure(darwin, out, sizeof out) == NVMTL_MESA_CACHE_UNAVAILABLE);
     CHECK(chmod(final, 0700) == 0);
+    CHECK(nvmtl_cache_directory_usable(final));
+    CHECK(!nvmtl_cache_directory_usable(NULL));
     CHECK(!nvmtl_mesa_cache_prepare("relative", "nvmtl-mesa", out, sizeof out));
     CHECK(!nvmtl_mesa_cache_prepare(darwin, "nvmtl-mesa", out, 4));
     CHECK(!nvmtl_mesa_cache_prepare(NULL, "nvmtl-mesa", out, sizeof out));
@@ -59,6 +67,8 @@ int main(int argc, char **argv)
     setenv("HOME", oversized, 1);
     CHECK(nvmtl_mesa_cache_configure(darwin, out, sizeof out) == NVMTL_MESA_CACHE_DARWIN);
     unsetenv("MESA_SHADER_CACHE_DIR"); setenv("HOME", "", 1);
+    CHECK(nvmtl_mesa_cache_configure(darwin, out, sizeof out) == NVMTL_MESA_CACHE_DARWIN);
+    unsetenv("MESA_SHADER_CACHE_DIR"); setenv("HOME", "relative", 1);
     CHECK(nvmtl_mesa_cache_configure(darwin, out, sizeof out) == NVMTL_MESA_CACHE_DARWIN);
     unsetenv("MESA_SHADER_CACHE_DIR");
     setenv("HOME", home, 1); CHECK(rmdir(expected) == 0); CHECK(symlink(darwin, expected) == 0);

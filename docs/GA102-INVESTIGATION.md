@@ -2338,3 +2338,84 @@ boot evidence or authentic build provenance. A new live boot is not authorized,
 and no kernel source correction is substantiated by the available observations.
 The full desktop-optimization objective remains incomplete; this boundary must
 not be disguised as success or used to restart synthetic presentation research.
+
+### Bounded build baseline and user-space cache correction
+
+The user resumed development with two specific offline objectives, retaining
+the prohibition on installation, live replacement, reboot and system/security
+changes. This cycle did not repeat GPU/presentation benchmarks or construct
+another diagnostic framework.
+
+**Unchanged NVRMFB reproducibility PASS. Authentic runtime compatibility NOT
+VERIFIED.** Replayed the saved compile/link commands for the authentic v1.11.0
+source into a second isolated output directory. The two binaries are byte-for-
+byte identical, SHA256
+`8cfe426c3987b7b55f8538fd6c21b6dddd36a66adc25dbeedda336517de11ac4`,
+UUID `2B261484-77F7-32BB-BB87-D43DCCE70AEA`. The working authentic release has
+SHA256 `a2a3cf961df1aae872d500142b8c146ecd660a369f364d843f42c3fb4bd21e71`
+and UUID `CC151F75-1305-3928-AA0F-B8BC96EF30A3`. Imports/exports, initializer
+counts and relevant data sizes match; text and section ordering differ as
+documented above. Local settings are Apple clang 17.0.0, SDK 15.5, x86_64,
+O2, kernel/kext flags, NM_TAHOE unset. UUID agreement between repeated builds
+proves local determinism, not equivalence to the working binary.
+
+Read the authenticated v1.11.0 archive's installer without executing it. Its
+auxiliary construction uses `kmutil create -n aux --volume-root /`, existing
+Boot/System collections, `--allow-missing-kdk`, optional existing kernel,
+`--repository`, output `-A` and `-z`, matching the experimental helper's main
+construction flags. The original installer stages four NullMoth kexts for its
+preflight and uses the installed extension repository for final construction;
+our failed collection used the staged installed repository. Existing inspection
+establishes the same six component identities and only a changed NVRMFB UUID.
+This does not prove equivalence of collection linkage, fixups or boot behavior.
+No new collection was constructed during this cycle. Exact original release
+compiler/linker settings and successful unchanged-rebuild runtime compatibility
+remain missing. That is the precise compatibility blocker; stop reconstructing
+the baseline here rather than claiming the deterministic local build is trusted
+for deployment. Full NVRM archive/source-build limitations remain unchanged.
+
+**Selected user-space improvement: cache-directory selection correctness.**
+Review of the existing Mesa policy correction found two related remaining
+problems:
+
+1. `nvmtl_mesa_cache_configure` accepted empty HOME, constructing
+   `/Library/Caches` instead of using the supplied Darwin fallback. This can
+   select a different shared namespace and made the purportedly isolated test
+   depend on host permissions. The first test run reproduced the defect and
+   created an empty directory there. Only that newly created, user-owned empty
+   fixture was removed; no pre-existing cache contents were deleted. HOME must
+   now be absolute and nonempty; explicit cache policies remain unchanged.
+2. `nvmtl_aircache_dir` used `access(W_OK)` for automatic cache selection.
+   Writable files and directories lacking search permission pass that predicate
+   although child cache files cannot be accessed. The shared cache header now
+   provides `nvmtl_cache_directory_usable`; AIR's global, user and Darwin checks
+   require a directory with write/search permission. Legitimate AIR directory
+   symlinks remain supported via stat; Mesa's existing final-symlink rejection
+   remains unchanged. Explicit AIR overrides and the last-resort path behavior
+   are unchanged. No GPU ordering, pipeline format or shader key changes.
+
+Validation of final source: **SOURCE VALIDATED for these cache checks**, 51
+production-code assertions in each of three fresh-fixture ASan/UBSan runs.
+Negative cases demonstrate the old write-only predicate accepting both a file
+and an unsearchable directory, while the new check rejects them. Tests cover
+valid directories/symlinks, null paths, empty/relative HOME, Darwin fallback
+and preservation of explicit Mesa policy. They exercise production C policy
+and AIR's new predicate, not execution of the complete installed AIR selector
+or Mesa compiler cache hits.
+
+Isolated release NVMTL plugin compiles and links, x86_64/O1/NVMTL_RELEASE=1,
+Apple clang 17.0.0, SDK 15.5. Vulkan-Headers revision pinned in local evidence:
+`c46850864f4661461b0f6cb9922c058ffea4915e`. Final binary SHA256
+`20da21ae0c8db59f8bf004423e570e6d0c9aeab40408b99f905e3ebecef376d8`.
+Direct library dependencies are Foundation, Metal, IOSurface, CoreFoundation,
+libobjc and libSystem; no artifact-directory library dependency. Private logs,
+commands and artifacts remain local. No bundle was installed or loaded.
+
+**Performance benefit NOT VERIFIED.** This is a concrete cache-persistence/path
+correctness correction, not a measured optimization. It removes invalid
+automatic choices that can prevent reuse, but no shader compilation or real
+desktop latency improvement has been measured. Future candidate validation
+would need actual cache stores/hits and repeated library/pipeline latency on
+matched shader inputs before claiming benefit; installation is not authorized.
+The safe cycle ends with a reviewable user-space source change and a precise
+kernel compatibility blocker. The working original stack is untouched.

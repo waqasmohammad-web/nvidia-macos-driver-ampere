@@ -144,6 +144,8 @@ static int nvmtl_xlate_ready(void) {
 #define NVMTL_AIRCACHE_DIR "/Library/GPUBundles/nvmtl/aircache"
 #endif
 
+#include "nvmtl_mesa_cache.h"
+
 static _Atomic unsigned long gAirHit, gAirMiss, gAirStored;
 
 static NSString *nvmtl_aircache_dir(void) {
@@ -151,17 +153,17 @@ static NSString *nvmtl_aircache_dir(void) {
     dispatch_once(&once, ^{
         const char *e = getenv("NVMTL_AIRCACHE");
         if (e) { dir = @(e); return; }
-        if (access(NVMTL_AIRCACHE_DIR, W_OK) == 0) { dir = @NVMTL_AIRCACHE_DIR; return; }
+        if (nvmtl_cache_directory_usable(NVMTL_AIRCACHE_DIR)) { dir = @NVMTL_AIRCACHE_DIR; return; }
         NSArray *c = NSSearchPathForDirectoriesInDomains(NSCachesDirectory, NSUserDomainMask, YES);
         NSString *base = c.count ? c[0] : NSTemporaryDirectory();
         dir = [base stringByAppendingPathComponent:@"nvmtl/aircache"];
         [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];
-        if (access(dir.fileSystemRepresentation, W_OK) != 0) {
+        if (!nvmtl_cache_directory_usable(dir.fileSystemRepresentation)) {
             char ucd[PATH_MAX];
             const size_t n = confstr(_CS_DARWIN_USER_CACHE_DIR, ucd, sizeof ucd);
             NSString *alt = (n > 0 && n <= sizeof ucd) ? [@(ucd) stringByAppendingPathComponent:@"nvmtl/aircache"] : nil;
             if (alt) [[NSFileManager defaultManager] createDirectoryAtPath:alt withIntermediateDirectories:YES attributes:nil error:nil];
-            if (alt && access(alt.fileSystemRepresentation, W_OK) == 0) dir = alt;
+            if (alt && nvmtl_cache_directory_usable(alt.fileSystemRepresentation)) dir = alt;
             else {
                 dir = [NSTemporaryDirectory() stringByAppendingPathComponent:@"nvmtl/aircache"];
                 [[NSFileManager defaultManager] createDirectoryAtPath:dir withIntermediateDirectories:YES attributes:nil error:nil];

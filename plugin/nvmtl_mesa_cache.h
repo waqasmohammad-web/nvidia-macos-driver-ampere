@@ -16,6 +16,17 @@ enum nvmtl_mesa_cache_result {
     NVMTL_MESA_CACHE_DARWIN = 2
 };
 
+/* AIR directory selection: access(W_OK) alone also accepts regular
+ * files and directories whose children cannot be searched. Follow directory
+ * symlinks for AIR's existing policy; Mesa's stricter final-path rule below
+ * remains unchanged. */
+static inline int nvmtl_cache_directory_usable(const char *path)
+{
+    struct stat st;
+    return path && stat(path, &st) == 0 && S_ISDIR(st.st_mode) &&
+           access(path, W_OK | X_OK) == 0;
+}
+
 /* Require a searchable writable directory, not merely a writable pathname.
  * Parents may be platform symlinks (e.g. /var); the final cache must be a real
  * directory. Never replace an existing file/link or change its permissions. */
@@ -47,7 +58,8 @@ nvmtl_mesa_cache_configure(const char *darwin_parent, char *out, size_t capacity
         getenv("NVMTL_NO_MESA_CACHE_DIR")) return NVMTL_MESA_CACHE_UNCHANGED;
     const char *home = getenv("HOME");
     char parent[4096];
-    int n = home ? snprintf(parent, sizeof parent, "%s/Library/Caches", home) : -1;
+    int n = home && home[0] == '/' ?
+        snprintf(parent, sizeof parent, "%s/Library/Caches", home) : -1;
     enum nvmtl_mesa_cache_result chosen = NVMTL_MESA_CACHE_UNAVAILABLE;
     if (n > 0 && (size_t)n < sizeof parent &&
         nvmtl_mesa_cache_prepare(parent, "nvmtl-mesa", out, capacity))
