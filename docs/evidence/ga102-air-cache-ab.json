@@ -1,0 +1,77 @@
+{
+  "scope": "standalone production AIR selector and decoder on one test-owned shader; filesystem search redirected to owned fixtures",
+  "original_selector_revision": "0176303",
+  "candidate_selector_revision": "96864e4",
+  "shader_bitcode_sha256": "c2f9b729272df8631c04aff5b77742c2bc75e852462c5ff421690dd61642f56b",
+  "repeats_per_case": 3,
+  "calls_per_process": 21,
+  "warm_samples_per_case": 60,
+  "additional_reuse_processes_per_case": 1,
+  "all_output_ir_sha256": "5d5f531f0b6b6ed69babff147102ac35e2d8f7c88af67696221e70ed3ec30076",
+  "cross_variant_cross_process_ir_match": true,
+  "summary": {
+    "valid_original": {
+      "repeats": 3,
+      "cold_ms": [
+        39.557313,
+        36.129155,
+        35.666693
+      ],
+      "warm_p50_ms": 0.0216645,
+      "warm_p95_ms": 0.043141,
+      "hits_per_run": 20,
+      "misses_per_run": 1,
+      "stores_per_run": 1,
+      "reuse_process_first_ms": 0.055065,
+      "reuse_process_hits": 21
+    },
+    "valid_corrected": {
+      "repeats": 3,
+      "cold_ms": [
+        39.971112,
+        34.283192,
+        34.768614
+      ],
+      "warm_p50_ms": 0.020646,
+      "warm_p95_ms": 0.036516,
+      "hits_per_run": 20,
+      "misses_per_run": 1,
+      "stores_per_run": 1,
+      "reuse_process_first_ms": 0.058729,
+      "reuse_process_hits": 21
+    },
+    "file_original": {
+      "repeats": 3,
+      "cold_ms": [
+        37.697057,
+        33.723257,
+        36.356671
+      ],
+      "warm_p50_ms": 0.1497755,
+      "warm_p95_ms": 0.280111,
+      "hits_per_run": 0,
+      "misses_per_run": 21,
+      "stores_per_run": 0,
+      "reuse_process_first_ms": 36.638145,
+      "reuse_process_hits": 0
+    },
+    "file_corrected": {
+      "repeats": 3,
+      "cold_ms": [
+        36.502273,
+        36.814651,
+        36.070046
+      ],
+      "warm_p50_ms": 0.021023,
+      "warm_p95_ms": 0.035922,
+      "hits_per_run": 20,
+      "misses_per_run": 1,
+      "stores_per_run": 1,
+      "reuse_process_first_ms": 0.105132,
+      "reuse_process_hits": 21
+    }
+  },
+  "candidate_plugin_loaded": false,
+  "installed_candidate": false,
+  "desktop_performance_improvement": "NOT VERIFIED"
+}

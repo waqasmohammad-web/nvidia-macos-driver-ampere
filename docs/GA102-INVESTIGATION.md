@@ -2419,3 +2419,65 @@ would need actual cache stores/hits and repeated library/pipeline latency on
 matched shader inputs before claiming benefit; installation is not authorized.
 The safe cycle ends with a reviewable user-space source change and a precise
 kernel compatibility blocker. The working original stack is untouched.
+
+### Isolated AIR cache A/B: measured fault-case benefit
+
+Continued with the proposed focused comparison after the user challenged the
+premature handoff. No candidate graphics plugin was loaded. An ordinary owned
+Metal compute library was compiled on the working driver; its original AIR
+bitcode was exported through NVMTLLibrary's `_fns` ivar. The exporter requests
+no queue, pipeline or command-buffer submission; creating a Metal device still
+initializes the installed driver. This is not installed-candidate validation.
+Reassembling printed AIR with the installed air-opt initially failed on newer
+`captures(none)` syntax. The comparison instead uses original exported bitcode
+unchanged; no IR syntax was rewritten.
+
+`tools/air_cache_tests/cache_ab.py` compiles extracted production selectors and
+the unchanged AIR decoder as standalone CPU programs. Old selector: `0176303`;
+corrected selector: `96864e4`. Foundation directory search is redirected to
+owned fixtures. The original CPU LLVM runtime is loaded read-only via a local
+path symlink; its direct dependencies are ordinary CPU libraries. No NVK/NVRM
+or candidate Metal plugin entry points are included in these executables.
+Only logging is quieted; parsing and disk cache operations are production code.
+
+Three fresh processes per condition/variant, fresh cache each time, 21 calls
+per process. Checks require the owned shader entry, identical IR within each
+process, matching IR SHA256 across all variants/processes and exact hit/miss/
+store counts. A fourth process reuses the last cache to test disk persistence;
+its single first-call measurement is not a latency distribution.
+
+| Condition / selector | Hits / misses / stores per fresh-cache process | Warm p50 / p95 (ms; 60 samples) | First call in cache-reuse process (ms) |
+|---|---|---|---|
+| Valid directory / original | 20 / 1 / 1 | 0.0217 / 0.0431 | 0.0551 |
+| Valid directory / corrected | 20 / 1 / 1 | 0.0206 / 0.0365 | 0.0587 |
+| Writable file / original | 0 / 21 / 0 | 0.1498 / 0.2801 | 36.6381 |
+| Writable file / corrected | 20 / 1 / 1 | 0.0210 / 0.0359 | 0.1051 |
+
+**PASS: identical output and cache persistence.** Under the deliberately
+invalid writable-file path, the fix restores caching and reduces repeated AIR
+decode/cache-lookup p50 by about 7×. The separate reuse process has 21 hits and
+no misses with the correction, versus 21 misses originally. First fresh-cache
+calls cost roughly 34–40 ms in both versions, including CPU LLVM initialization.
+This measures AIR decoding/cache lookup, not Vulkan pipeline compilation,
+Metal front-end compilation or frame latency. Healthy-directory hit counts
+agree; no healthy-case speedup or statistical equivalence is established.
+
+The invalid path was induced under the test directory, not observed in the
+running WindowServer. **Normal desktop improvement remains NOT VERIFIED.**
+Numeric evidence: `docs/evidence/ga102-air-cache-ab.json`. Raw samples, generated
+source and owned shader remain in durable local artifact storage. No desktop
+data, screenshots or private system logs are published. No capture experiment,
+installed-component, security, EFI, display or reboot change occurred.
+
+Reproduction (ordinary user; new paths; stop if an exporter command fails):
+
+```sh
+CACHE_AB_DIR=$(mktemp -d)
+xcrun clang -fobjc-arc tools/air_cache_tests/export_fixture.m -framework Foundation -framework Metal -o "$CACHE_AB_DIR/export"
+"$CACHE_AB_DIR/export" "$CACHE_AB_DIR/owned-shader.ll"
+python3 tools/air_cache_tests/cache_ab.py --bitcode "$CACHE_AB_DIR/owned-shader.ll.bc" --output "$CACHE_AB_DIR/comparison"
+```
+
+The focused A/B is complete. The induced-fault benefit must not be generalized
+to everyday desktop performance; that needs representative actual cache/compiler
+behavior and, for candidate integration, separately authorized live validation.
