@@ -263,7 +263,7 @@ first pipeline in a new process still costs approximately one 60 Hz frame.
 All measured simple GPU draws are well below the approximately 16.67 ms frame
 budget; complex effects and multiple passes remain unmeasured.
 
-### Narrow cache fix under validation
+### Validated narrow cache fix
 
 The audit explained the planned change before editing it. Production cache
 selection was moved to `plugin/nvmtl_mesa_cache.h` and used by
@@ -279,13 +279,17 @@ Darwin alternative despite writable Caches, and a writable regular-file Darwin
 path was exported as the cache directory. This is a source-confirmed defect,
 not evidence that either edge case occurs in this user's desktop session.
 
-`python3 -m unittest tools/test_mesa_cache.py -v`: **38 production C assertions
+`python3 -m unittest tools/test_mesa_cache.py -v`: **43 production C assertions
 PASS**, with AddressSanitizer and UndefinedBehaviorSanitizer. Cases include
 first/existing directory, read-only HOME, explicit empty environment settings,
 missing HOME, Darwin fallback, file/link rejection, search permissions,
-relative and truncated paths. Full plugin Objective-C syntax checking passed
+relative/truncated paths, oversized/empty HOME, and an existing writable cache
+under a read-only searchable parent. Full plugin Objective-C syntax checking passed
 with official Khronos Vulkan headers in test-owned `/tmp`; existing compiler
-warnings remain. Runtime testing of a rebuilt plugin is not performed against
+warnings remain. The complete release plugin also linked successfully as an
+x86_64 bundle against Foundation, Metal and IOSurface, with zero compiler
+errors; the artifact remains in test-owned temporary storage. It was not loaded.
+Runtime testing of a rebuilt plugin is not performed against
 the installed driver. This fix is not a claimed desktop-speed improvement.
 
 ### Publication
@@ -298,3 +302,15 @@ the sandbox; `git push` successfully published the merged documentation.
 Sandbox-only auth failures should not be mistaken for invalid host credentials.
 No credentials, raw kernel pointers, user paths, serials, or hostnames are
 included in the report contents.
+
+## Milestone 3 — cache correction validated
+
+Changed `plugin/nvmtl_vk.c::nvmtl_vk_initialize` and added
+`plugin/nvmtl_mesa_cache.h`; production logic is exercised by
+`tools/mesa_cache_tests/main.c` through `tools/test_mesa_cache.py`.
+Acceptance: the two reproduced path-selection defects are corrected, explicit
+environment choices remain untouched, unsuitable directories are rejected,
+43 assertions pass under ASan/UBSan, and the release plugin links.
+No claim of improved WindowServer cache hits or desktop frame pacing is made:
+the installed binary remains unchanged. Rollback is a normal revert of this
+source commit, with no system rollback necessary.
