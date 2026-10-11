@@ -98,6 +98,21 @@ PASS: Metal compute dispatch completed with correct results
 
 **Validated:** Metal shader compilation and small compute dispatch with correct result readback. **Not yet validated:** render pipeline, WindowServer composition, display flips, performance, or higher refresh rates. User reports macOS desktop still feels less accelerated than past Hackintosh builds.
 
+## Metal offscreen graphics rendering smoke test: PASS
+
+Executed `tools/ga102_metal_render_smoketest.swift` from commit `af3c4ec38c7cde02cc83ab693e763359e4e26881` using NullMoth 1.11.0:
+
+```text
+Metal GPU: NVIDIA GeForce RTX 3080 Ti (NVMTL over NVIDIA GeForce RTX 3080 Ti (NVK GA102-A))
+Rendering an offscreen 16x16 texture...
+Center pixel RGBA8: [64, 127, 191, 255]
+PASS: Metal offscreen rendering completed with correct GPU output
+```
+
+The shader rendered a full-screen triangle to an offscreen RGBA8 target and the center pixel readback matched expected tolerance. Driver startup warnings were identical to previous tests, including `/var/folders/zz/.../C/nvmtl-mesa` shader-cache creation denial. This establishes functioning small graphics rendering and compute workloads; it does **not** establish smooth desktop presentation or 3D application compatibility.
+
+The `/tmp/ga102_metal_render_smoketest.swift` file was a successful temporary storage location for the Swift test itself, unrelated to the shader-cache warning.
+
 ## First diagnostic goal
 
 1. Record installed driver release and exact macOS build.
