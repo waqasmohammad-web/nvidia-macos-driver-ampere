@@ -16,8 +16,8 @@ func fail(_ message: String) -> Never {
     exit(EXIT_FAILURE)
 }
 
-guard let device = MTLCreateSystemDefaultDevice() else {
-    fail("MTLCreateSystemDefaultDevice returned nil")
+guard let device = MTLCopyAllDevices().first(where: { $0.name.contains("3080 Ti") }) else {
+    fail("RTX 3080 Ti unavailable")
 }
 print("Metal GPU: \(device.name)")
 
@@ -84,6 +84,9 @@ do {
     guard result == [2.0, 4.0, 6.0, 8.0] else {
         fail("GPU output differs from expected [2, 4, 6, 8]")
     }
+    let evidence: [String: Any] = ["probe": "compute", "values": result, "checked_elements": count]
+    let json = try JSONSerialization.data(withJSONObject: evidence, options: [.sortedKeys])
+    print("result: \(String(data: json, encoding: .utf8)!)")
     print("PASS: Metal compute dispatch completed with correct results")
 } catch {
     fail("Metal shader compilation/pipeline creation failed: \(error)")

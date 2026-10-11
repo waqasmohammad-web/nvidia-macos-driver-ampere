@@ -15,8 +15,8 @@ func fail(_ message: String) -> Never {
     exit(EXIT_FAILURE)
 }
 
-guard let device = MTLCreateSystemDefaultDevice() else {
-    fail("MTLCreateSystemDefaultDevice returned nil")
+guard let device = MTLCopyAllDevices().first(where: { $0.name.contains("3080 Ti") }) else {
+    fail("RTX 3080 Ti unavailable")
 }
 print("Metal GPU: \(device.name)")
 
@@ -104,6 +104,9 @@ do {
     guard zip(color, expected).allSatisfy({ abs($0 - $1) <= 2 }) else {
         fail("Rendered pixel differs from expected RGBA8 values near \(expected)")
     }
+    let evidence: [String: Any] = ["probe": "render", "rgba": color, "width": width, "height": height, "checked_pixels": 1]
+    let json = try JSONSerialization.data(withJSONObject: evidence, options: [.sortedKeys])
+    print("result: \(String(data: json, encoding: .utf8)!)")
     print("PASS: Metal offscreen rendering completed with correct GPU output")
 } catch {
     fail("Render shader or pipeline creation failed: \(error)")

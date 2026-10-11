@@ -35,6 +35,13 @@ macOS Sequoia 15.8.1. Preserve the established 3440 × 1440 @ 60 Hz baseline.
 No installation, reboot, mode/refresh change, EFI/OpenCore/SIP change, or driver
 configuration write is part of this audit. No sudo has been used. Existing Git
 history and the uninstalled shader-cache proposal are preserved.
+The current live-development restriction is absolute: no reboots, logouts,
+WindowServer/graphics-service restarts, disabling login security, hot-swapping
+loaded kexts or changing the active framebuffer. Build artifacts stay outside
+active graphics-system locations. Before executing any experimental component,
+review its initialization and isolation path; source-only candidates that cannot
+be safely isolated remain **AWAITING LIVE VALIDATION**. Broader filesystem access
+does not relax these operational restrictions.
 
 Evidence labels used below:
 
@@ -953,3 +960,75 @@ compare acquisition, scheduling/completion, raw intervals and late-frame
 correlations before attributing latency to any mandatory wait. Previous isolated
 GPU execution was roughly 0.005 ms while acquisition varied by several ms,
 which motivates the scheduling-phase experiment but does not prove a defect.
+
+### Sequential unattended regression suite and override-policy finding
+
+`tools/ga102_suite.py` connects the bounded runner to correctness, presentation,
+negative-control and combined profiles. Every probe runs sequentially with
+private logs and structured evidence. Compiler and probe deadlines remain owned
+by the runner, avoiding a second process-group timeout that could orphan its
+children. Unexpected failures stop further GPU launches in that batch; expected
+static-control rejection does not. Unavailable macOS/compiler resources yield
+BLOCKED. Missing/hidden presentation evidence yields NOT VERIFIED. Suite PASS
+means only that every selected scoped check passed; desktop smoothness and
+physical scanout remain NOT VERIFIED. Three repetitions are explicitly requested
+for reproducibility; the default single run avoids unnecessary GPU usage.
+
+The two smoke tests previously selected the system-default Metal adapter.
+They now explicitly select the RTX 3080 Ti, matching the other targeted probes,
+and emit independently checked structured compute values/rendered RGBA data.
+`tools/ga102_core_validation.py` checks coverage as well as process success:
+four-element compute, one offscreen pixel, all four compositing cases with 16
+pixels each, 16 shared-event iterations including eight consumer-first commits,
+and eight two-process IOSurface round trips covering 262144 checked bytes.
+This remains synthetic serialized coherence coverage, not production
+cross-process lifetime/Mach-right validation or arbitrary concurrent access.
+
+Twenty-three Python tests PASS. The first end-to-end correctness suite also
+PASSed all five installed-runtime probes. This justified one repeat of existing
+workloads to validate the new evidence plumbing and explicit adapter selection;
+it is not a new full desktop benchmark. Shared-event completion ranged
+0.071–0.920 ms. For 32-layer offscreen compositing, private GPU p50/p95 was
+1.579/2.129 ms and IOSurface 2.085/2.111 ms; encode-to-completion p95 was
+2.692/3.347 ms respectively (eight samples each). No driver optimization follows
+from this single small timing sample. Sanitized source hashes, metrics and
+verdicts are saved in [`evidence/ga102-core-suite.json`](evidence/ga102-core-suite.json).
+One run does not satisfy reproducibility, and no source-only driver change ran.
+
+```sh
+python3 tools/ga102_suite.py --profile correctness --output /private/tmp/ga102-core-new-results.json
+python3 tools/ga102_suite.py --profile presentation --repeat 3 --output /private/tmp/ga102-presentation-new-results.json
+python3 tools/ga102_suite.py --profile negative-controls --output /private/tmp/ga102-controls-new-results.json
+python3 -m unittest discover -s tools -p 'test_ga102*.py'
+```
+
+**Confirmed installed-code policy, not a desktop defect:**
+`plugin/NVMTLObjects.m::nvmtl_conf_knobs`, in release builds, removes inherited
+`NVMTL_*`, `NVK_*`, `NAK_*` and `NVRM_*` environment variables before loading
+the production configuration. Read-only disassembly of the installed plugin
+(unchanged SHA256 `853cc88e3e414815384d7d60bc01dd4d5cb67708c20d10472f59506a60a9c5cb`)
+confirms the matching prefix comparisons and `unsetenv` loop before `fopen`.
+The readable installed configuration has no explicit CECHAN assignment.
+Thus the earlier environment-only `NVRM_610_CECHAN=0` attempt could not establish
+a graphics-copy-channel comparison: the release constructor strips it. No
+configuration change or additional ineffective comparison was performed.
+
+This also corrects prior cache-isolation wording: `--isolated-cache` requests
+both Mesa and AIR paths, but release initialization strips `NVMTL_AIRCACHE`.
+`MESA_SHADER_CACHE_DIR` is outside those prefix filters. AIR isolation and globally
+cold compilation must not be claimed. The runner now warns explicitly; previous
+correctness results remain valid, but cannot prove AIR-cache isolation. The
+environment-clearing policy is preserved because its production purpose has not
+been shown to be a correctness/performance defect.
+
+**Experimental component isolation review:** the source provides a process-only
+`NVMTL_ICD_LIB` path override, but the installed release constructor also strips
+that variable. Merely setting it cannot validate an alternate backend. Direct
+loading an uninstalled Metal bundle has constructors that register/replace
+Objective-C methods in the loading process, read production configuration and
+mutate process environment; device initialization then uses private
+`MTLIOAccelDevice`/accelerator-port interfaces and opens NVK channels. A verified
+isolated device-binding harness is not yet established. No experimental bundle
+was executed, no active component replaced, and no graphics services restarted.
+Previously built candidates remain AWAITING LIVE VALIDATION. Offline tests and
+source development continue independently of this deployment limitation.

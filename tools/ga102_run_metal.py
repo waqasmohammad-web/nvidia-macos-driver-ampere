@@ -2,8 +2,9 @@
 """Compile/run only the GA102 probes with external deadlines and private scratch.
 
 No driver/display-setting writes, sudo, installation, or production-cache deletion.
-Optional --isolated-cache uses test-owned Mesa/AIR caches; repeat uses the same
-scratch directories to compare process starts (other compiler caches remain).
+Optional --isolated-cache requests test-owned Mesa/AIR caches; the installed
+release plugin clears NVMTL_AIRCACHE, so AIR isolation must not be assumed.
+Repeat uses the same scratch directories (other compiler caches remain).
 Logs stay in a new private temporary directory, never auto-committed.
 """
 import argparse
@@ -17,9 +18,11 @@ import tempfile
 try:
     from .ga102_visual_validation import evaluate as evaluate_visual, repeated_result
     from .ga102_pacing_validation import evaluate as evaluate_pacing, repeated_pacing_result
+    from .ga102_core_validation import CORE_PROBES, FIELDS, evaluate as evaluate_core, repeated_core_result
 except ImportError:
     from ga102_visual_validation import evaluate as evaluate_visual, repeated_result
     from ga102_pacing_validation import evaluate as evaluate_pacing, repeated_pacing_result
+    from ga102_core_validation import CORE_PROBES, FIELDS, evaluate as evaluate_core, repeated_core_result
 
 ROOT = Path(__file__).resolve().parent.parent
 PROBES = ("ga102_metal_smoketest", "ga102_metal_render_smoketest", "ga102_metal_benchmark",
@@ -91,8 +94,8 @@ def main():
     parser.add_argument("--display-linked", action="store_true")
     parser.add_argument("--result-json", type=Path, help="Save scoped visual-probe verdicts and numeric metrics, excluding raw logs and machine identities")
     args = parser.parse_args()
-    if args.result_json and args.probe not in ("ga102_visual_present", "ga102_metal_present"):
-        parser.error("--result-json requires ga102_visual_present or ga102_metal_present")
+    if args.result_json and args.probe not in (*CORE_PROBES, "ga102_visual_present", "ga102_metal_present"):
+        parser.error("--result-json requires a core correctness or presentation probe")
     if args.result_json and args.result_json.exists():
         parser.error("--result-json must name a new file; existing evidence is never overwritten")
     if args.display_linked and args.probe != "ga102_metal_present":
@@ -107,11 +110,13 @@ def main():
     env = os.environ.copy()
     if args.graphics_copy_queue:
         env["NVRM_610_CECHAN"] = "0"
+        print("NOT VERIFIED: copy-engine override requested; release plugins clear NVRM_* environment before reading configuration", flush=True)
     if args.isolated_cache:
         for key, name in [("MESA_SHADER_CACHE_DIR", "mesa"), ("NVMTL_AIRCACHE", "air")]:
             folder = scratch / name
             folder.mkdir(mode=0o700)
             env[key] = str(folder)
+        print("Cache isolation scope: Mesa override requested; AIR override may be stripped by release-plugin initialization", flush=True)
     compile_command = ["xcrun", "swiftc", "-O", "-module-cache-path", str(scratch / "modules"),
                        str(ROOT / "tools" / f"{args.probe}.swift"), "-o", str(executable)]
     runs = []
@@ -163,6 +168,14 @@ def main():
                                 code = 1
                 runs.append({"exit_code": code, "metrics": metrics, "verdict": verdict or {},
                              "display_correlation": correlation})
+            elif args.probe in CORE_PROBES:
+                records = [{k: v for k, v in json.loads(line[8:]).items() if k in FIELDS}
+                           for line in lines if line.startswith('result: ')]
+                verdict = evaluate_core(args.probe, records, code)
+                print('result: ' + json.dumps(verdict, sort_keys=True), flush=True)
+                if verdict['automated_core_validation'] == 'FAIL':
+                    code = 1
+                runs.append({'exit_code': code, 'metrics': records, 'verdict': verdict})
             elif args.probe == "ga102_metal_present":
                 verdict = None
                 metrics = {}
@@ -192,6 +205,7 @@ def main():
     finally:
         if args.result_json:
             report = (repeated_pacing_result(runs, args.repeat, source_hash) if args.probe == "ga102_metal_present"
+                      else repeated_core_result(args.probe, runs, args.repeat, source_hash) if args.probe in CORE_PROBES
                       else repeated_result(runs, args.repeat, source_hash, args.negative_control))
             if args.probe == "ga102_metal_present":
                 report['pacing'] = 'AppKit display link' if args.display_linked else '60 Hz timer'

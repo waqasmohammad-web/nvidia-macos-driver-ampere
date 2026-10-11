@@ -1,0 +1,99 @@
+#!/usr/bin/env python3
+"""Sequential, bounded GA102 probe suite. No installation or system settings.
+
+Each runner owns its compiler/probe deadlines and process groups. The suite waits
+for that runner rather than imposing a second timeout that could orphan a probe.
+Raw output stays in private scratch. --output writes a new sanitized artifact.
+"""
+import argparse
+import json
+from pathlib import Path
+import shutil
+import subprocess
+import sys
+import tempfile
+try:
+    from .ga102_core_validation import CORE_PROBES
+except ImportError:
+    from ga102_core_validation import CORE_PROBES
+
+ROOT = Path(__file__).resolve().parent.parent
+
+
+def plan(profile, repeat):
+    jobs = []
+    if profile in ('correctness', 'all'):
+        jobs += [(probe, [], repeat, None) for probe in CORE_PROBES]
+    if profile in ('presentation', 'all'):
+        jobs += [('ga102_visual_present', [], repeat, None),
+                 ('ga102_metal_present', [], repeat, None),
+                 ('ga102_metal_present', ['--display-linked'], repeat, None)]
+    if profile in ('negative-controls', 'all'):
+        jobs += [('ga102_visual_present', ['--negative-control', mode], 1, expected)
+                 for mode, expected in (('static', 'FAIL'), ('timestamps', 'NOT VERIFIED'), ('hidden', 'NOT VERIFIED'))]
+    return jobs
+
+
+def summarize(jobs):
+    statuses = [j['acceptance'] for j in jobs]
+    overall = ('FAIL' if 'FAIL' in statuses else 'BLOCKED' if 'BLOCKED' in statuses else
+               'PASS' if statuses and all(s == 'PASS' for s in statuses) else 'NOT VERIFIED')
+    return {'schema_version': 1, 'scope': 'selected bounded probe checks', 'acceptance': overall,
+            'jobs': jobs, 'physical_scanout': 'NOT VERIFIED', 'desktop_smoothness': 'NOT VERIFIED',
+            'installed_driver_fixed': False}
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--profile', choices=('correctness', 'presentation', 'negative-controls', 'all'), default='correctness')
+    parser.add_argument('--repeat', type=int, choices=(1, 2, 3), default=1,
+                        help='Use 3 for reproducibility; controls always run once')
+    parser.add_argument('--output', type=Path, required=True)
+    args = parser.parse_args()
+    if args.output.exists(): parser.error('--output must name a new file')
+    scratch = Path(tempfile.mkdtemp(prefix='ga102-suite-'))
+    print(f'Private suite scratch: {scratch}', flush=True)
+    results = []
+    stop_reason = None
+    available = sys.platform == 'darwin' and shutil.which('xcrun') is not None
+    for index, (probe, options, repeat, expected) in enumerate(plan(args.profile, args.repeat)):
+        job = {'probe': probe, 'options': options, 'requested_runs': repeat}
+        if stop_reason:
+            job.update(acceptance='NOT VERIFIED', reason=stop_reason)
+        elif not available:
+            job.update(acceptance='BLOCKED', reason='macOS and Xcode command-line tools required')
+        else:
+            artifact = scratch / f'job-{index}.json'
+            command = [sys.executable, str(ROOT / 'tools/ga102_run_metal.py'), probe,
+                       '--isolated-cache', '--repeat', str(repeat), '--result-json', str(artifact), *options]
+            print(f'Running {probe} {" ".join(options)} ({repeat} run(s))', flush=True)
+            with (scratch / f'job-{index}.log').open('w') as log:
+                code = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT).returncode
+            if artifact.exists():
+                report = json.loads(artifact.read_text())
+                actual = next((report[k] for k in ('automated_core_validation', 'automated_visual_validation',
+                                                  'automated_pacing_validation') if k in report), 'NOT VERIFIED')
+                acceptance = actual
+                if expected is not None:
+                    acceptance = 'PASS' if actual == expected and report.get('completed_runs') == 1 else 'FAIL'
+                elif code != 0:
+                    acceptance = 'FAIL'
+                job.update(acceptance=acceptance, runner_exit_code=code, evidence=report)
+                if expected is not None: job['expected_rejection'] = expected
+            else:
+                job.update(acceptance='FAIL', runner_exit_code=code, reason='runner produced no evidence artifact')
+        results.append(job)
+        if job['acceptance'] == 'FAIL':
+            stop_reason = 'remaining GPU launches skipped after unexpected failure; inspect private evidence before retrying'
+        print(f'{job["acceptance"]}: {probe}', flush=True)
+    report = summarize(results)
+    report['profile'] = args.profile
+    report['cache_policy'] = 'Mesa/AIR isolation requested; release plugin strips AIR override; globally cold compilation NOT VERIFIED'
+    with args.output.open('x') as output:
+        json.dump(report, output, indent=2, sort_keys=True, allow_nan=False); output.write('\n')
+    print(f'{report["acceptance"]}: selected probe checks; desktop smoothness and physical scanout NOT VERIFIED')
+    return 1 if report['acceptance'] == 'FAIL' else 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

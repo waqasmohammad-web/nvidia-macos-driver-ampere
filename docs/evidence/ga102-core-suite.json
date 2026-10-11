@@ -1,0 +1,355 @@
+{
+  "acceptance": "PASS",
+  "desktop_smoothness": "NOT VERIFIED",
+  "installed_driver_fixed": false,
+  "jobs": [
+    {
+      "acceptance": "PASS",
+      "evidence": {
+        "automated_core_validation": "PASS",
+        "checks": {
+          "scoped_gpu_correctness": "PASS"
+        },
+        "completed_runs": 1,
+        "desktop_smoothness": "NOT VERIFIED",
+        "execution": "PASS",
+        "installed_driver_fixed": false,
+        "negative_control": null,
+        "physical_scanout": "NOT VERIFIED",
+        "probe": "ga102_metal_smoketest",
+        "probe_source_sha256": "0010706a31f61f3e5657501ccca4f00e644cbba35be767ae16f43e68322ccbaa",
+        "reproducibility": "NOT VERIFIED",
+        "requested_runs": 1,
+        "runs": [
+          {
+            "exit_code": 0,
+            "metrics": [
+              {
+                "checked_elements": 4,
+                "probe": "compute",
+                "values": [
+                  2,
+                  4,
+                  6,
+                  8
+                ]
+              }
+            ],
+            "verdict": {
+              "automated_core_validation": "PASS",
+              "checks": {
+                "scoped_gpu_correctness": "PASS"
+              },
+              "desktop_smoothness": "NOT VERIFIED",
+              "installed_driver_fixed": false,
+              "physical_scanout": "NOT VERIFIED"
+            }
+          }
+        ],
+        "schema_version": 1
+      },
+      "options": [],
+      "probe": "ga102_metal_smoketest",
+      "requested_runs": 1,
+      "runner_exit_code": 0
+    },
+    {
+      "acceptance": "PASS",
+      "evidence": {
+        "automated_core_validation": "PASS",
+        "checks": {
+          "scoped_gpu_correctness": "PASS"
+        },
+        "completed_runs": 1,
+        "desktop_smoothness": "NOT VERIFIED",
+        "execution": "PASS",
+        "installed_driver_fixed": false,
+        "negative_control": null,
+        "physical_scanout": "NOT VERIFIED",
+        "probe": "ga102_metal_render_smoketest",
+        "probe_source_sha256": "516fb67d375c71a33614b2767044509b1ca3dd2e2068c7526b6af1eaa530f878",
+        "reproducibility": "NOT VERIFIED",
+        "requested_runs": 1,
+        "runs": [
+          {
+            "exit_code": 0,
+            "metrics": [
+              {
+                "checked_pixels": 1,
+                "height": 16,
+                "probe": "render",
+                "rgba": [
+                  64,
+                  127,
+                  191,
+                  255
+                ],
+                "width": 16
+              }
+            ],
+            "verdict": {
+              "automated_core_validation": "PASS",
+              "checks": {
+                "scoped_gpu_correctness": "PASS"
+              },
+              "desktop_smoothness": "NOT VERIFIED",
+              "installed_driver_fixed": false,
+              "physical_scanout": "NOT VERIFIED"
+            }
+          }
+        ],
+        "schema_version": 1
+      },
+      "options": [],
+      "probe": "ga102_metal_render_smoketest",
+      "requested_runs": 1,
+      "runner_exit_code": 0
+    },
+    {
+      "acceptance": "PASS",
+      "evidence": {
+        "automated_core_validation": "PASS",
+        "checks": {
+          "scoped_gpu_correctness": "PASS"
+        },
+        "completed_runs": 1,
+        "desktop_smoothness": "NOT VERIFIED",
+        "execution": "PASS",
+        "installed_driver_fixed": false,
+        "negative_control": null,
+        "physical_scanout": "NOT VERIFIED",
+        "probe": "ga102_metal_composite",
+        "probe_source_sha256": "2c85bb1c53aad2e1e3441f9a539e61b2e66d478169784322ac99807a32148063",
+        "reproducibility": "NOT VERIFIED",
+        "requested_runs": 1,
+        "runs": [
+          {
+            "exit_code": 0,
+            "metrics": [
+              {
+                "checked_pixels": 16,
+                "encode_to_completion": {
+                  "max_ms": 1.1568100017029792,
+                  "p50_ms": 0.9487920033279806,
+                  "p95_ms": 1.1568100017029792,
+                  "samples": 8
+                },
+                "gpu": {
+                  "max_ms": 0.8273280000139493,
+                  "p50_ms": 0.7966720004333183,
+                  "p95_ms": 0.8273280000139493,
+                  "samples": 8
+                },
+                "height": 1440,
+                "layers": 16,
+                "mode": "private",
+                "pixels": "PASS",
+                "width": 3440
+              },
+              {
+                "checked_pixels": 16,
+                "encode_to_completion": {
+                  "max_ms": 1.9077040014963131,
+                  "p50_ms": 1.5597739984514192,
+                  "p95_ms": 1.9077040014963131,
+                  "samples": 8
+                },
+                "gpu": {
+                  "max_ms": 1.6506879983353429,
+                  "p50_ms": 1.3127679994795471,
+                  "p95_ms": 1.6506879983353429,
+                  "samples": 8
+                },
+                "height": 1440,
+                "layers": 16,
+                "mode": "iosurface",
+                "pixels": "PASS",
+                "width": 3440
+              },
+              {
+                "checked_pixels": 16,
+                "encode_to_completion": {
+                  "max_ms": 2.691626999876462,
+                  "p50_ms": 1.8399600012344308,
+                  "p95_ms": 2.691626999876462,
+                  "samples": 8
+                },
+                "gpu": {
+                  "max_ms": 2.128896001522662,
+                  "p50_ms": 1.5790079996804707,
+                  "p95_ms": 2.128896001522662,
+                  "samples": 8
+                },
+                "height": 1440,
+                "layers": 32,
+                "mode": "private",
+                "pixels": "PASS",
+                "width": 3440
+              },
+              {
+                "checked_pixels": 16,
+                "encode_to_completion": {
+                  "max_ms": 3.347493999172002,
+                  "p50_ms": 2.388568998867413,
+                  "p95_ms": 3.347493999172002,
+                  "samples": 8
+                },
+                "gpu": {
+                  "max_ms": 2.1114880000823177,
+                  "p50_ms": 2.084863997879438,
+                  "p95_ms": 2.1114880000823177,
+                  "samples": 8
+                },
+                "height": 1440,
+                "layers": 32,
+                "mode": "iosurface",
+                "pixels": "PASS",
+                "width": 3440
+              }
+            ],
+            "verdict": {
+              "automated_core_validation": "PASS",
+              "checks": {
+                "scoped_gpu_correctness": "PASS"
+              },
+              "desktop_smoothness": "NOT VERIFIED",
+              "installed_driver_fixed": false,
+              "physical_scanout": "NOT VERIFIED"
+            }
+          }
+        ],
+        "schema_version": 1
+      },
+      "options": [],
+      "probe": "ga102_metal_composite",
+      "requested_runs": 1,
+      "runner_exit_code": 0
+    },
+    {
+      "acceptance": "PASS",
+      "evidence": {
+        "automated_core_validation": "PASS",
+        "checks": {
+          "scoped_gpu_correctness": "PASS"
+        },
+        "completed_runs": 1,
+        "desktop_smoothness": "NOT VERIFIED",
+        "execution": "PASS",
+        "installed_driver_fixed": false,
+        "negative_control": null,
+        "physical_scanout": "NOT VERIFIED",
+        "probe": "ga102_metal_events",
+        "probe_source_sha256": "f9f48f25f4a105b42384fa1d5c3bca1d3586e71646ffbf3d24fb3e6d04d4a3c7",
+        "reproducibility": "NOT VERIFIED",
+        "requested_runs": 1,
+        "runs": [
+          {
+            "exit_code": 0,
+            "metrics": [
+              {
+                "checked_bytes": 65536,
+                "commit_to_consumer_completion_ms_in_order": [
+                  0.920385,
+                  0.1396,
+                  0.084011,
+                  0.092224,
+                  0.088943,
+                  0.109404,
+                  0.080057,
+                  0.086007,
+                  0.070529,
+                  0.076729,
+                  0.075571,
+                  0.120601,
+                  0.088607,
+                  0.094411,
+                  0.075832,
+                  0.091914
+                ],
+                "consumer_first_iterations": 8,
+                "iterations": 16,
+                "output": "PASS"
+              }
+            ],
+            "verdict": {
+              "automated_core_validation": "PASS",
+              "checks": {
+                "scoped_gpu_correctness": "PASS"
+              },
+              "desktop_smoothness": "NOT VERIFIED",
+              "installed_driver_fixed": false,
+              "physical_scanout": "NOT VERIFIED"
+            }
+          }
+        ],
+        "schema_version": 1
+      },
+      "options": [],
+      "probe": "ga102_metal_events",
+      "requested_runs": 1,
+      "runner_exit_code": 0
+    },
+    {
+      "acceptance": "PASS",
+      "evidence": {
+        "automated_core_validation": "PASS",
+        "checks": {
+          "scoped_gpu_correctness": "PASS"
+        },
+        "completed_runs": 1,
+        "desktop_smoothness": "NOT VERIFIED",
+        "execution": "PASS",
+        "installed_driver_fixed": false,
+        "negative_control": null,
+        "physical_scanout": "NOT VERIFIED",
+        "probe": "ga102_metal_crossprocess",
+        "probe_source_sha256": "c1ac0b949f695225e0a08b474d0c6d720dcbc35159624066c8542658e8ac3cd7",
+        "reproducibility": "NOT VERIFIED",
+        "requested_runs": 1,
+        "runs": [
+          {
+            "exit_code": 0,
+            "metrics": [
+              {
+                "checked_bytes": 262144,
+                "cpu_producer_frames": 4,
+                "frames": 8,
+                "gpu_producer_frames": 4,
+                "output": "PASS",
+                "processes": 2,
+                "roundtrip_ms_in_order": [
+                  14.699727,
+                  6.706983,
+                  6.814483,
+                  12.246483,
+                  6.043514,
+                  6.883847,
+                  5.727216,
+                  6.901952
+                ]
+              }
+            ],
+            "verdict": {
+              "automated_core_validation": "PASS",
+              "checks": {
+                "scoped_gpu_correctness": "PASS"
+              },
+              "desktop_smoothness": "NOT VERIFIED",
+              "installed_driver_fixed": false,
+              "physical_scanout": "NOT VERIFIED"
+            }
+          }
+        ],
+        "schema_version": 1
+      },
+      "options": [],
+      "probe": "ga102_metal_crossprocess",
+      "requested_runs": 1,
+      "runner_exit_code": 0
+    }
+  ],
+  "physical_scanout": "NOT VERIFIED",
+  "profile": "correctness",
+  "schema_version": 1,
+  "scope": "selected bounded probe checks"
+}
