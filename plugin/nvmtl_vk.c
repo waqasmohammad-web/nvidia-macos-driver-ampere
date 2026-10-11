@@ -47,6 +47,7 @@ static VkImageAspectFlags nvmtl_barrier_aspect(const nvk_image *img)
 #include <unistd.h>
 #include <limits.h>
 #include <sys/stat.h>
+#include <errno.h>
 #include <pthread.h>
 static pthread_mutex_t g_gpu_clock_lock = PTHREAD_MUTEX_INITIALIZER;
 static inline const char *nvmtl_pick_vk(const char *staged, const char *dev) {
@@ -559,13 +560,33 @@ static int nvmtl_vk_initialize(void)
     }
     if (!getenv("MESA_SHADER_CACHE_DIR") && !getenv("XDG_CACHE_HOME") && !getenv("NVMTL_NO_MESA_CACHE_DIR")) {
         const char *home = getenv("HOME");
-        if (!home || access(home, W_OK) != 0) {
+        // Mesa's implicit macOS cache can resolve to /var/folders/zz (not writable for
+        // this process), even when HOME itself is writable. Prefer a per-user cache
+        // with a known writable parent. Do not change caches for processes which
+        // already chose a location or explicitly disabled this fallback.
+        if (home && *home && access(home, W_OK) == 0) {
+            char parent[PATH_MAX], dir[PATH_MAX];
+            const int p = snprintf(parent, sizeof parent, "%s/Library/Caches", home);
+            const int n = snprintf(dir, sizeof dir, "%s/Library/Caches/nvmtl-mesa", home);
+            if (p > 0 && (size_t)p < sizeof parent && n > 0 && (size_t)n < sizeof dir
+                && access(parent, W_OK | X_OK) == 0
+                && (mkdir(dir, 0700) == 0 || errno == EEXIST)) {
+                struct stat st;
+                if (lstat(dir, &st) == 0 && S_ISDIR(st.st_mode)
+                    && access(dir, W_OK | X_OK) == 0
+                    && setenv("MESA_SHADER_CACHE_DIR", dir, 0) == 0)
+                    nvlog("vk: %s: per-user Mesa shader cache at %s", getprogname(), dir);
+            }
+        }
+        // On services without a writable HOME, retain the existing Darwin-cache
+        // fallback. If neither location works, Mesa's normal behavior is unchanged.
+        if (!getenv("MESA_SHADER_CACHE_DIR")) {
             char ucd[PATH_MAX], dir[PATH_MAX];
             const size_t n = confstr(_CS_DARWIN_USER_CACHE_DIR, ucd, sizeof ucd);
             if (n > 0 && n <= sizeof ucd && snprintf(dir, sizeof dir, "%snvmtl-mesa", ucd) < (int)sizeof dir) {
                 mkdir(dir, 0700);
                 if (access(dir, W_OK) == 0) { setenv("MESA_SHADER_CACHE_DIR", dir, 1);
-                    nvlog("vk: %s has no writable HOME (%s) - Mesa shader disk cache at %s", getprogname(), home ?: "unset", dir); }
+                    nvlog("vk: %s: Darwin Mesa shader disk cache at %s", getprogname(), dir); }
                 else nvlog("vk: %s: no writable Mesa cache dir (%s) - NAK recompiles every start", getprogname(), dir);
             }
         }
