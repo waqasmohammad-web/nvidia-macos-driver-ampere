@@ -1536,3 +1536,47 @@ ordinary desktop bottleneck, per-phase WindowServer/NVAccel/NVKMS fence and
 flip observations remain unavailable in the installed build; synthetic client
 results cannot substitute for them. Source-only counters remain awaiting live
 validation, under the unchanged prohibition on replacing active components.
+
+### Follow-up: main-queue delivery and an independently correlated SCK omission
+
+A plain `DispatchQueue.main.async` marker now enters the queue from the GPU
+completed handler immediately before resuming the Swift continuation. Three
+capture-on and three capture-disabled repetitions completed with correct GPU
+pixels, eligible visibility, no missed link ticks and clean error/drop counters.
+Capture-on still fails the 60 Hz cadence check; capture-disabled passes that
+check and remains overall NOT VERIFIED because capture is intentionally absent.
+The marker adds observation work only; it does not change graphics components.
+
+In capture-on runs the long client waits also delay the plain main-queue marker:
+18.614–19.246 ms after handler invocation versus 18.619–19.250 ms for MainActor
+resumption. Handler invocation itself takes 0.299–0.340 ms after commit and GPU
+execution 0.061–0.063 ms for those frames. Without capture, marker maxima are
+0.026–0.043 ms. This is evidence of delayed main-queue delivery, not merely a
+Swift actor scheduling anomaly or a long observed GPU completion. It cannot
+identify whether AppKit flush/surface publication, synchronous system calls,
+CPU descheduling or another main-thread task caused it. The stall moves to
+frames 12–18 with this extra instrumentation; frame 16 was specific to the
+previous binary, not a proven frame-ID-dependent driver failure.
+
+**Concrete capture omission correlated by identity:** the first two runs
+capture 119 IDs, omitting frame 4. Frame 4 was submitted, its GPU readback was
+correct, and its drawable returned a positive reported presentation timestamp.
+Therefore that ID's absence is not explained by lack of submission, bad GPU
+contents or unavailable presentation timestamp. It remains absent from the
+capture observer. This does not prove physical scanout, but demonstrates why
+SCK omission cannot be counted as a measured display drop. The third run
+captures all 120. Complete coverage stays NOT VERIFIED for the 119-ID runs;
+no records are fabricated or acceptance thresholds relaxed. Early unavailable
+positive presentation IDs (1 or 1/2) are tracked separately from missing capture
+ID 4. Root attribution between SCK/compositor sampling remains unavailable.
+
+Evidence: [`evidence/ga102-main-queue-markers.json`](evidence/ga102-main-queue-markers.json).
+All per-frame main-queue markers were collected; independent analysis checks
+CPU ordering, and 46 regression tests PASS. These stages narrow the observer
+limitation and reject several incorrect delay explanations. They do not
+establish the everyday desktop cause. The next useful runtime observation is
+an own-client main-thread/run-loop trace around the capture-specific stall;
+identifying an actual WindowServer render-to-flip bottleneck still needs
+per-phase fence/flip instrumentation unavailable in the installed driver.
+No speculative performance change, wait removal or deployment is justified
+by the current evidence.

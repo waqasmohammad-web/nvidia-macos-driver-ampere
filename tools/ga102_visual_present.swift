@@ -84,6 +84,11 @@ func complete(_ commands:MTLCommandBuffer,_ id:Int) async {
         }
         commands.addCompletedHandler {_ in
             let t=CACurrentMediaTime();lock.lock();commandCallbacks[id,default:[:]]["completed_callback_seconds"]=t;lock.unlock()
+            // A plain main-queue marker separates a busy main thread from
+            // delay specific to Swift's awaiting actor continuation.
+            DispatchQueue.main.async {
+                let t=CACurrentMediaTime();lock.lock();commandCallbacks[id,default:[:]]["main_queue_marker_seconds"]=t;lock.unlock()
+            }
             continuation.resume()
         }
         commands.commit()
@@ -244,6 +249,7 @@ Task { @MainActor in
         if let f=frameTrace[index]["completed_callback_ms"],let c=frameTrace[index]["commit_ms"],let a=frameTrace[index]["completed_ms"] {
             frameTrace[index]["commit_to_completion_callback_ms"]=f-c
             frameTrace[index]["completion_callback_to_actor_ms"]=a-f
+            if let m=frameTrace[index]["main_queue_marker_ms"] {frameTrace[index]["completion_callback_to_main_queue_ms"]=m-f}
         }
     }
     let positive=observed.values.filter{$0>0}.count;let zeroIDs=observed.filter{$0.value<=0}.keys.sorted()

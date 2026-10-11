@@ -22,6 +22,11 @@ class DeliveryTests(unittest.TestCase):
         row['completed_ms']=1.2
         self.assertEqual(analyze({'probe':'visual','frame_trace':[row]})['callback_trace_collection'],'FAIL')
 
+    def test_main_queue_marker_cannot_precede_completion_invocation(self):
+        row={'frame':0,'draw_start_ms':0,'commit_ms':1,'scheduled_callback_ms':1.1,'commit_return_ms':1.02,
+             'completed_callback_ms':1.3,'completed_ms':1.4,'main_queue_marker_ms':1.2}
+        self.assertEqual(analyze({'probe':'visual','frame_trace':[row]})['callback_trace_collection'],'FAIL')
+
     def test_quantiles_and_unavailable_data(self):
         self.assertEqual(distribution(range(1,101))['p99_ms'],99)
         self.assertEqual(distribution([None,float('nan')])['samples'],0)

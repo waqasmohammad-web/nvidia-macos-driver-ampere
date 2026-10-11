@@ -18,7 +18,7 @@ def analyze(metrics):
     presented={int(r['frame']) for r in rows if 'reported_presented_ms' in r}
     expected=set(range(metrics.get('frames',120)))
     intervals=[b-a for a,b in zip(starts,starts[1:])]
-    stages=('acquisition_ms','encode_ms','commit_call_ms','commit_to_scheduled_callback_ms','commit_to_completion_callback_ms','completion_callback_to_actor_ms','commit_to_completed_ms','gpu_ms','cpu_reference_readback_ms','eligibility_and_stream_start_ms') if metal else ('transaction_ms','visibility_ms','capture_roundtrip_ms')
+    stages=('acquisition_ms','encode_ms','commit_call_ms','commit_to_scheduled_callback_ms','commit_to_completion_callback_ms','completion_callback_to_actor_ms','completion_callback_to_main_queue_ms','commit_to_completed_ms','gpu_ms','cpu_reference_readback_ms','eligibility_and_stream_start_ms') if metal else ('transaction_ms','visibility_ms','capture_roundtrip_ms')
     steady_starts=[r[key] for r in rows if key in r and r['frame']>=10]
     result={'submission_intervals_all_including_initial_hold':distribution(intervals),
             'submission_intervals':distribution([b-a for a,b in zip(steady_starts,steady_starts[1:])]), 'stage_costs':{k:distribution([r.get(k) for r in rows[10:]]) for k in stages},
@@ -29,11 +29,11 @@ def analyze(metrics):
     if metal:
         required=('commit_ms','completed_callback_ms','completed_ms','scheduled_callback_ms','commit_return_ms')
         complete=bool(rows) and all(all(isinstance(r.get(k),(int,float)) and math.isfinite(r[k]) for k in required) for r in rows)
-        invalid=complete and any(r['completed_callback_ms']<r['commit_ms'] or r['completed_ms']<r['completed_callback_ms'] for r in rows)
+        invalid=complete and any(r['completed_callback_ms']<r['commit_ms'] or r['completed_ms']<r['completed_callback_ms'] or r.get('main_queue_marker_ms',r['completed_callback_ms'])<r['completed_callback_ms'] for r in rows)
         result['callback_trace_collection']='FAIL' if invalid else 'PASS' if complete else 'NOT VERIFIED'
         result['long_client_completion_observations']=[{
             'frame':int(r['frame']),'callback_after_commit_ms':r.get('commit_to_completion_callback_ms'),
-            'actor_after_callback_ms':r.get('completion_callback_to_actor_ms'),'gpu_ms':r.get('gpu_ms'),
+            'actor_after_callback_ms':r.get('completion_callback_to_actor_ms'),'main_queue_after_callback_ms':r.get('completion_callback_to_main_queue_ms'),'gpu_ms':r.get('gpu_ms'),
             'classification':'actor_resumption_delay' if r.get('commit_to_completion_callback_ms',float('inf'))<=2 and r.get('completion_callback_to_actor_ms',0)>2 else 'callback_or_unclassified_delay'}
             for r in rows if r['frame']>=10 and r.get('commit_to_completed_ms',0)>5]
         ordered=[r for r in rows if 'reported_presented_ms' in r and r['frame']>=10]
