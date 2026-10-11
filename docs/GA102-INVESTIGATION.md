@@ -2316,3 +2316,25 @@ kernel experimentation, obtain the authentic release compiler/linker recipe
 or explain the unchanged-source binary differences and acquire boot-stage
 evidence sufficient to distinguish initialization from collection linkage.
 The failed candidate remains retired; the working baseline remains untouched.
+
+### Bounded retained-log check
+
+The preceding unchanged-source control rebuild was progress, not runtime
+validation. One read-only retained unified-kernel-log query was then attempted
+to obtain the missing boot-stage evidence without another live experiment.
+The query filtered only NVRM/NullMoth/kxld messages and had a 25-second deadline.
+It timed out; incomplete JSON was retained privately alongside the existing
+failed-deployment evidence. Review decoded 42,028 complete entries from the
+partial output. They contained no explicit kxld/unresolved-import, vtable,
+panic or presentation-completion-fault messages and no candidate UUID mention.
+Only one boot identity occurred and it was not the current recovered boot.
+Coverage of the failed boot could not be established. These observations do
+not prove that the failed boot lacked errors, reached driver initialization,
+or even persisted relevant logging. No raw log content or boot identifiers are
+published. No repeated or broader log query is planned.
+
+This specific failure-attribution experiment is **BLOCKED** on reliable failed-
+boot evidence or authentic build provenance. A new live boot is not authorized,
+and no kernel source correction is substantiated by the available observations.
+The full desktop-optimization objective remains incomplete; this boundary must
+not be disguised as success or used to restart synthetic presentation research.
