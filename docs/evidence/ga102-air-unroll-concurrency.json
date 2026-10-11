@@ -1,0 +1,22 @@
+{
+  "baseline_revision": "005d714",
+  "original_enabled": {
+    "exit_code": -6,
+    "thread_sanitizer_races": 1
+  },
+  "original_disabled": {
+    "exit_code": 0,
+    "thread_sanitizer_races": 0
+  },
+  "candidate_enabled": {
+    "exit_code": 0,
+    "thread_sanitizer_races": 0
+  },
+  "candidate_disabled": {
+    "exit_code": 0,
+    "thread_sanitizer_races": 0
+  },
+  "workers": 16,
+  "checks_per_worker": 100,
+  "loaded_graphics_plugin": false
+}

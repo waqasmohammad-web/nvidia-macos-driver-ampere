@@ -2519,3 +2519,69 @@ measured about 20 microseconds per hit. A bounded process-local text cache can
 avoid those reads without touching GPU ordering, pipeline lifetimes or shader
 translation. Validate exact IR equality, key separation, bounded retention and
 thread safety before claiming any measured benefit.
+
+### User-space improvement: bounded AIR text reuse and initialization race fix
+
+Implemented a process-local AIR text cache in `plugin/nvmtl_air_text_cache.h`,
+used by `NVMTLLibraryLoad.m::nvmtl_air_to_text`. It keys immutable text by the
+existing SHA256/option/directory path, preserving disk filenames, shader text
+and unroll-policy separation. A synchronized dictionary copies keys/values,
+retains at most 128 entries and 16 MiB of counted UTF-16 key/text payload,
+clearing its entries when either limit would be exceeded. Foundation object
+and allocator overhead is additional. Oversized entries are not retained.
+Disk lookup, decoding and persistence remain the miss path. Concurrent misses
+may duplicate decoding; no GPU lock, fence, wait, resource lifetime or command
+submission changes were made. Memory hits contribute to the existing hit count;
+`gAirMemoryHit` separately counts them for the focused comparison.
+
+Also corrected `nvmtl_air_unroll_wanted`'s unsynchronized static `off` read/write
+initialization using `dispatch_once`. The source-extracted original function
+produced one ThreadSanitizer data-race warning and aborted (exit -6) with the
+policy enabled. The candidate passed enabled/disabled and empty-input checks,
+16 concurrent workers × 100 assertions. This is a confirmed correctness defect;
+its impact on real desktop performance is not established. Reproducer:
+`tools/air_cache_tests/unroll_thread_test.py --output <new-owned-directory>
+--baseline`. Raw sanitizer logs are private. Sanitized numeric evidence:
+`docs/evidence/ga102-air-unroll-concurrency.json`.
+
+`memory_cache_test.m` passed AddressSanitizer/UndefinedBehaviorSanitizer and
+ThreadSanitizer: immutable snapshots after caller mutation, separate option
+keys, count/payload eviction, oversized rejection and concurrent values.
+`cache_ab.py --memory-cache` compares production code from `005d714` against the
+candidate with the same corrected directory selector and original owned AIR.
+Three fresh processes per condition/variant, 21 calls each, plus one process
+reusing persisted disk entries. All IR SHA256 values agree. Each candidate has
+20 memory hits, one miss and one disk store; each baseline has 20 disk hits,
+one miss and one store. Reuse processes have 21 total hits and zero misses,
+with 20 served from candidate memory after the initial disk hit.
+
+| Corrected directory condition | Baseline repeated lookup p50 / p95 | Candidate p50 / p95 |
+|---|---|---|
+| Valid global cache | 20.67 / 24.66 microseconds | 10.17 / 13.02 microseconds |
+| Fallback from file to valid user cache | 20.64 / 24.85 microseconds | 10.21 / 13.00 microseconds |
+
+**PASS: measured repeated AIR lookup improvement, approximately 2× in this
+comparison.** Earlier implementation comparisons showed about 1.6–2×; magnitude
+varies with scheduling. The savings are roughly 7–10 microseconds per repeated
+lookup, not milliseconds of frame time. Evidence:
+`docs/evidence/ga102-air-memory-ab.json`. One final baseline first call took
+1,514 ms (others roughly 39–64 ms); no cold-start improvement or cause is claimed.
+A separate hexadecimal formatting variant showed no clear incremental benefit
+and was reverted, keeping the patch focused.
+
+The complete isolated x86_64/O1/NVMTL_RELEASE=1 user-space plugin linked with
+Apple clang 17, SDK 15.5, pinned Vulkan-Headers. Binary SHA256:
+`ad776d88a83afa0fe97f90837289608c7d7cf58f002eab4d81248e73990b2ba1`.
+Only the expected system Foundation/Metal/IOSurface/CoreFoundation/Objective-C/
+libSystem dependencies were present. It was not installed or loaded.
+
+**Everyday desktop benefit and candidate integration remain NOT VERIFIED.**
+Memory retention and batch eviction can affect workloads with many shaders;
+reverting this source change restores disk-first behavior without changing
+cache formats. No live rollback is necessary because installed files remain
+unchanged. The next justified performance question is repeated creation of the
+same Metal pipeline: current measurements combine different kernels and include
+roughly 17–19 ms first-pipeline initialization. Those samples do not justify a
+Vulkan pipeline cache or pipeline-object sharing patch. A bounded same-function
+comparison is required before selecting such a change. No further kernel build
+reconstruction, capture experiments or live-driver deployment is authorized.

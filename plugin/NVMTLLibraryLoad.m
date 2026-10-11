@@ -146,7 +146,7 @@ static int nvmtl_xlate_ready(void) {
 
 #include "nvmtl_mesa_cache.h"
 
-static _Atomic unsigned long gAirHit, gAirMiss, gAirStored;
+static _Atomic unsigned long gAirHit, gAirMiss, gAirStored, gAirMemoryHit;
 
 static NSString *nvmtl_aircache_dir(void) {
     static NSString *dir; static dispatch_once_t once;
@@ -451,7 +451,8 @@ static BOOL nvmtl_bitcode_reader_ready(void) {
 }
 #define NVMTL_AIR_UNROLL_PIPELINE "function(sroa,loop(loop-rotate),indvars,loop-unroll<O3>,sroa,simplifycfg,early-cse)"
 static BOOL nvmtl_air_unroll_wanted(NSData *air) {
-    static int off = -1; if (off < 0) off = getenv("NVMTL_NO_AIR_UNROLL") != NULL;
+    static BOOL off; static dispatch_once_t once;
+    dispatch_once(&once, ^{ off = getenv("NVMTL_NO_AIR_UNROLL") != NULL; });
     static const char needle[] = "air.simdgroup_matrix_8x8";
     return !off && air.length && memmem(air.bytes, air.length, needle, sizeof needle - 1) != NULL;
 }
@@ -480,14 +481,19 @@ static NSString *nvmtl_air_in_memory(NSData *air) {
     return result;
 }
 
+#include "nvmtl_air_text_cache.h"
+
 static NSString *nvmtl_air_to_text(NSData *air) {
     NSString *cache = nvmtl_aircache_path(air);
-    NSString *hit = [NSString stringWithContentsOfFile:cache encoding:NSUTF8StringEncoding error:nil];
-    if (hit.length) { gAirHit++; return hit; }
+    NSString *hit = nvmtl_air_text_cached(cache, nil);
+    if (hit.length) { gAirHit++; gAirMemoryHit++; return hit; }
+    hit = [NSString stringWithContentsOfFile:cache encoding:NSUTF8StringEncoding error:nil];
+    if (hit.length) { nvmtl_air_text_cached(cache, hit); gAirHit++; return hit; }
     gAirMiss++;
     NSString *memoryIR = nvmtl_air_in_memory(air);
     if (memoryIR.length) {
         if ([memoryIR writeToFile:cache atomically:YES encoding:NSUTF8StringEncoding error:nil]) gAirStored++;
+        nvmtl_air_text_cached(cache, memoryIR);
         return memoryIR;
     }
 
@@ -505,6 +511,7 @@ static NSString *nvmtl_air_to_text(NSData *air) {
         [[NSFileManager defaultManager] createDirectoryAtPath:nvmtl_aircache_dir()
                                   withIntermediateDirectories:YES attributes:nil error:&mkerr];
         if ([ll writeToFile:cache atomically:YES encoding:NSUTF8StringEncoding error:nil]) gAirStored++;
+        nvmtl_air_text_cached(cache, ll);
     }
     return ll;
 }
