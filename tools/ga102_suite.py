@@ -27,6 +27,7 @@ def plan(profile, repeat):
     if profile in ('presentation', 'all'):
         jobs += [('ga102_visual_present', ['--capture-bridge'], repeat, None),
                  ('ga102_ca_visual', ['--capture-bridge'], repeat, None),
+                 ('ga102_ca_visual', ['--capture-bridge', '--continuous'], repeat, None),
                  ('ga102_metal_present', [], repeat, None),
                  ('ga102_metal_present', ['--display-linked'], repeat, None)]
     if profile in ('negative-controls', 'all'):
@@ -34,6 +35,8 @@ def plan(profile, repeat):
                  for mode, expected in (('static', 'FAIL'), ('timestamps', 'NOT VERIFIED'), ('hidden', 'NOT VERIFIED'))]
         jobs += [('ga102_ca_visual', ['--capture-bridge', '--negative-control', mode], 1, expected)
                  for mode, expected in (('static', 'FAIL'), ('hidden', 'NOT VERIFIED'))]
+        jobs += [('ga102_ca_visual', ['--capture-bridge', '--continuous', '--negative-control', mode], 1, 'NOT VERIFIED')
+                 for mode in ('static', 'hidden')]
     return jobs
 
 

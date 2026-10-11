@@ -33,7 +33,7 @@ Branch: `dev/ga102-3080ti-diagnostics`. Starting revision: `c52e088`.
 - **Latest safe work:** isolated capture broker, explicit color-space matching,
   private source snapshots and scoped acceptance; per-frame submission traces and
   a two/three-drawable startup comparison and owned Core Animation reference
-  capture; 33 Python tests pass.
+  capture and bounded SCStream reference IDs; 37 Python tests pass.
   Objective remains open.
 
 ## Scope and operating constraints
@@ -1273,3 +1273,68 @@ capture, polling and normalization and are **not** compositor rendering latency.
 They make per-frame SCScreenshotManager calls unsuitable for measuring 60 Hz
 animation. Next safe experiment: one bounded owned-window SCStream with encoded
 reference frame IDs, keeping capture loss distinct from actual panel drops.
+
+
+### Bounded owned-window SCStream and observation overhead
+
+The broker now supports one window-only `SCStream` with BGRA/sRGB, a requested
+1/60-second minimum frame interval, queue depth 3 and no audio/cursor/recording.
+It accepts only its live child's window ID/PID, retains at most 512 numeric
+24-point records, and exports decoded frame IDs with relative capture PTS.
+Full images are never retained or written. Raw RGB/absolute PTS stay private.
+The callback samples a read-only pixel buffer on a serial queue. Stop/drain
+is explicit; runner cleanup stops only this stream on child failure/deadline.
+No active graphics-system component is replaced. Sources:
+`ga102_window_capture.m::ga102_stream_start/stop`, `ga102_stream_capture.py`,
+`ga102_ca_visual.swift --continuous`, and the runner/suite.
+
+**FAIL correctly detected, initial test design:** the first stream captured a
+236/236/236 AppKit placeholder before reference rendering. Subsequent 130 records
+were correct and included all 120 IDs, but the extra invalid record correctly
+failed validation. The probe now publishes frame zero *after* window readiness
+before starting the stream. It does not discard malformed captured frames or
+widen RGB tolerance. Subsequent captured references have zero invalid samples.
+
+**Confirmed observer cost:** the initial continuous client called synchronous
+session/window/display queries each frame, then slept for 16.667 ms. It actually
+submitted at about 33 ms spacing, so captured 33 ms changes could not establish
+a compositor delay. Reducing only CGWindowList queries did not resolve this;
+other synchronous eligibility calls still blocked. The instrumented control
+measured `CGSessionCopyCurrentDictionary` around 15.7 ms mean with every-frame
+queries, while cached AppKit visibility checks took about 0.0013 ms. This is
+client observation overhead, not proof of a synchronization defect in NVMTL.
+
+The final continuous probe takes full session/on-screen/display snapshots at
+readiness, frames 0/30/60/90 and the end. Between them it reads cached AppKit
+visibility/occlusion only. All full snapshots must be eligible. Timing and
+query-component costs are preserved, including pauses at full snapshots.
+It does not claim full-session eligibility was independently sampled every
+frame. The every-frame-query option remains as an explicit diagnostic control.
+No mandatory GPU, resource or framebuffer completion wait was removed.
+
+**PASS, captured-content scope / NOT VERIFIED, complete capture coverage:**
+three faster clients submitted 120 references each, with client interval p95
+18.925–18.961 ms, but the stream decoded only 63/64/63 distinct IDs. All captured
+reference samples were correct and ordered; stop succeeded, with no stream
+overflow/failure or new framebuffer errors/drops. Full 120-ID coverage remains
+NOT VERIFIED and the continuous overall gate therefore does not PASS. Missing
+IDs or capture PTS gaps cannot establish dropped physical/compositor frames:
+SCK may omit/coalesce output, and its minimum interval requests a maximum
+capture rate rather than guaranteeing all client frames. A matched same-binary
+every-frame-query control submitted around 33 ms and captured all 120 IDs,
+passing its content/coverage scope; animation pacing remains NOT VERIFIED.
+
+A held-reference regression still passed 12/12 pixels after the stream helper
+extension. Live continuous static/hidden controls remain NOT VERIFIED and never
+receive a full validation PASS. Thirty-seven Python tests PASS, covering wrong
+owner rejection, malformed pixels, reversed capture clocks, missing IDs,
+static output, stop failure and scoped aggregation. The helper compiled with
+warnings-as-errors and the Swift probe compiled and ran. Presentation/all and
+negative-controls/all suite plans now include the continuous experiment.
+
+Evidence: [`evidence/ga102-ca-stream-reference.json`](evidence/ga102-ca-stream-reference.json)
+retains the initial FAIL and subsequent controls/aggregates with exact source
+hashes. No physical-scanout or desktop-improvement claim is made. Next useful
+control is an encoded Metal client under the same stream, correlated with its
+independent GPU readback and presented callbacks, to distinguish capture-rate
+limitations from ordinary Core Animation content delivery.

@@ -3,6 +3,9 @@
 #import <AppKit/AppKit.h>
 #import <ScreenCaptureKit/ScreenCaptureKit.h>
 #import <CoreGraphics/CoreGraphics.h>
+#import <CoreMedia/CoreMedia.h>
+#import <CoreVideo/CoreVideo.h>
+#include <math.h>
 
 @interface GA102CaptureReply : NSObject
 @property BOOL done;
@@ -104,3 +107,121 @@ int ga102_capture_conversion_control(void) {
         return result;
     }
 }
+
+// A single owned-window stream, bounded to 512 numeric sample records. No full
+// frame, audio, image file, display filter, or other-window content is retained.
+@interface GA102StreamReply : NSObject <SCStreamOutput, SCStreamDelegate>
+@property(strong) SCStream *stream;
+@property(strong) dispatch_queue_t queue;
+@property(strong) NSMutableArray *records;
+@property(strong) NSMutableDictionary *statuses;
+@property BOOL failed;
+@property BOOL overflow;
+@end
+@implementation GA102StreamReply
+- (void)stream:(SCStream *)stream didStopWithError:(NSError *)error {
+    (void)stream; (void)error; @synchronized(self) { self.failed = YES; }
+}
+- (void)stream:(SCStream *)stream didOutputSampleBuffer:(CMSampleBufferRef)sample ofType:(SCStreamOutputType)type {
+    (void)stream;
+    if (type != SCStreamOutputTypeScreen || !CMSampleBufferIsValid(sample)) return;
+    @autoreleasepool {
+        NSArray *attachments = (__bridge NSArray *)CMSampleBufferGetSampleAttachmentsArray(sample, NO);
+        NSNumber *status = attachments.firstObject[SCStreamFrameInfoStatus];
+        @synchronized(self) {
+            if (!status) {self.failed = YES; return;}
+            self.statuses[status.stringValue] = @([self.statuses[status.stringValue] unsignedIntegerValue] + 1);
+        }
+        if (status.integerValue != SCFrameStatusComplete) return;
+        CVPixelBufferRef image = CMSampleBufferGetImageBuffer(sample);
+        if (!image || CVPixelBufferGetPixelFormatType(image) != kCVPixelFormatType_32BGRA ||
+            CVPixelBufferGetWidth(image) != 640 || CVPixelBufferGetHeight(image) != 360 ||
+            CVPixelBufferLockBaseAddress(image, kCVPixelBufferLock_ReadOnly) != kCVReturnSuccess) {
+            @synchronized(self) {self.failed = YES;} return;
+        }
+        const unsigned char *pixels = CVPixelBufferGetBaseAddress(image);
+        size_t stride = CVPixelBufferGetBytesPerRow(image);
+        NSMutableArray *rgb = [NSMutableArray arrayWithCapacity:72];
+        if (pixels) for (int cell=0;cell<8;cell++) {
+            int x[3]={cell*80+20,cell*80+20,cell*80+60}, y[3]={20,180,180};
+            for (int point=0;point<3;point++) {
+                const unsigned char *p=pixels+y[point]*stride+x[point]*4;
+                [rgb addObject:@(p[2])]; [rgb addObject:@(p[1])]; [rgb addObject:@(p[0])];
+            }
+        }
+        CVPixelBufferUnlockBaseAddress(image, kCVPixelBufferLock_ReadOnly);
+        double pts=CMTimeGetSeconds(CMSampleBufferGetPresentationTimeStamp(sample));
+        @synchronized(self) {
+            if (rgb.count != 72 || !isfinite(pts)) self.failed = YES;
+            else if (self.records.count >= 512) self.overflow = YES;
+            else [self.records addObject:@{@"pts_seconds":@(pts), @"samples":rgb}];
+        }
+    }
+}
+@end
+static GA102StreamReply *ga102Stream;
+
+int ga102_stream_start(unsigned windowID, int ownerPID) {
+    @autoreleasepool {
+        if (ga102Stream) return -8;
+        if (!CGPreflightScreenCaptureAccess()) return -1;
+        if (ownerPID <= 0 || !windowID) return -2;
+        [NSApplication sharedApplication]; [NSApp setActivationPolicy:NSApplicationActivationPolicyAccessory];
+        GA102CaptureReply *list=[GA102CaptureReply new];
+        [SCShareableContent getShareableContentExcludingDesktopWindows:YES onScreenWindowsOnly:YES
+            completionHandler:^(SCShareableContent *content, NSError *error) {
+                @synchronized(list) {list.content=error ? nil:content; list.done=YES;}
+            }];
+        if (!awaitReply(list)) return -3;
+        SCWindow *own=nil;
+        for (SCWindow *window in list.content.windows)
+            if (window.windowID == windowID && window.owningApplication.processID == ownerPID) {own=window; break;}
+        if (!own) return -4;
+        SCContentFilter *filter=[[SCContentFilter alloc] initWithDesktopIndependentWindow:own];
+        SCStreamConfiguration *config=[SCStreamConfiguration new];
+        config.width=640; config.height=360; config.showsCursor=NO; config.ignoreShadowsSingleWindow=YES;
+        config.pixelFormat=kCVPixelFormatType_32BGRA; config.colorSpaceName=kCGColorSpaceSRGB;
+        config.minimumFrameInterval=CMTimeMake(1,60); config.queueDepth=3; config.capturesAudio=NO;
+        GA102StreamReply *collector=[GA102StreamReply new];
+        collector.records=[NSMutableArray new]; collector.statuses=[NSMutableDictionary new];
+        collector.queue=dispatch_queue_create("ga102.owned.capture",DISPATCH_QUEUE_SERIAL);
+        collector.stream=[[SCStream alloc] initWithFilter:filter configuration:config delegate:collector];
+        NSError *error=nil;
+        if (![collector.stream addStreamOutput:collector type:SCStreamOutputTypeScreen sampleHandlerQueue:collector.queue error:&error]) return -5;
+        GA102CaptureReply *ready=[GA102CaptureReply new];
+        [collector.stream startCaptureWithCompletionHandler:^(NSError *failure) {
+            @synchronized(collector) {collector.failed=failure != nil;}
+            @synchronized(ready) {ready.done=YES;}
+        }];
+        ga102Stream=collector;
+        if (!awaitReply(ready)) return -3;
+        @synchronized(collector) {return collector.failed ? -5:0;}
+    }
+}
+
+// Caller must copy/free this JSON. Stop affects only the stream created above.
+char *ga102_stream_stop(void) {
+    @autoreleasepool {
+        GA102StreamReply *collector=ga102Stream;
+        if (!collector) return NULL;
+        GA102CaptureReply *ready=[GA102CaptureReply new];
+        [collector.stream stopCaptureWithCompletionHandler:^(NSError *error) {
+            @synchronized(collector) {if (error) collector.failed=YES;}
+            @synchronized(ready) {ready.done=YES;}
+        }];
+        BOOL stopped=awaitReply(ready);
+        // Drain our callback queue before copying numeric evidence.
+        dispatch_sync(collector.queue, ^{});
+        NSData *data;
+        @synchronized(collector) {
+            data=[NSJSONSerialization dataWithJSONObject:@{@"stopped":@(stopped),@"failed":@(collector.failed),
+                @"overflow":@(collector.overflow),@"statuses":collector.statuses,@"records":collector.records}
+                options:0 error:NULL];
+        }
+        [collector.stream removeStreamOutput:collector type:SCStreamOutputTypeScreen error:NULL];
+        collector.stream=nil;
+        ga102Stream=nil;
+        return data ? strdup([[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding].UTF8String):NULL;
+    }
+}
+void ga102_capture_free(void *pointer) { free(pointer); }

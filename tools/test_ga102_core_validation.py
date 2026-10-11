@@ -29,7 +29,7 @@ class CoreTests(unittest.TestCase):
 
     def test_suite_scope_plan_and_no_missing_pass(self):
         self.assertEqual(len(plan('correctness', 1)), 5)
-        self.assertEqual(len(plan('all', 3)), 14)
+        self.assertEqual(len(plan('all', 3)), 17)
         self.assertTrue(all(j[2] == 1 for j in plan('negative-controls', 3)))
         self.assertEqual(summarize([])['acceptance'], 'NOT VERIFIED')
         r = summarize([{'acceptance': 'PASS'}])

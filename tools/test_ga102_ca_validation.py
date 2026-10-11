@@ -30,3 +30,16 @@ class CAValidationTests(unittest.TestCase):
                                      ('transactions', 0, 'NOT VERIFIED')]:
             e = self.fixture(); e[key] = value
             self.assertEqual(evaluate(e, self.correlation())['automated_ca_validation'], expected)
+
+    def test_stream_missing_ids_cannot_be_full_pass(self):
+        e=dict(continuous=True,frames=120,transactions=120,preflight_ready=True,
+               visible_frames=120,full_visibility_samples=[True]*5,stream_started=True,
+               stream_analysis={'captured_reference_contents':'PASS','capture_id_coverage':'NOT VERIFIED'})
+        v=evaluate(e,self.correlation())
+        self.assertEqual(v['automated_ca_validation'],'NOT VERIFIED')
+        e['stream_analysis']['capture_id_coverage']='PASS'
+        v=evaluate(e,self.correlation())
+        self.assertEqual(v['automated_ca_validation'],'PASS')
+        r=repeated_ca_result([dict(exit_code=0,verdict=v)]*3,3,'synthetic',continuous=True)
+        self.assertEqual(r['automated_ca_validation'],'PASS')
+        self.assertEqual(r['animation_frame_pacing'],'NOT VERIFIED')

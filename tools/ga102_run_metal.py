@@ -23,6 +23,7 @@ try:
     from .ga102_capture_bridge import CaptureBroker
     from .ga102_presentation_trace import analyze as analyze_trace
     from .ga102_ca_validation import evaluate as evaluate_ca, repeated_ca_result
+    from .ga102_stream_capture import StreamBroker
 except ImportError:
     from ga102_visual_validation import evaluate as evaluate_visual, repeated_result
     from ga102_pacing_validation import evaluate as evaluate_pacing, repeated_pacing_result
@@ -30,6 +31,7 @@ except ImportError:
     from ga102_capture_bridge import CaptureBroker
     from ga102_presentation_trace import analyze as analyze_trace
     from ga102_ca_validation import evaluate as evaluate_ca, repeated_ca_result
+    from ga102_stream_capture import StreamBroker
 
 ROOT = Path(__file__).resolve().parent.parent
 PROBES = ("ga102_metal_smoketest", "ga102_metal_render_smoketest", "ga102_metal_benchmark",
@@ -109,9 +111,15 @@ def main():
     parser.add_argument("--negative-control", choices=("static", "timestamps", "hidden"))
     parser.add_argument("--display-linked", action="store_true")
     parser.add_argument("--double-buffered", action="store_true", help="Use two drawables in this probe's CAMetalLayer only; no framebuffer/display changes")
+    parser.add_argument('--continuous', action='store_true', help='120 Core Animation reference transactions with one owned-window SCStream')
+    parser.add_argument('--onscreen-every-frame', action='store_true', help='Diagnostic control: synchronous session/window queries on every continuous CA frame')
     parser.add_argument("--capture-bridge", action="store_true", help="Capture only the owned visual window via ScreenCaptureKit in this Python process; never requests permission")
     parser.add_argument("--result-json", type=Path, help="Save scoped visual-probe verdicts and numeric metrics, excluding raw logs and machine identities")
     args = parser.parse_args()
+    if args.continuous and (args.probe != 'ga102_ca_visual' or not args.capture_bridge):
+        parser.error('--continuous requires ga102_ca_visual --capture-bridge')
+    if args.onscreen_every_frame and not args.continuous:
+        parser.error('--onscreen-every-frame requires --continuous')
     if args.capture_bridge and args.probe not in ('ga102_visual_present', 'ga102_ca_visual'):
         parser.error('--capture-bridge requires an owned-window visual probe')
     if args.result_json and args.probe not in (*CORE_PROBES, "ga102_visual_present", "ga102_metal_present", "ga102_ca_visual"):
@@ -164,6 +172,7 @@ def main():
             command = ['xcrun', 'clang', '-dynamiclib', '-fobjc-arc', '-Wall', '-Wextra', '-Werror',
                        str(capture_source), '-framework', 'Foundation', '-framework', 'AppKit',
                        '-framework', 'ScreenCaptureKit', '-framework', 'CoreGraphics', '-o', str(capture_library)]
+            command.extend(['-framework','CoreMedia','-framework','CoreVideo'])
             with (scratch / 'capture-compile.log').open('w') as log:
                 code = run_owned(command, log, 60)
             if code:
@@ -175,7 +184,7 @@ def main():
             broker = None
             if args.capture_bridge:
                 channel = scratch / f'capture-{iteration}'; channel.mkdir(mode=0o700)
-                broker = CaptureBroker(capture_library, channel)
+                broker = (StreamBroker if args.continuous else CaptureBroker)(capture_library, channel)
                 env['GA102_CAPTURE_IPC'] = str(channel)
                 env['GA102_CAPTURE_PERMISSION'] = '1' if broker.allowed else '0'
             with output.open("w") as log:
@@ -184,9 +193,14 @@ def main():
                     command.append("--display-linked")
                 if args.double_buffered:
                     command.append('--double-buffered')
+                if args.continuous: command.append('--continuous')
+                if args.onscreen_every_frame: command.append('--onscreen-every-frame')
                 if args.negative_control:
                     command.append(args.negative_control)
-                code = (run_owned(command, log, 45, env, broker.poll) if broker else run_owned(command, log, 45, env))
+                try:
+                    code = (run_owned(command, log, 45, env, broker.poll) if broker else run_owned(command, log, 45, env))
+                finally:
+                    if isinstance(broker, StreamBroker): broker.close()
             if args.probe in ("ga102_metal_present", "ga102_visual_present", "ga102_ca_visual"):
                 correlation = display_delta(before, display_counters())
                 print("result: " + json.dumps({"display_correlation": correlation}, sort_keys=True), flush=True)
@@ -195,10 +209,12 @@ def main():
             # into public reports; print only probe-owned result lines here.
             lines = output.read_text(errors="replace").splitlines()
             for line in lines:
-                if args.probe == 'ga102_metal_present' and line.startswith('result: '):
+                if args.probe in ('ga102_metal_present','ga102_ca_visual') and line.startswith('result: '):
                     summary = json.loads(line[8:])
-                    for key in ('frame_trace', 'presented_times', 'presented_frame_ids'):
+                    for key in ('frame_trace', 'presented_times', 'presented_frame_ids','samples'):
                         if key in summary: summary[key] = 'full data retained in private log/result artifact'
+                    if 'stream_analysis' in summary:
+                        summary['stream_analysis'].pop('captured_changes',None)
                     print('result: ' + json.dumps(summary, sort_keys=True), flush=True)
                     continue
                 if line.startswith(("Metal GPU:", "Computed values:", "Center pixel", "PASS", "FAIL", "NOT VERIFIED", "BLOCKED",
@@ -214,7 +230,8 @@ def main():
                         if evidence.get('probe') == 'ca_visual':
                             metrics = {key: evidence[key] for key in ('frames', 'transactions', 'preflight_ready',
                                 'visible_frames', 'capture_permission', 'capture_attempted', 'capture_received_frames',
-                                'capture_correct_frames', 'capture_distinct_patterns', 'samples') if key in evidence}
+                                'capture_correct_frames', 'capture_distinct_patterns', 'samples', 'continuous',
+                                'stream_started', 'stream_analysis','full_visibility_samples','onscreen_query_every_frame') if key in evidence}
                             verdict = evaluate_ca(evidence, correlation)
                             print('result: ' + json.dumps(verdict, sort_keys=True), flush=True)
                             if verdict['automated_ca_validation'] == 'FAIL': code = 1
@@ -279,7 +296,7 @@ def main():
     finally:
         if args.result_json:
             report = (repeated_pacing_result(runs, args.repeat, source_hash) if args.probe == "ga102_metal_present"
-                      else repeated_ca_result(runs, args.repeat, source_hash, args.negative_control) if args.probe == 'ga102_ca_visual'
+                      else repeated_ca_result(runs, args.repeat, source_hash, args.negative_control, args.continuous) if args.probe == 'ga102_ca_visual'
                       else repeated_core_result(args.probe, runs, args.repeat, source_hash) if args.probe in CORE_PROBES
                       else repeated_result(runs, args.repeat, source_hash, args.negative_control))
             if args.probe == "ga102_metal_present":
