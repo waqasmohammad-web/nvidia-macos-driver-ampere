@@ -6,11 +6,29 @@ import QuartzCore
 import ScreenCaptureKit
 import CoreGraphics
 import Dispatch
-let negative=CommandLine.arguments.dropFirst().first ?? "none"
+let negative=CommandLine.arguments.dropFirst().first(where:{!$0.hasPrefix("--")}) ?? "none"
+let continuous=CommandLine.arguments.contains("--continuous")
+let linked=CommandLine.arguments.contains("--display-linked")
+let captureDisabled=CommandLine.arguments.contains("--capture-disabled")
+@MainActor class VisualPulse:NSObject {
+    var pending:CheckedContinuation<Bool,Never>?,generation=0
+    @objc func fire(_ link:CADisplayLink) {
+        if let next=pending {pending=nil;next.resume(returning:true)}
+    }
+    func wait() async -> Bool {
+        generation+=1;let token=generation
+        return await withCheckedContinuation {next in
+            pending=next
+            DispatchQueue.main.asyncAfter(deadline:.now()+0.1) {
+                if self.generation==token,let waiting=self.pending {self.pending=nil;waiting.resume(returning:false)}
+            }
+        }
+    }
+}
 func fail(_ s:String)->Never {fputs("FAIL: \(s)\n",stderr);exit(1)}
 guard let device=MTLCopyAllDevices().first(where:{$0.name.contains("3080 Ti")}),let queue=device.makeCommandQueue() else {fail("target device")}
 let app=NSApplication.shared;app.setActivationPolicy(.accessory)
-let width=640,height=360,frames=12
+let width=640,height=360,frames=continuous ? 120:12
 let window=NSWindow(contentRect:NSRect(x:0,y:0,width:width,height:height),styleMask:.borderless,backing:.buffered,defer:false)
 window.isReleasedWhenClosed=false
 let view=NSView(frame:NSRect(x:0,y:0,width:width,height:height));view.wantsLayer=true
@@ -32,12 +50,14 @@ fragment float4 visual_f(float4 p [[position]], constant uint &id [[buffer(0)]])
     return id%3==0?float4(1,0,0,1):(id%3==1?float4(0,1,0,1):float4(0,0,1,1));
 }
 """
+let pipelineStarted=CACurrentMediaTime()
 let pipeline:MTLRenderPipelineState
 do {
     let lib=try device.makeLibrary(source:source,options:nil),d=MTLRenderPipelineDescriptor()
     d.vertexFunction=lib.makeFunction(name:"visual_v");d.fragmentFunction=lib.makeFunction(name:"visual_f");d.colorAttachments[0].pixelFormat = .bgra8Unorm
     pipeline=try device.makeRenderPipelineState(descriptor:d)
 }catch{fail("pipeline: \(error)")}
+let pipelineInitializationMS=(CACurrentMediaTime()-pipelineStarted)*1000
 guard let readback=device.makeBuffer(length:width*height*4,options:.storageModeShared) else {fail("readback")}
 func expected(_ id:Int,_ x:Int,_ y:Int)->[Int] {
     if y<40 || y>=320 {return ((id>>(x/80))&1)==1 ? [255,255,255]:[0,0,0]}
@@ -49,7 +69,8 @@ func checks(_ id:Int)->[(Int,Int)] {
     for i in 0..<8 {let x=i*80;points.append((x+20,20));points.append((x+20,180));points.append((x+60,180))}
     return points
 }
-func visible()->Bool {
+func visible(_ full:Bool=true)->Bool {
+    if !full {return window.isVisible && window.occlusionState.contains(.visible)}
     let display=(window.screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? CGMainDisplayID()
     let session=CGSessionCopyCurrentDictionary() as? [String:Any]
     return window.isVisible && window.isOnActiveSpace && window.occlusionState.contains(.visible) && CGDisplayIsAsleep(display)==0 && CGDisplayIsActive(display) != 0 && (session?[kCGSessionOnConsoleKey as String] as? Bool)==true
@@ -67,9 +88,24 @@ let captureIPC = ProcessInfo.processInfo.environment["GA102_CAPTURE_IPC"].map { 
 let captureAllowed = captureIPC != nil ? ProcessInfo.processInfo.environment["GA102_CAPTURE_PERMISSION"] == "1" : CGPreflightScreenCaptureAccess()
 var captureState=captureAllowed ? "available":"NOT VERIFIED: screen-capture permission unavailable; not requested"
 var captureBrokerStopped=false
+var fullVisibility=[Bool](),streamStarted=false
+var frameTrace=[[String:Double]](),missedTicks=0
+func streamOperation(_ operation:String) async -> [String:Any]? {
+    guard let directory=captureIPC else{return nil}
+    do {
+        let request:[String:Any]=["operation":operation,"pid":getpid(),"window_id":window.windowNumber]
+        try JSONSerialization.data(withJSONObject:request).write(to:directory.appendingPathComponent("request.json"),options:.atomic)
+        let response=directory.appendingPathComponent(operation+".json"),deadline=Date().addingTimeInterval(6)
+        while !FileManager.default.fileExists(atPath:response.path) && Date()<deadline {
+            try? await Task.sleep(nanoseconds:10_000_000)
+        }
+        return try JSONSerialization.jsonObject(with:Data(contentsOf:response)) as? [String:Any]
+    }catch{return nil}
+}
 Task { @MainActor in
+    let pulse=VisualPulse();var displayLink:CADisplayLink?
     var filter:SCContentFilter?
-    if captureIPC == nil && captureAllowed && negative != "hidden" {
+    if !continuous && captureIPC == nil && captureAllowed && negative != "hidden" {
         do {
             let shared=try await SCShareableContent.excludingDesktopWindows(true,onScreenWindowsOnly:true)
             if let own=shared.windows.first(where:{$0.windowID==UInt32(window.windowNumber) && $0.owningApplication?.processID==getpid()}) {
@@ -78,7 +114,10 @@ Task { @MainActor in
         }catch{captureState="NOT VERIFIED: own-window capture API unavailable"}
     }
     for id in 0..<frames {
+        if id>0 && linked,displayLink != nil {if !(await pulse.wait()) {missedTicks+=1}}
+        let drawStart=CACurrentMediaTime()
         guard let drawable=layer.nextDrawable(),let commands=queue.makeCommandBuffer() else{fail("drawable/command unavailable")}
+        let acquired=CACurrentMediaTime()
         let pass=MTLRenderPassDescriptor();pass.colorAttachments[0].texture=drawable.texture
         pass.colorAttachments[0].loadAction = .clear;pass.colorAttachments[0].storeAction = .store
         guard let e=commands.makeRenderCommandEncoder(descriptor:pass) else{fail("encoder")}
@@ -87,7 +126,8 @@ Task { @MainActor in
         guard let b=commands.makeBlitCommandEncoder() else{fail("blit")}
         b.copy(from:drawable.texture,sourceSlice:0,sourceLevel:0,sourceOrigin:MTLOrigin(x:0,y:0,z:0),sourceSize:MTLSize(width:width,height:height,depth:1),to:readback,destinationOffset:0,destinationBytesPerRow:width*4,destinationBytesPerImage:width*height*4);b.endEncoding()
         drawable.addPresentedHandler {d in lock.lock();times[id]=negative=="timestamps" ? 0:d.presentedTime;lock.unlock()}
-        commands.present(drawable);await complete(commands)
+        commands.present(drawable);let commitAt=CACurrentMediaTime();await complete(commands)
+        let completionAt=CACurrentMediaTime()
         guard commands.status == .completed else{fail("GPU completion")}
         let bytes=readback.contents().assumingMemoryBound(to:UInt8.self)
         var signature="",good=true
@@ -98,10 +138,33 @@ Task { @MainActor in
             if zip(rgb,exp).contains(where:{abs($0-$1)>2}){good=false}
         }
         if good{gpuCorrect+=1};distinct.insert(signature)
-        // Keep each pattern stable for capture; this is visual correctness, not a 60 Hz pacing test.
-        try? await Task.sleep(nanoseconds:300_000_000)
-        if visible(){visibleFrames+=1}
-        if let root=captureIPC, captureAllowed && !captureBrokerStopped {
+        let readAt=CACurrentMediaTime()
+        // Held screenshot references and continuous capture are distinct scopes.
+        if !continuous || id==0 {try? await Task.sleep(nanoseconds:300_000_000)}
+        else if !linked || displayLink==nil {try? await Task.sleep(nanoseconds:16_666_667)}
+        let sleepAt=CACurrentMediaTime()
+        let full = !continuous || id%30==0
+        let eligible=visible(full)
+        if full {fullVisibility.append(eligible)}
+        if eligible {visibleFrames+=1}
+        if continuous && id==0 && eligible && captureAllowed {
+            if !captureDisabled {
+                let response=await streamOperation("stream-start")
+                streamStarted=response?["started"] as? Bool==true
+            }
+            if linked && (streamStarted || captureDisabled) {
+                displayLink=view.displayLink(target:pulse,selector:#selector(VisualPulse.fire(_:)))
+                displayLink?.add(to:.main,forMode:.common)
+            }
+        }
+        frameTrace.append(["frame":Double(id),"draw_start_seconds":drawStart,
+            "commit_seconds":commitAt,"completed_seconds":completionAt,
+            "acquisition_ms":(acquired-drawStart)*1000,"encode_ms":(commitAt-acquired)*1000,
+            "commit_to_completed_ms":(completionAt-commitAt)*1000,
+            "gpu_ms":max(0,commands.gpuEndTime-commands.gpuStartTime)*1000,
+            "cpu_reference_readback_ms":(readAt-completionAt)*1000,
+            "hold_sleep_ms":(sleepAt-readAt)*1000,"eligibility_and_stream_start_ms":(CACurrentMediaTime()-sleepAt)*1000])
+        if let root=captureIPC, !continuous && captureAllowed && !captureBrokerStopped {
             captureAttempted+=1
             let request:[String:Any] = ["frame":id,"window_id":window.windowNumber,"pid":getpid()]
             let data=try! JSONSerialization.data(withJSONObject:request)
@@ -142,10 +205,42 @@ Task { @MainActor in
             }catch{captureState="NOT VERIFIED: window capture failed";filter=nil}
         }
     }
-    let observed=timeSnapshot();let positive=observed.values.filter{$0>0}.count;let zeroIDs=observed.filter{$0.value<=0}.keys.sorted()
+    var streamAnalysis:[String:Any]=["captured_reference_contents":"NOT VERIFIED"]
+    displayLink?.invalidate()
+    // Give final presented callbacks equal bounded settling time in capture-on
+    // and capture-disabled controls. GPU completion alone does not imply them.
+    if continuous {try? await Task.sleep(nanoseconds:300_000_000)}
+    if streamStarted {
+        let response=await streamOperation("stream-stop")
+        streamAnalysis=response?["analysis"] as? [String:Any] ?? streamAnalysis
+    }
+    fullVisibility.append(visible())
+    let observed=timeSnapshot()
+    if let origin=frameTrace.first?["draw_start_seconds"] {
+        for index in frameTrace.indices {
+            let started=frameTrace[index].removeValue(forKey:"draw_start_seconds")!
+            frameTrace[index]["draw_start_ms"]=(started-origin)*1000
+            for stage in ["commit","completed"] {
+                if let t=frameTrace[index].removeValue(forKey:stage+"_seconds") {frameTrace[index][stage+"_ms"]=(t-origin)*1000}
+            }
+            if let t=observed[index],t>0 {frameTrace[index]["reported_presented_ms"]=(t-origin)*1000}
+        }
+    }
+    let positive=observed.values.filter{$0>0}.count;let zeroIDs=observed.filter{$0.value<=0}.keys.sorted()
     let ordered=observed.sorted{$0.key<$1.key}.map{$0.value}.filter{$0>0}
     let increasing=zip(ordered.dropFirst(),ordered).allSatisfy{$0>$1}
+    let steady=observed.sorted{$0.key<$1.key}.filter{$0.key>=10 && $0.value>0}.map{$0.value}
+    let intervals=zip(steady.dropFirst(),steady).map{($0-$1)*1000}.sorted()
+    let pacing:[String:Any]=["samples":intervals.count,
+                            "p50_ms":intervals.isEmpty ? NSNull() as Any:intervals[min(intervals.count-1,Int(ceil(Double(intervals.count)*0.50))-1)],
+                            "p99_ms":intervals.isEmpty ? NSNull() as Any:intervals[min(intervals.count-1,Int(ceil(Double(intervals.count)*0.99))-1)],"p95_ms":intervals.isEmpty ? NSNull() as Any:intervals[min(intervals.count-1,Int(ceil(Double(intervals.count)*0.95))-1)],
+                            "max_ms":intervals.last.map{$0 as Any} ?? NSNull(),"above_25ms":intervals.filter{$0>25}.count]
     let result:[String:Any]=["probe":"visual","frames":frames,"negative_control":negative,"gpu_correct_frames":gpuCorrect,"gpu_distinct_patterns":distinct.count,
+        "pipeline_initialization_ms":pipelineInitializationMS,
+        "continuous":continuous,"stream_started":streamStarted,"stream_analysis":streamAnalysis,
+        "display_linked":linked,"missed_display_ticks":missedTicks,"frame_trace":frameTrace,
+        "capture_disabled_control":captureDisabled,
+        "full_visibility_samples":fullVisibility,"steady_reported_presentation":pacing,
         "capture_method":captureIPC != nil ? "ScreenCaptureKit owned-window broker":"ScreenCaptureKit in probe",
         "positive_timestamps":positive,"timestamps_increasing":increasing,"distinct_timestamps":Set(ordered).count,"zero_timestamp_ids":zeroIDs,"visible_frames":visibleFrames,
         "capture_permission":captureAllowed,"capture_state":captureState,"capture_attempted":captureAttempted,"capture_received_frames":captureReceived,"capture_correct_frames":captureCorrect,"capture_distinct_patterns":captureDistinct.count,

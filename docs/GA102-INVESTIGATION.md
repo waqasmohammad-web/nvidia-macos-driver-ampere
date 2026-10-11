@@ -1338,3 +1338,154 @@ hashes. No physical-scanout or desktop-improvement claim is made. Next useful
 control is an encoded Metal client under the same stream, correlated with its
 independent GPU readback and presented callbacks, to distinguish capture-rate
 limitations from ordinary Core Animation content delivery.
+
+## Matched frame delivery and capture backpressure (2026-10-11)
+
+The primary desktop-sluggishness cause is **NOT VERIFIED**. These diagnostic
+changes do not modify the installed driver, graphics services, display mode or
+mandatory synchronization. Physical scanout is **NOT VERIFIED** throughout.
+
+### Controlled Metal / Core Animation comparison
+
+Both clients now use an NSView display link, a 640×360 owned window, the same
+120 encoded primary-color/bit-strip/moving-bar references, and the same Python
+ScreenCaptureKit broker (BGRA/sRGB, requested 60 Hz maximum, queue depth 3).
+`ga102_ca_visual.swift --reference-only` removes the 32 extra animated layers
+for this comparison; the existing workload remains the default. Metal performs
+independent pixel readback after every real command completion. Only the
+probe-owned window is captured; no images or desktop contents are published.
+Full visibility snapshots remain mandatory at periodic checkpoints; their CPU
+cost is recorded separately from render/transaction work. Three repetitions
+per condition completed, with all local visibility checks eligible, no missed
+link ticks and no new system-wide framebuffer errors/drops.
+
+| Condition, three runs | Submitted / correct GPU frames | Distinct captured IDs | Steady interval p50 / p95 / p99 (ms, ranges across runs) |
+| --- | --- | --- | --- |
+| Metal + SCK | 120 / 120 each | 120 each | Reported presentation: 33.343–33.351 / 34.277–34.374 / 34.343–34.458 |
+| CA reference-only + SCK | 120 transactions each; GPU fence unavailable | 65 / 66 / 66 | Client submission: 16.674–16.675 / 16.738–16.768 / 16.774–16.825 |
+| Same Metal binary, capture disabled | 120 / 120 each | Not applicable | Reported presentation: 16.636–16.684 / 17.333–17.354 / 17.486–17.625 |
+
+Quantiles use nearest rank. Steady measurements use frame IDs >=10 (109
+intervals); the initial deliberate frame-zero hold and capture setup are
+retained separately, not silently included in a steady p99. CA submission
+spacing is **not** a measured presentation interval. CA does not expose a
+per-frame GPU completion/drawable presentation callback in this test.
+
+**Confirmed:** capture-on changes this encoded Metal client's delivery rate.
+Acquisition p50 rises from 0.013–0.017 ms without SCK to 17.500–17.518 ms with
+SCK. GPU p50 stays around 0.062 ms; acquisition p95 is 17.649–17.680 ms,
+whereas encoding p95 is 0.106–0.113 ms, GPU p95 about 0.0635 ms, and CPU
+reference readback p95 0.030–0.032 ms. All capture-on steady intervals exceed
+25 ms; the unchanged cadence gate correctly reports **FAIL**. One run includes
+a 50.59 ms presentation maximum and occasional ~18–20 ms completion callback
+latency despite short GPU execution. That requires separating actual callback
+invocation from MainActor resumption/presentation work before attribution.
+
+A prior same-binary metadata-only stream, which never obtains/locks/reads a
+pixel buffer, still produced acquisition p95 17.638 ms and presentation p95
+34.421 ms. Pixel sampling alone therefore cannot explain the sustained delay.
+Periodic eligibility work has separate tails (~18.6 ms maximum with capture,
+~5.3 ms without in the matched runs); cached checks are approximately 0.001 ms.
+An earlier capture-disabled run had three isolated long intervals. It remains
+a retained **FAIL**, rather than being erased by these later steady successes.
+The new three-run baseline passes the cadence check but overall remains
+**NOT VERIFIED** because capture was deliberately disabled.
+
+**Missing-frame interpretation:** all 120 CA references were submitted, with
+no interval exceeding 25 ms, but only 65–66 IDs were observed. This excludes
+"never submitted" as their explanation in these runs, but cannot separate
+compositor coalescing from SCK sampling/omission. Metal captured all 120 correct
+IDs even when only 119/117/120 positive presentation timestamps were returned;
+missing callback timestamps therefore cannot automatically mean missing window
+contents. Timestamp validation remains **NOT VERIFIED** for the 117-callback
+run (minimum 118 unchanged). SCK and GPU clocks are not used to claim physical
+scanout or exclusive compositor latency. System flip deltas are shared across
+all clients, not a count of these reference frames.
+
+Shader/pipeline initialization measured 258.6 ms on the first process and
+47.9–50.8 ms subsequently, entirely before frame timing. This can affect probe
+startup, but does not explain the sustained capture-on drawable waits.
+
+Sources: `tools/ga102_visual_present.swift`, `ga102_ca_visual.swift`,
+`ga102_window_capture.m`, `ga102_stream_capture.py`, and
+`ga102_delivery_analysis.py`. Evidence:
+[`evidence/ga102-matched-frame-delivery.json`](evidence/ga102-matched-frame-delivery.json)
+and [`evidence/ga102-metal-capture-backpressure.json`](evidence/ga102-metal-capture-backpressure.json).
+The latter preserves earlier source hashes, the old content-only verdict and
+its subsequent stricter cadence reassessment. No tolerance or synchronization
+requirement was weakened. The runner now distinguishes actual process exit
+from validation failure; an exit-zero process cannot launder a cadence FAIL.
+
+### Startup interval: controlled first-draw phase experiment
+
+A same-binary clear-only client was run three times normally and three times
+with only its first draw deferred 8.333 ms. The display link and display mode
+were unchanged. Normal runs reproduced frame-2 intervals 32.858–34.128 ms,
+with acquisition 0.812–1.084 ms, commit spacing 16.365–16.764 ms, command
+completion callbacks 0.203–0.244 ms after commit, GPU 0.005–0.007 ms, and
+31.961–33.200 ms from completion to reported presentation. Two shared system
+flips occur between the corresponding callbacks. This corroborates prompt
+client/GPU completion before the startup presentation gap. Clear-only drawing
+has no shader pipeline compilation, excluding shader initialization for this
+specific gap. Prior two/three-drawable tests already ruled out first use of
+only the third drawable as a sufficient explanation.
+
+The shifted condition had **no observed** long intervals, but only 117 positive
+timestamps in every run, versus 119 normally. The missing early observations
+prevent calling this an improvement or claiming that a refresh boundary was
+avoided. Its timestamp gate remains **NOT VERIFIED**. No inference is made
+from an absent frame-2 timestamp. Phase-dependent initial publication/callback
+behavior is a hypothesis, not evidence of an unavoidable boundary or a fix.
+Compositor selection, layer startup, callback reporting and NVKMS scheduling
+remain candidates; current public timestamps cannot isolate those components.
+Evidence: [`evidence/ga102-startup-phase-control.json`](evidence/ga102-startup-phase-control.json).
+
+### Priority ranking for ordinary desktop responsiveness
+
+1. **Render-to-present synchronization / compositor scheduling.** Highest
+   plausible impact: `plugin/NVMTLObjects.m::commitAndWaitUntilSubmitted`
+   deliberately waits for complete GPU execution in WindowServer because
+   NVAccel cannot attach this NVK fence to an NVKMS flip. Separately,
+   `plugin/NVMTLEventSync.m::nvmtlFinishExecution` executes presentation actions
+   before marking completion/calling completion handlers. The observed short
+   GPU work with occasional long completion callbacks warrants instrumenting
+   scheduled/completed callback invocation versus client resumption. Capture
+   backpressure is proven in this probe, not proven to affect ordinary desktop
+   use. Smallest safe next experiment: record those distinct CPU stages in the
+   same capture-on/off binary, without changing waits or deployment.
+2. **NVKMS flip completion / polling.** Existing synchronous completion polling
+   can consume a substantial refresh budget (shared flip-call means often
+   ~6–12 ms). Duration includes legitimate refresh synchronization, not pure
+   wasted CPU time. Global counters cannot attribute a wait to a WindowServer
+   frame. Per-phase query-count/duration instrumentation exists source-only;
+   validation in the installed kernel remains **AWAITING LIVE VALIDATION**.
+   Protected WindowServer stack sampling is unavailable without elevation;
+   do not retry, restart services or request elevated access.
+3. **IOSurface placement/coherency/copies.** `nvmtlSurfaceIn/Out` have import,
+   VRAM sharing and fallback upload/readback paths. Previous matching full-size
+   synthetic composite costs (~1.57 ms private, ~2.09 ms IOSurface) support a
+   possible contribution, not a reproduced desktop defect. Smallest next
+   discriminating test is a matched producer/consumer workload with explicit
+   synchronization and transfer stage timing, not removal of coherency waits.
+4. **Shared-memory bandwidth.** Prior shared versus private 4 MiB workloads
+   differ greatly relatively (~0.23 versus ~0.011 ms GPU), but their absolute
+   cost is small against 16.7 ms and WindowServer usage is unmeasured. Lower
+   priority until a real critical-path transfer is identified. Dedicated copy
+   engine fallback remains GPU execution, with no validated desktop A/B.
+
+A separate bounded capability check confirms installed `newSharedEventHandle`
+returns nil; source `NVMTLObjects.m` and `NVMTLDevice.m::newSharedEventWithHandle`
+explicitly lack cross-process event export/import. Event creation and same-
+process value roundtrip pass; export **FAIL**, import/cross-process ordering
+**NOT VERIFIED**. Existing serial IOSurface correctness tests do not validate
+this API. This is a substantiated capability gap, not established desktop
+causality. A fake process-local condition/handle would not be a safe fix.
+Evidence: [`evidence/ga102-event-handle-capability.json`](evidence/ga102-event-handle-capability.json).
+
+Validation at this milestone: Swift clients compiled and executed; capture
+helper compiled with warnings-as-errors; 44 Python regression tests PASS,
+including independent per-ID correlations, negative controls and actual-exit
+versus validation-exit reporting. Source-only diagnostics are not a deployed
+performance fix. Any future deployment needs separate evidence, expected
+benefit, risks, rollback procedure and explicit approval; no deployment is
+proposed by these findings.

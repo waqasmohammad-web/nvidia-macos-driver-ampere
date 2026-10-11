@@ -1,6 +1,6 @@
 import unittest
 from tools.ga102_core_validation import evaluate
-from tools.ga102_suite import plan, summarize
+from tools.ga102_suite import plan, summarize, failure_requires_stop
 
 
 class CoreTests(unittest.TestCase):
@@ -29,7 +29,7 @@ class CoreTests(unittest.TestCase):
 
     def test_suite_scope_plan_and_no_missing_pass(self):
         self.assertEqual(len(plan('correctness', 1)), 5)
-        self.assertEqual(len(plan('all', 3)), 17)
+        self.assertEqual(len(plan('all', 3)), 21)
         self.assertTrue(all(j[2] == 1 for j in plan('negative-controls', 3)))
         self.assertEqual(summarize([])['acceptance'], 'NOT VERIFIED')
         r = summarize([{'acceptance': 'PASS'}])
@@ -37,3 +37,13 @@ class CoreTests(unittest.TestCase):
         self.assertEqual(r['desktop_smoothness'], 'NOT VERIFIED')
         self.assertFalse(r['installed_driver_fixed'])
         self.assertEqual(summarize([{'acceptance': 'BLOCKED'}])['acceptance'], 'BLOCKED')
+
+    def test_only_healthy_cadence_failure_can_continue(self):
+        checks=dict(gpu_frame_contents='PASS',presentation_timestamps='PASS',visible_window_state='PASS',
+                    system_display_activity='PASS',own_window_capture='NOT VERIFIED',reported_presentation_cadence='FAIL')
+        r={'runs':[{'exit_code':0,'verdict':{'checks':checks}}]}
+        self.assertFalse(failure_requires_stop(r))
+        for key in ('gpu_frame_contents','system_display_activity','visible_window_state'):
+            checks[key]='FAIL';self.assertTrue(failure_requires_stop(r));checks[key]='PASS'
+        r['runs'][0]['exit_code']=124;self.assertTrue(failure_requires_stop(r))
+        self.assertTrue(failure_requires_stop({}))

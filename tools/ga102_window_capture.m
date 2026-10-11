@@ -117,6 +117,7 @@ int ga102_capture_conversion_control(void) {
 @property(strong) NSMutableDictionary *statuses;
 @property BOOL failed;
 @property BOOL overflow;
+@property BOOL samplePixels;
 @end
 @implementation GA102StreamReply
 - (void)stream:(SCStream *)stream didStopWithError:(NSError *)error {
@@ -133,6 +134,15 @@ int ga102_capture_conversion_control(void) {
             self.statuses[status.stringValue] = @([self.statuses[status.stringValue] unsignedIntegerValue] + 1);
         }
         if (status.integerValue != SCFrameStatusComplete) return;
+        if (!self.samplePixels) {
+            double pts=CMTimeGetSeconds(CMSampleBufferGetPresentationTimeStamp(sample));
+            @synchronized(self) {
+                if (!isfinite(pts)) self.failed=YES;
+                else if (self.records.count>=512) self.overflow=YES;
+                else [self.records addObject:@{@"pts_seconds":@(pts)}];
+            }
+            return; // No image access or CVPixelBuffer CPU locking in this control.
+        }
         CVPixelBufferRef image = CMSampleBufferGetImageBuffer(sample);
         if (!image || CVPixelBufferGetPixelFormatType(image) != kCVPixelFormatType_32BGRA ||
             CVPixelBufferGetWidth(image) != 640 || CVPixelBufferGetHeight(image) != 360 ||
@@ -160,6 +170,8 @@ int ga102_capture_conversion_control(void) {
 }
 @end
 static GA102StreamReply *ga102Stream;
+static BOOL ga102SamplePixels=YES;
+void ga102_stream_sample_pixels(int enabled) { ga102SamplePixels=enabled != 0; }
 
 int ga102_stream_start(unsigned windowID, int ownerPID) {
     @autoreleasepool {
@@ -183,6 +195,7 @@ int ga102_stream_start(unsigned windowID, int ownerPID) {
         config.pixelFormat=kCVPixelFormatType_32BGRA; config.colorSpaceName=kCGColorSpaceSRGB;
         config.minimumFrameInterval=CMTimeMake(1,60); config.queueDepth=3; config.capturesAudio=NO;
         GA102StreamReply *collector=[GA102StreamReply new];
+        collector.samplePixels=ga102SamplePixels;
         collector.records=[NSMutableArray new]; collector.statuses=[NSMutableDictionary new];
         collector.queue=dispatch_queue_create("ga102.owned.capture",DISPATCH_QUEUE_SERIAL);
         collector.stream=[[SCStream alloc] initWithFilter:filter configuration:config delegate:collector];
@@ -215,6 +228,7 @@ char *ga102_stream_stop(void) {
         NSData *data;
         @synchronized(collector) {
             data=[NSJSONSerialization dataWithJSONObject:@{@"stopped":@(stopped),@"failed":@(collector.failed),
+                @"pixel_sampling_enabled":@(collector.samplePixels),
                 @"overflow":@(collector.overflow),@"statuses":collector.statuses,@"records":collector.records}
                 options:0 error:NULL];
         }

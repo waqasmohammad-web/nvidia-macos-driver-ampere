@@ -28,6 +28,7 @@ def plan(profile, repeat):
         jobs += [('ga102_visual_present', ['--capture-bridge'], repeat, None),
                  ('ga102_ca_visual', ['--capture-bridge'], repeat, None),
                  ('ga102_ca_visual', ['--capture-bridge', '--continuous'], repeat, None),
+                 ('ga102_visual_present', ['--capture-bridge', '--continuous', '--display-linked'], repeat, None),
                  ('ga102_metal_present', [], repeat, None),
                  ('ga102_metal_present', ['--display-linked'], repeat, None)]
     if profile in ('negative-controls', 'all'):
@@ -37,6 +38,8 @@ def plan(profile, repeat):
                  for mode, expected in (('static', 'FAIL'), ('hidden', 'NOT VERIFIED'))]
         jobs += [('ga102_ca_visual', ['--capture-bridge', '--continuous', '--negative-control', mode], 1, 'NOT VERIFIED')
                  for mode in ('static', 'hidden')]
+        jobs += [('ga102_visual_present', ['--capture-bridge', '--continuous', '--display-linked', '--negative-control', mode], 1, expected)
+                 for mode, expected in (('static','FAIL'),('timestamps','NOT VERIFIED'),('hidden','NOT VERIFIED'))]
     return jobs
 
 
@@ -47,6 +50,19 @@ def summarize(jobs):
     return {'schema_version': 1, 'scope': 'selected bounded probe checks', 'acceptance': overall,
             'jobs': jobs, 'physical_scanout': 'NOT VERIFIED', 'desktop_smoothness': 'NOT VERIFIED',
             'installed_driver_fixed': False}
+
+
+def failure_requires_stop(report):
+    """Only isolated cadence failures with proven healthy GPU work may continue."""
+    runs=report.get('runs',[])
+    if not runs or any(r.get('exit_code') != 0 for r in runs):return True
+    for run in runs:
+        checks=run.get('verdict',{}).get('checks',{})
+        failed={k for k,v in checks.items() if v=='FAIL'}
+        if failed != {'reported_presentation_cadence'}:return True
+        if any(checks.get(k) != 'PASS' for k in ('gpu_frame_contents','presentation_timestamps',
+            'visible_window_state','system_display_activity')):return True
+    return False
 
 
 def main():
@@ -90,7 +106,10 @@ def main():
                 job.update(acceptance='FAIL', runner_exit_code=code, reason='runner produced no evidence artifact')
         results.append(job)
         if job['acceptance'] == 'FAIL':
-            stop_reason = 'remaining GPU launches skipped after unexpected failure; inspect private evidence before retrying'
+            if failure_requires_stop(job.get('evidence',{})):
+                stop_reason = 'remaining GPU launches skipped after unexpected failure; inspect private evidence before retrying'
+            else:
+                job['reason']='cadence failure with correct GPU frames, eligible visibility and clean counters; bounded independent checks continue'
         print(f'{job["acceptance"]}: {probe}', flush=True)
     report = summarize(results)
     report['profile'] = args.profile

@@ -13,6 +13,7 @@ func stats(_ samples: [Double]) -> [String: Double] {
     let s = samples.sorted()
     guard !s.isEmpty else { return [:] }
     return ["p50_ms": s[(s.count - 1) / 2] * 1000,
+            "p99_ms": s[min(s.count - 1, Int(ceil(Double(s.count) * 0.99)) - 1)] * 1000,
             "p95_ms": s[min(s.count - 1, Int(ceil(Double(s.count) * 0.95)) - 1)] * 1000,
             "max_ms": s.last! * 1000, "samples": Double(s.count)]
 }
@@ -139,7 +140,16 @@ func draw() {
     let returned=CACurrentMediaTime();commitReturn.append(returned - commitAt)
     lock.lock();frameTrace[id]?["commit_return_ms"]=(returned-traceStart)*1000;lock.unlock()
 }
-let tick = DisplayTick { draw() }
+// Test-only start-phase control: delay just the first client draw, never the
+// display link, refresh mode, compositor, or GPU completion synchronization.
+let shiftFirst=CommandLine.arguments.contains("--first-frame-half-period")
+var shiftedFirst=false
+let tick = DisplayTick {
+    if shiftFirst && !shiftedFirst {
+        shiftedFirst=true
+        DispatchQueue.main.asyncAfter(deadline:.now()+0.008333333) { draw() }
+    } else {draw()}
+}
 func startWhenReady() {
     guard isEligible(snapshot()) else {
         if CACurrentMediaTime()-preflightStart < 2 {

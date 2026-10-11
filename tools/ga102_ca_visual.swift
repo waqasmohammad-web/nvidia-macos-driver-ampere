@@ -8,6 +8,23 @@ import Darwin
 
 let negative=CommandLine.arguments.dropFirst().first(where:{!$0.hasPrefix("--")}) ?? "none"
 let continuous=CommandLine.arguments.contains("--continuous")
+let linked=CommandLine.arguments.contains("--display-linked")
+let referenceOnly=CommandLine.arguments.contains("--reference-only")
+@MainActor class VisualPulse:NSObject {
+    var pending:CheckedContinuation<Bool,Never>?,generation=0
+    @objc func fire(_ link:CADisplayLink) {
+        if let next=pending {pending=nil;next.resume(returning:true)}
+    }
+    func wait() async -> Bool {
+        generation+=1;let token=generation
+        return await withCheckedContinuation {next in
+            pending=next
+            DispatchQueue.main.asyncAfter(deadline:.now()+0.1) {
+                if self.generation==token,let waiting=self.pending {self.pending=nil;waiting.resume(returning:false)}
+            }
+        }
+    }
+}
 let queryEveryFrame=CommandLine.arguments.contains("--onscreen-every-frame")
 let frameCount=continuous ? 120:12
 let app=NSApplication.shared;app.setActivationPolicy(.accessory)
@@ -22,7 +39,7 @@ func color(_ r:CGFloat,_ g:CGFloat,_ b:CGFloat,_ a:CGFloat=1)->CGColor {
 }
 // These animated translucent layers exercise normal compositor content between
 // the independent reference sample rows. They are not themselves pixel-validated.
-for i in 0..<32 {
+for i in 0..<(referenceOnly ? 0:32) {
     let l=CALayer();l.bounds=CGRect(x:0,y:0,width:24,height:24)
     l.position=CGPoint(x:20+(i%16)*40,y:i<16 ? 95:265)
     l.backgroundColor=color(1,0.5,0,0.55);l.cornerRadius=6
@@ -103,6 +120,7 @@ func streamOperation(_ operation:String) async -> [String:Any]? {
     }catch{return nil}
 }
 Task { @MainActor in
+    let pulse=VisualPulse();var displayLink:CADisplayLink?,missedTicks=0
     // Allow window publication, without waking/activating anything.
     try? await Task.sleep(nanoseconds:250_000_000)
     let readyDeadline=Date().addingTimeInterval(2)
@@ -119,12 +137,17 @@ Task { @MainActor in
         let response=await streamOperation("stream-start")
         streamStarted=response?["started"] as? Bool==true
     }
+    if continuous && linked && preflightReady {
+        displayLink=view.displayLink(target:pulse,selector:#selector(VisualPulse.fire(_:)))
+        displayLink?.add(to:.main,forMode:.common)
+    }
     for frame in 0..<frameCount {
+        if linked && displayLink != nil {if !(await pulse.wait()) {missedTicks+=1}}
         let rendered=negative=="static" ? 0:frame
         let started=CACurrentMediaTime()
         reference(rendered);transactions+=1
         let transactionMS=(CACurrentMediaTime()-started)*1000
-        try? await Task.sleep(nanoseconds:continuous ? 16_666_667:300_000_000)
+        if !continuous || !linked {try? await Task.sleep(nanoseconds:continuous ? 16_666_667:300_000_000)}
         let visibilityStart=CACurrentMediaTime()
         let fullQuery = !continuous || queryEveryFrame || frame%30==0
         let eligible=visible(fullQuery);if eligible {visibleFrames+=1}
@@ -158,6 +181,7 @@ Task { @MainActor in
                         "transaction_ms":transactionMS,"transaction_start_seconds":started,
                         "capture_roundtrip_ms":captureMS,"captured_pattern_correct":matched])
     }
+    displayLink?.invalidate()
     var streamAnalysis:[String:Any]=["captured_reference_contents":"NOT VERIFIED"]
     if streamStarted {
         try? await Task.sleep(nanoseconds:300_000_000)
@@ -173,6 +197,7 @@ Task { @MainActor in
         }
     }
     let result:[String:Any]=["probe":"ca_visual","frames":frameCount,"negative_control":negative,
+        "display_linked":linked,"reference_only":referenceOnly,"missed_display_ticks":missedTicks,
         "continuous":continuous,"stream_started":streamStarted,"stream_analysis":streamAnalysis,
         "full_visibility_samples":fullVisibility,"onscreen_query_every_frame":queryEveryFrame,
         "preflight_ready":preflightReady,"transactions":transactions,"visible_frames":visibleFrames,

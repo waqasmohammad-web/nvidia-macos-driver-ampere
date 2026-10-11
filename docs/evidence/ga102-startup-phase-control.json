@@ -1,0 +1,383 @@
+{
+  "conditions": "same compiled clear-only client; shift first draw by 8.333 ms; link/display mode unchanged; three runs per condition",
+  "groups": {
+    "first-half-period": [
+      {
+        "analysis": {
+          "late_intervals": [],
+          "note": "CPU callback observations are not raw fence instants; system counters are shared; classification is not a root-cause attribution",
+          "physical_scanout": "NOT VERIFIED",
+          "trace_collection": "PASS"
+        },
+        "completed": 120,
+        "display_correlation": {
+          "available_counters": 7,
+          "deltas": {
+            "debug.nvaccel_iop_async_drop": 0,
+            "debug.nvaccel_iop_async_refused": 0,
+            "debug.nvaccel_iop_fail": 0,
+            "debug.nvaccel_iop_flips": 393,
+            "debug.nvaccel_iop_ok": 394,
+            "debug.nvrmfb_flip_n": 393,
+            "debug.nvrmfb_flip_us_sum": 4574911
+          },
+          "mean_flip_call_us": 11640.994910941476,
+          "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+          "visible_presentation": "candidate"
+        },
+        "exit_code": 0,
+        "missing_positive_timestamp_ids": [
+          0,
+          1,
+          2
+        ],
+        "positive_presented_times": 117,
+        "steady_presentation": {
+          "max_ms": 17.620277001697104,
+          "p50_ms": 16.662729998643044,
+          "p95_ms": 17.49858199764276,
+          "p99_ms": 17.615042001125403,
+          "samples": 106
+        },
+        "validation": {
+          "automated_pacing_validation": "NOT VERIFIED",
+          "checks": {
+            "api_frame_pacing_60hz": "NOT VERIFIED",
+            "command_completion": "PASS",
+            "sampled_visible_eligibility": "PASS",
+            "system_display_activity": "PASS",
+            "target_display_configuration": "PASS"
+          },
+          "frame_contents": "NOT VERIFIED",
+          "installed_driver_fixed": false,
+          "metrics": {},
+          "physical_scanout": "NOT VERIFIED"
+        }
+      },
+      {
+        "analysis": {
+          "late_intervals": [],
+          "note": "CPU callback observations are not raw fence instants; system counters are shared; classification is not a root-cause attribution",
+          "physical_scanout": "NOT VERIFIED",
+          "trace_collection": "PASS"
+        },
+        "completed": 120,
+        "display_correlation": {
+          "available_counters": 7,
+          "deltas": {
+            "debug.nvaccel_iop_async_drop": 0,
+            "debug.nvaccel_iop_async_refused": 0,
+            "debug.nvaccel_iop_fail": 0,
+            "debug.nvaccel_iop_flips": 356,
+            "debug.nvaccel_iop_ok": 355,
+            "debug.nvrmfb_flip_n": 356,
+            "debug.nvrmfb_flip_us_sum": 4013267
+          },
+          "mean_flip_call_us": 11273.22191011236,
+          "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+          "visible_presentation": "candidate"
+        },
+        "exit_code": 0,
+        "missing_positive_timestamp_ids": [
+          0,
+          1,
+          2
+        ],
+        "positive_presented_times": 117,
+        "steady_presentation": {
+          "max_ms": 17.664095001237,
+          "p50_ms": 16.667361996951513,
+          "p95_ms": 17.465906996221747,
+          "p99_ms": 17.565679001563694,
+          "samples": 106
+        },
+        "validation": {
+          "automated_pacing_validation": "NOT VERIFIED",
+          "checks": {
+            "api_frame_pacing_60hz": "NOT VERIFIED",
+            "command_completion": "PASS",
+            "sampled_visible_eligibility": "PASS",
+            "system_display_activity": "PASS",
+            "target_display_configuration": "PASS"
+          },
+          "frame_contents": "NOT VERIFIED",
+          "installed_driver_fixed": false,
+          "metrics": {},
+          "physical_scanout": "NOT VERIFIED"
+        }
+      },
+      {
+        "analysis": {
+          "late_intervals": [],
+          "note": "CPU callback observations are not raw fence instants; system counters are shared; classification is not a root-cause attribution",
+          "physical_scanout": "NOT VERIFIED",
+          "trace_collection": "PASS"
+        },
+        "completed": 120,
+        "display_correlation": {
+          "available_counters": 7,
+          "deltas": {
+            "debug.nvaccel_iop_async_drop": 0,
+            "debug.nvaccel_iop_async_refused": 0,
+            "debug.nvaccel_iop_fail": 0,
+            "debug.nvaccel_iop_flips": 390,
+            "debug.nvaccel_iop_ok": 390,
+            "debug.nvrmfb_flip_n": 390,
+            "debug.nvrmfb_flip_us_sum": 4599660
+          },
+          "mean_flip_call_us": 11794.0,
+          "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+          "visible_presentation": "candidate"
+        },
+        "exit_code": 0,
+        "missing_positive_timestamp_ids": [
+          0,
+          1,
+          2
+        ],
+        "positive_presented_times": 117,
+        "steady_presentation": {
+          "max_ms": 17.57787200040184,
+          "p50_ms": 16.642078997392673,
+          "p95_ms": 17.43711799645098,
+          "p99_ms": 17.55147199583007,
+          "samples": 106
+        },
+        "validation": {
+          "automated_pacing_validation": "NOT VERIFIED",
+          "checks": {
+            "api_frame_pacing_60hz": "NOT VERIFIED",
+            "command_completion": "PASS",
+            "sampled_visible_eligibility": "PASS",
+            "system_display_activity": "PASS",
+            "target_display_configuration": "PASS"
+          },
+          "frame_contents": "NOT VERIFIED",
+          "installed_driver_fixed": false,
+          "metrics": {},
+          "physical_scanout": "NOT VERIFIED"
+        }
+      }
+    ],
+    "normal": [
+      {
+        "analysis": {
+          "late_intervals": [
+            {
+              "acquisition_ms": 0.9348979947390035,
+              "classification": "client_completed_promptly",
+              "commit_interval_ms": 16.76430900261039,
+              "commit_to_completion_ms": 0.2441340038785711,
+              "completion_to_reported_presentation_ms": 32.365778999519534,
+              "frame": 2,
+              "gpu_ms": 0.005119996785651892,
+              "presentation_interval_ms": 33.60672000417253,
+              "previous_commit_to_completion_ms": 0.118271003884729,
+              "previous_frame": 1,
+              "startup": true,
+              "surface_slot": 2,
+              "system_flip_delta_between_callbacks": 2
+            }
+          ],
+          "note": "CPU callback observations are not raw fence instants; system counters are shared; classification is not a root-cause attribution",
+          "physical_scanout": "NOT VERIFIED",
+          "trace_collection": "PASS"
+        },
+        "completed": 120,
+        "display_correlation": {
+          "available_counters": 7,
+          "deltas": {
+            "debug.nvaccel_iop_async_drop": 0,
+            "debug.nvaccel_iop_async_refused": 0,
+            "debug.nvaccel_iop_fail": 0,
+            "debug.nvaccel_iop_flips": 272,
+            "debug.nvaccel_iop_ok": 272,
+            "debug.nvrmfb_flip_n": 272,
+            "debug.nvrmfb_flip_us_sum": 3233201
+          },
+          "mean_flip_call_us": 11886.76838235294,
+          "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+          "visible_presentation": "candidate"
+        },
+        "exit_code": 0,
+        "missing_positive_timestamp_ids": [
+          0
+        ],
+        "positive_presented_times": 119,
+        "steady_presentation": {
+          "max_ms": 17.513623999548145,
+          "p50_ms": 16.64334200177109,
+          "p95_ms": 17.36921299743699,
+          "p99_ms": 17.505255003925413,
+          "samples": 108
+        },
+        "validation": {
+          "automated_pacing_validation": "PASS",
+          "checks": {
+            "api_frame_pacing_60hz": "PASS",
+            "command_completion": "PASS",
+            "sampled_visible_eligibility": "PASS",
+            "system_display_activity": "PASS",
+            "target_display_configuration": "PASS"
+          },
+          "frame_contents": "NOT VERIFIED",
+          "installed_driver_fixed": false,
+          "metrics": {
+            "frame_id_gaps": 0,
+            "interval_samples": 108,
+            "late_intervals": 0,
+            "max_ms": 17.513623999548145,
+            "p95_ms": 17.36921299743699
+          },
+          "physical_scanout": "NOT VERIFIED"
+        }
+      },
+      {
+        "analysis": {
+          "late_intervals": [
+            {
+              "acquisition_ms": 0.8124999949359335,
+              "classification": "client_completed_promptly",
+              "commit_interval_ms": 16.563115997996647,
+              "commit_to_completion_ms": 0.20279699674574658,
+              "completion_to_reported_presentation_ms": 33.200179001141805,
+              "frame": 2,
+              "gpu_ms": 0.006144000508356839,
+              "presentation_interval_ms": 34.12848299922189,
+              "previous_commit_to_completion_ms": 0.13774699618807063,
+              "previous_frame": 1,
+              "startup": true,
+              "surface_slot": 2,
+              "system_flip_delta_between_callbacks": 2
+            }
+          ],
+          "note": "CPU callback observations are not raw fence instants; system counters are shared; classification is not a root-cause attribution",
+          "physical_scanout": "NOT VERIFIED",
+          "trace_collection": "PASS"
+        },
+        "completed": 120,
+        "display_correlation": {
+          "available_counters": 7,
+          "deltas": {
+            "debug.nvaccel_iop_async_drop": 0,
+            "debug.nvaccel_iop_async_refused": 0,
+            "debug.nvaccel_iop_fail": 0,
+            "debug.nvaccel_iop_flips": 284,
+            "debug.nvaccel_iop_ok": 284,
+            "debug.nvrmfb_flip_n": 284,
+            "debug.nvrmfb_flip_us_sum": 3324996
+          },
+          "mean_flip_call_us": 11707.732394366198,
+          "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+          "visible_presentation": "candidate"
+        },
+        "exit_code": 0,
+        "missing_positive_timestamp_ids": [
+          0
+        ],
+        "positive_presented_times": 119,
+        "steady_presentation": {
+          "max_ms": 17.680951998045202,
+          "p50_ms": 16.629773999738973,
+          "p95_ms": 17.45041999674868,
+          "p99_ms": 17.58854099898599,
+          "samples": 108
+        },
+        "validation": {
+          "automated_pacing_validation": "PASS",
+          "checks": {
+            "api_frame_pacing_60hz": "PASS",
+            "command_completion": "PASS",
+            "sampled_visible_eligibility": "PASS",
+            "system_display_activity": "PASS",
+            "target_display_configuration": "PASS"
+          },
+          "frame_contents": "NOT VERIFIED",
+          "installed_driver_fixed": false,
+          "metrics": {
+            "frame_id_gaps": 0,
+            "interval_samples": 108,
+            "late_intervals": 0,
+            "max_ms": 17.680951998045202,
+            "p95_ms": 17.45041999674868
+          },
+          "physical_scanout": "NOT VERIFIED"
+        }
+      },
+      {
+        "analysis": {
+          "late_intervals": [
+            {
+              "acquisition_ms": 1.0842420015251264,
+              "classification": "client_completed_promptly",
+              "commit_interval_ms": 16.36497599974973,
+              "commit_to_completion_ms": 0.2258609965792857,
+              "completion_to_reported_presentation_ms": 31.960707005055156,
+              "frame": 2,
+              "gpu_ms": 0.007167996955104172,
+              "presentation_interval_ms": 32.85762700397754,
+              "previous_commit_to_completion_ms": 0.13630100147565827,
+              "previous_frame": 1,
+              "startup": true,
+              "surface_slot": 2,
+              "system_flip_delta_between_callbacks": 2
+            }
+          ],
+          "note": "CPU callback observations are not raw fence instants; system counters are shared; classification is not a root-cause attribution",
+          "physical_scanout": "NOT VERIFIED",
+          "trace_collection": "PASS"
+        },
+        "completed": 120,
+        "display_correlation": {
+          "available_counters": 7,
+          "deltas": {
+            "debug.nvaccel_iop_async_drop": 0,
+            "debug.nvaccel_iop_async_refused": 0,
+            "debug.nvaccel_iop_fail": 0,
+            "debug.nvaccel_iop_flips": 390,
+            "debug.nvaccel_iop_ok": 390,
+            "debug.nvrmfb_flip_n": 390,
+            "debug.nvrmfb_flip_us_sum": 4572179
+          },
+          "mean_flip_call_us": 11723.535897435897,
+          "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+          "visible_presentation": "candidate"
+        },
+        "exit_code": 0,
+        "missing_positive_timestamp_ids": [
+          0
+        ],
+        "positive_presented_times": 119,
+        "steady_presentation": {
+          "max_ms": 17.665084000327624,
+          "p50_ms": 16.691420001734514,
+          "p95_ms": 17.47385699854931,
+          "p99_ms": 17.538029002025723,
+          "samples": 108
+        },
+        "validation": {
+          "automated_pacing_validation": "PASS",
+          "checks": {
+            "api_frame_pacing_60hz": "PASS",
+            "command_completion": "PASS",
+            "sampled_visible_eligibility": "PASS",
+            "system_display_activity": "PASS",
+            "target_display_configuration": "PASS"
+          },
+          "frame_contents": "NOT VERIFIED",
+          "installed_driver_fixed": false,
+          "metrics": {
+            "frame_id_gaps": 0,
+            "interval_samples": 108,
+            "late_intervals": 0,
+            "max_ms": 17.665084000327624,
+            "p95_ms": 17.47385699854931
+          },
+          "physical_scanout": "NOT VERIFIED"
+        }
+      }
+    ]
+  },
+  "physical_scanout": "NOT VERIFIED",
+  "source_sha256": "6de92ffbcb303a9499f2ae59a7d3669f19825eabac1b7e44ed1674a93501e4de"
+}

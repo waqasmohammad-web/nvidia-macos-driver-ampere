@@ -17,6 +17,19 @@ def evaluate(evidence, correlation):
         checks['own_window_capture'] = 'NOT VERIFIED'
     else:
         checks['own_window_capture'] = 'PASS'
+    if evidence.get('continuous') is True:
+        stream=evidence.get('stream_analysis',{})
+        content=stream.get('captured_reference_contents','NOT VERIFIED')
+        checks['own_window_capture']=('FAIL' if content=='FAIL' else 'PASS' if
+            evidence.get('stream_started') is True and content=='PASS' and stream.get('capture_id_coverage')=='PASS'
+            else 'NOT VERIFIED')
+        visibility=evidence.get('full_visibility_samples',[])
+        if len(visibility)<5 or not all(v is True for v in visibility):checks['visible_window_state']='NOT VERIFIED'
+        if evidence.get('display_linked') and evidence.get('missed_display_ticks')!=0:checks['visible_window_state']='NOT VERIFIED'
+        pacing=evidence.get('steady_reported_presentation',{})
+        checks['reported_presentation_cadence']=('NOT VERIFIED' if pacing.get('samples',0)<100 or
+            not isinstance(pacing.get('p95_ms'),(int,float)) or not isinstance(pacing.get('max_ms'),(int,float))
+            else 'PASS' if pacing.get('p95_ms')<=20 and pacing.get('max_ms')<=25 and pacing.get('above_25ms')==0 else 'FAIL')
     deltas = correlation.get('deltas', {})
     errors = ('debug.nvaccel_iop_async_drop', 'debug.nvaccel_iop_async_refused', 'debug.nvaccel_iop_fail')
     checks['system_display_activity'] = ('FAIL' if any(deltas.get(k, 0) > 0 for k in errors) else
@@ -37,6 +50,8 @@ def repeated_result(runs, requested_runs, source_sha256, negative_control=None, 
     checks = {}
     names = check_names or ('gpu_frame_contents', 'presentation_timestamps', 'visible_window_state',
              'own_window_capture', 'system_display_activity')
+    if check_names is None and any(r.get('metrics',{}).get('continuous') is True for r in runs):
+        names=(*names,'reported_presentation_cadence')
     complete = len(runs) == requested_runs and all(r.get('exit_code') == 0 for r in runs)
     for name in names:
         values = [r.get('verdict', {}).get('checks', {}).get(name, 'NOT VERIFIED') for r in runs]

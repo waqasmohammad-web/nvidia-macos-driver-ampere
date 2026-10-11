@@ -34,6 +34,14 @@ class StreamTests(unittest.TestCase):
             (broker.directory/'request.json').write_text(json.dumps({'pid':2,'operation':'stream-start','window_id':100}))
             with self.assertRaises(ValueError):broker.poll(Mock(pid=1))
             broker.library.ga102_stream_start.assert_not_called()
+
+    def test_metadata_never_verifies_pixels(self):
+        e=self.fixture();e['pixel_sampling_enabled']=False
+        for row in e['records']:row.pop('samples')
+        r=analyze_stream(e,4)
+        self.assertEqual(r['metadata_capture'],'PASS')
+        self.assertEqual(r['captured_reference_contents'],'NOT VERIFIED')
+        self.assertEqual(r['capture_id_coverage'],'NOT VERIFIED')
         e=self.fixture();e['records'][1]['samples'][3]=128
         self.assertEqual(analyze_stream(e,4)['captured_reference_contents'],'FAIL')
         e=self.fixture();e['records'].reverse()

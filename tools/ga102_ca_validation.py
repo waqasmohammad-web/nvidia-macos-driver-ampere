@@ -18,6 +18,7 @@ def evaluate(evidence, correlation):
         checks['visible_window_state']='PASS' if evidence.get('preflight_ready') is True and evidence.get('visible_frames')==120 and len(visibility)>=5 and all(x is True for x in visibility) else 'NOT VERIFIED'
         checks['own_window_capture']=stream.get('captured_reference_contents','NOT VERIFIED') if evidence.get('stream_started') else 'NOT VERIFIED'
         checks['capture_id_coverage']=stream.get('capture_id_coverage','NOT VERIFIED')
+        if evidence.get('display_linked'):checks['display_link_ticks']='PASS' if evidence.get('missed_display_ticks')==0 else 'FAIL'
         overall=('FAIL' if 'FAIL' in checks.values() else 'PASS' if all(v=='PASS' for v in checks.values()) else 'NOT VERIFIED')
         return {'automated_ca_validation':overall,'checks':checks,'physical_scanout':'NOT VERIFIED',
                 'animation_frame_pacing':'NOT VERIFIED','installed_driver_fixed':False,

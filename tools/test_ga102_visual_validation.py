@@ -22,6 +22,18 @@ class VisualValidationTests(unittest.TestCase):
         self.assertEqual(evaluate(self.evidence(),{})['automated_visual_validation'],'NOT VERIFIED')
     def test_no_gpu_evidence(self):
         self.assertEqual(evaluate({}, {})["automated_visual_validation"], "NOT VERIFIED")
+    def test_stream_coverage_and_cadence_are_separate(self):
+        e=self.evidence();e.update(continuous=True,stream_started=True,full_visibility_samples=[True]*5,
+            steady_reported_presentation=dict(samples=109,p95_ms=17,max_ms=18,above_25ms=0),
+            stream_analysis=dict(captured_reference_contents='PASS',capture_id_coverage='NOT VERIFIED'))
+        self.assertEqual(evaluate(e,self.correlation())['automated_visual_validation'],'NOT VERIFIED')
+        e['stream_analysis']['capture_id_coverage']='PASS'
+        self.assertEqual(evaluate(e,self.correlation())['automated_visual_validation'],'PASS')
+        e['steady_reported_presentation']['max_ms']=34
+        v=evaluate(e,self.correlation())
+        self.assertEqual(v['checks']['reported_presentation_cadence'],'FAIL')
+        r=repeated_result([dict(exit_code=0,metrics={'continuous':True},verdict=v)],1,'synthetic')
+        self.assertEqual(r['automated_visual_validation'],'FAIL')
     def test_drop(self):
         c=self.correlation();c['deltas']['debug.nvaccel_iop_async_drop']=1
         self.assertEqual(evaluate(self.evidence(),c)['automated_visual_validation'],'FAIL')

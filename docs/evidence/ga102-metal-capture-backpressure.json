@@ -1,0 +1,1561 @@
+{
+  "cadence_validation_source_sha256": "9f010776f7e11a0a98f0677dd60a1db184d6edd99cb423f9d6d4c4a1ccf68b46",
+  "desktop_smoothness": "NOT VERIFIED",
+  "groups": {
+    "capture-off": {
+      "automated_visual_validation": "NOT VERIFIED",
+      "capture_helper_source_sha256": "f3ddad620800d84ba8cdc6542535faaa380ade997058be0952db942f76009eab",
+      "checks": {
+        "gpu_frame_contents": "PASS",
+        "own_window_capture": "NOT VERIFIED",
+        "presentation_timestamps": "NOT VERIFIED",
+        "reported_presentation_cadence": "PASS",
+        "system_display_activity": "PASS",
+        "visible_window_state": "PASS"
+      },
+      "completed_runs": 3,
+      "desktop_smoothness": "NOT VERIFIED",
+      "execution": "PASS",
+      "installed_driver_fixed": false,
+      "negative_control": null,
+      "physical_scanout": "NOT VERIFIED",
+      "probe": "ga102_visual_present",
+      "probe_source_sha256": "3f16971a0445d1cbd95b5e6271b3e88a4dd416c02af7133967ff48b1b0f59339",
+      "reproducibility": "NOT VERIFIED",
+      "requested_runs": 3,
+      "runs": [
+        {
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 152,
+              "debug.nvaccel_iop_ok": 153,
+              "debug.nvrmfb_flip_n": 152,
+              "debug.nvrmfb_flip_us_sum": 1810621
+            },
+            "mean_flip_call_us": 11911.980263157895,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "frames": 120,
+          "full_visibility_samples": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "gpu_correct_frames": 120,
+          "gpu_distinct_patterns": 120,
+          "positive_timestamps": 117,
+          "reported_steady_cadence": {
+            "above_25ms": 0,
+            "max_ms": 17.841321001469623,
+            "p95_ms": 17.612738003663253,
+            "samples": 107
+          },
+          "stage_timings_after_frame_10": {
+            "acquisition_ms": {
+              "max_ms": 0.07220599945867434,
+              "p50_ms": 0.016812999092508107,
+              "p95_ms": 0.03133899735985324,
+              "samples": 110
+            },
+            "commit_to_completed_ms": {
+              "max_ms": 0.40989099943544716,
+              "p50_ms": 0.2788950005196966,
+              "p95_ms": 0.3428670024732128,
+              "samples": 110
+            },
+            "cpu_reference_readback_ms": {
+              "max_ms": 0.04307200288167223,
+              "p50_ms": 0.015350000467151403,
+              "p95_ms": 0.027602000045590103,
+              "samples": 110
+            },
+            "eligibility_and_stream_start_ms": {
+              "max_ms": 6.859579996671528,
+              "p50_ms": 0.0010980002116411924,
+              "p95_ms": 0.0024040054995566607,
+              "samples": 110
+            },
+            "encode_ms": {
+              "max_ms": 0.1650810008868575,
+              "p50_ms": 0.05983900337014347,
+              "p95_ms": 0.09075200068764389,
+              "samples": 110
+            },
+            "gpu_ms": {
+              "max_ms": 0.06649600254604593,
+              "p50_ms": 0.06143999780761078,
+              "p95_ms": 0.06246400153031573,
+              "samples": 110
+            },
+            "hold_sleep_ms": {
+              "max_ms": 0.0001399967004545033,
+              "p50_ms": 2.200249582529068e-05,
+              "p95_ms": 3.400054993107915e-05,
+              "samples": 110
+            }
+          },
+          "stream_analysis": {
+            "captured_reference_contents": "NOT VERIFIED"
+          },
+          "verdict": {
+            "automated_visual_validation": "NOT VERIFIED",
+            "checks": {
+              "gpu_frame_contents": "PASS",
+              "own_window_capture": "NOT VERIFIED",
+              "presentation_timestamps": "NOT VERIFIED",
+              "reported_presentation_cadence": "PASS",
+              "system_display_activity": "PASS",
+              "visible_window_state": "PASS"
+            },
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          },
+          "visible_frames": 120
+        },
+        {
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 153,
+              "debug.nvaccel_iop_ok": 153,
+              "debug.nvrmfb_flip_n": 153,
+              "debug.nvrmfb_flip_us_sum": 1852679
+            },
+            "mean_flip_call_us": 12109.013071895424,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "frames": 120,
+          "full_visibility_samples": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "gpu_correct_frames": 120,
+          "gpu_distinct_patterns": 120,
+          "positive_timestamps": 116,
+          "reported_steady_cadence": {
+            "above_25ms": 0,
+            "max_ms": 17.727054000715725,
+            "p95_ms": 17.631660994084086,
+            "samples": 107
+          },
+          "stage_timings_after_frame_10": {
+            "acquisition_ms": {
+              "max_ms": 0.06505400233436376,
+              "p50_ms": 0.015724996046628803,
+              "p95_ms": 0.05862400576006621,
+              "samples": 110
+            },
+            "commit_to_completed_ms": {
+              "max_ms": 0.3567649982869625,
+              "p50_ms": 0.27756400231737643,
+              "p95_ms": 0.31961499917088076,
+              "samples": 110
+            },
+            "cpu_reference_readback_ms": {
+              "max_ms": 0.031170995498541743,
+              "p50_ms": 0.015227000403683633,
+              "p95_ms": 0.02361200313316658,
+              "samples": 110
+            },
+            "eligibility_and_stream_start_ms": {
+              "max_ms": 2.242419999674894,
+              "p50_ms": 0.0010239964467473328,
+              "p95_ms": 0.0021909945644438267,
+              "samples": 110
+            },
+            "encode_ms": {
+              "max_ms": 0.10928299889201298,
+              "p50_ms": 0.05747300019720569,
+              "p95_ms": 0.08950999472290277,
+              "samples": 110
+            },
+            "gpu_ms": {
+              "max_ms": 0.06348800525302067,
+              "p50_ms": 0.06143999780761078,
+              "p95_ms": 0.06246400153031573,
+              "samples": 110
+            },
+            "hold_sleep_ms": {
+              "max_ms": 4.699541023001075e-05,
+              "p50_ms": 2.200249582529068e-05,
+              "p95_ms": 3.400054993107915e-05,
+              "samples": 110
+            }
+          },
+          "stream_analysis": {
+            "captured_reference_contents": "NOT VERIFIED"
+          },
+          "verdict": {
+            "automated_visual_validation": "NOT VERIFIED",
+            "checks": {
+              "gpu_frame_contents": "PASS",
+              "own_window_capture": "NOT VERIFIED",
+              "presentation_timestamps": "NOT VERIFIED",
+              "reported_presentation_cadence": "PASS",
+              "system_display_activity": "PASS",
+              "visible_window_state": "PASS"
+            },
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          },
+          "visible_frames": 120
+        },
+        {
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 147,
+              "debug.nvaccel_iop_ok": 148,
+              "debug.nvrmfb_flip_n": 147,
+              "debug.nvrmfb_flip_us_sum": 1801058
+            },
+            "mean_flip_call_us": 12252.095238095239,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "frames": 120,
+          "full_visibility_samples": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "gpu_correct_frames": 120,
+          "gpu_distinct_patterns": 120,
+          "positive_timestamps": 117,
+          "reported_steady_cadence": {
+            "above_25ms": 0,
+            "max_ms": 17.802164002205245,
+            "p95_ms": 17.539341002702713,
+            "samples": 107
+          },
+          "stage_timings_after_frame_10": {
+            "acquisition_ms": {
+              "max_ms": 0.06399999983841553,
+              "p50_ms": 0.014846002159174532,
+              "p95_ms": 0.0245140035985969,
+              "samples": 110
+            },
+            "commit_to_completed_ms": {
+              "max_ms": 0.3252280002925545,
+              "p50_ms": 0.27685299573931843,
+              "p95_ms": 0.3078139998251572,
+              "samples": 110
+            },
+            "cpu_reference_readback_ms": {
+              "max_ms": 0.031217001378536224,
+              "p50_ms": 0.014731995179317892,
+              "p95_ms": 0.021000996639486402,
+              "samples": 110
+            },
+            "eligibility_and_stream_start_ms": {
+              "max_ms": 6.265964999329299,
+              "p50_ms": 0.0008749993867240846,
+              "p95_ms": 0.0021520027075894177,
+              "samples": 110
+            },
+            "encode_ms": {
+              "max_ms": 0.08906000584829599,
+              "p50_ms": 0.05467599839903414,
+              "p95_ms": 0.07401799666695297,
+              "samples": 110
+            },
+            "gpu_ms": {
+              "max_ms": 0.06348799797706306,
+              "p50_ms": 0.061440005083568394,
+              "p95_ms": 0.06246400153031573,
+              "samples": 110
+            },
+            "hold_sleep_ms": {
+              "max_ms": 6.599293556064367e-05,
+              "p50_ms": 2.200249582529068e-05,
+              "p95_ms": 3.600143827497959e-05,
+              "samples": 110
+            }
+          },
+          "stream_analysis": {
+            "captured_reference_contents": "NOT VERIFIED"
+          },
+          "verdict": {
+            "automated_visual_validation": "NOT VERIFIED",
+            "checks": {
+              "gpu_frame_contents": "PASS",
+              "own_window_capture": "NOT VERIFIED",
+              "presentation_timestamps": "NOT VERIFIED",
+              "reported_presentation_cadence": "PASS",
+              "system_display_activity": "PASS",
+              "visible_window_state": "PASS"
+            },
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          },
+          "visible_frames": 120
+        }
+      ],
+      "schema_version": 1
+    },
+    "capture-on": {
+      "automated_visual_validation": "FAIL",
+      "capture_helper_source_sha256": "f3ddad620800d84ba8cdc6542535faaa380ade997058be0952db942f76009eab",
+      "checks": {
+        "gpu_frame_contents": "PASS",
+        "own_window_capture": "PASS",
+        "presentation_timestamps": "PASS",
+        "reported_presentation_cadence": "FAIL",
+        "system_display_activity": "PASS",
+        "visible_window_state": "PASS"
+      },
+      "completed_runs": 1,
+      "desktop_smoothness": "NOT VERIFIED",
+      "execution": "PASS",
+      "installed_driver_fixed": false,
+      "negative_control": null,
+      "physical_scanout": "NOT VERIFIED",
+      "probe": "ga102_visual_present",
+      "probe_source_sha256": "3f16971a0445d1cbd95b5e6271b3e88a4dd416c02af7133967ff48b1b0f59339",
+      "reproducibility": "NOT VERIFIED",
+      "requested_runs": 1,
+      "runs": [
+        {
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 172,
+              "debug.nvaccel_iop_ok": 173,
+              "debug.nvrmfb_flip_n": 172,
+              "debug.nvrmfb_flip_us_sum": 1885909
+            },
+            "mean_flip_call_us": 10964.587209302326,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "frames": 120,
+          "full_visibility_samples": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "gpu_correct_frames": 120,
+          "gpu_distinct_patterns": 120,
+          "positive_timestamps": 118,
+          "reported_steady_cadence": {
+            "above_25ms": 109,
+            "max_ms": 34.48652799852425,
+            "p95_ms": 34.413214001688175,
+            "samples": 109
+          },
+          "stage_timings_after_frame_10": {
+            "acquisition_ms": {
+              "max_ms": 34.239296001032926,
+              "p50_ms": 17.503044997283723,
+              "p95_ms": 17.685443999653216,
+              "samples": 110
+            },
+            "commit_to_completed_ms": {
+              "max_ms": 20.036107001942582,
+              "p50_ms": 0.30132899701129645,
+              "p95_ms": 0.41325000347569585,
+              "samples": 110
+            },
+            "cpu_reference_readback_ms": {
+              "max_ms": 0.05289699765853584,
+              "p50_ms": 0.017770995327737182,
+              "p95_ms": 0.026645997422747314,
+              "samples": 110
+            },
+            "eligibility_and_stream_start_ms": {
+              "max_ms": 18.14110799750779,
+              "p50_ms": 0.001348002115264535,
+              "p95_ms": 0.0026469933800399303,
+              "samples": 110
+            },
+            "encode_ms": {
+              "max_ms": 0.11868099682033062,
+              "p50_ms": 0.07118000212358311,
+              "p95_ms": 0.11070999607909471,
+              "samples": 110
+            },
+            "gpu_ms": {
+              "max_ms": 0.07884800288593397,
+              "p50_ms": 0.06246400153031573,
+              "p95_ms": 0.06348799797706306,
+              "samples": 110
+            },
+            "hold_sleep_ms": {
+              "max_ms": 0.00014000397641211748,
+              "p50_ms": 2.200249582529068e-05,
+              "p95_ms": 4.699541023001075e-05,
+              "samples": 110
+            }
+          },
+          "stream_analysis": {
+            "capture_id_coverage": "PASS",
+            "capture_pts_increasing": true,
+            "captured_reference_contents": "PASS",
+            "change_intervals_above_25ms": 113,
+            "correct_records": 120,
+            "desktop_smoothness": "NOT VERIFIED",
+            "distinct_frame_ids": 120,
+            "frame_ids_nondecreasing": true,
+            "invalid_records": 0,
+            "max_change_interval_ms": 68.08441100292839,
+            "missing_capture_ids": [],
+            "note": "capture PTS cadence/ID loss is capture-path evidence, not physical scanout or exclusive compositor timing",
+            "physical_scanout": "NOT VERIFIED",
+            "records": 120,
+            "stream_failed": false,
+            "stream_overflow": false,
+            "stream_status_counts": {
+              "0": 120,
+              "1": 15
+            },
+            "stream_stopped": true
+          },
+          "verdict": {
+            "automated_visual_validation": "FAIL",
+            "checks": {
+              "gpu_frame_contents": "PASS",
+              "own_window_capture": "PASS",
+              "presentation_timestamps": "PASS",
+              "reported_presentation_cadence": "FAIL",
+              "system_display_activity": "PASS",
+              "visible_window_state": "PASS"
+            },
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          },
+          "visible_frames": 120
+        }
+      ],
+      "schema_version": 1
+    },
+    "metadata": {
+      "automated_visual_validation": "FAIL",
+      "capture_helper_source_sha256": "6539b988e134f5f0d4131de50226b5b1a91c40ffe5152ccbed12f14cd3c78a74",
+      "checks": {
+        "gpu_frame_contents": "PASS",
+        "own_window_capture": "NOT VERIFIED",
+        "presentation_timestamps": "PASS",
+        "reported_presentation_cadence": "FAIL",
+        "system_display_activity": "PASS",
+        "visible_window_state": "PASS"
+      },
+      "completed_runs": 1,
+      "desktop_smoothness": "NOT VERIFIED",
+      "execution": "PASS",
+      "installed_driver_fixed": false,
+      "negative_control": null,
+      "physical_scanout": "NOT VERIFIED",
+      "pixel_sampling_enabled": false,
+      "probe": "ga102_visual_present",
+      "probe_source_sha256": "3f16971a0445d1cbd95b5e6271b3e88a4dd416c02af7133967ff48b1b0f59339",
+      "reproducibility": "NOT VERIFIED",
+      "requested_runs": 1,
+      "runs": [
+        {
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 181,
+              "debug.nvaccel_iop_ok": 181,
+              "debug.nvrmfb_flip_n": 181,
+              "debug.nvrmfb_flip_us_sum": 1944019
+            },
+            "mean_flip_call_us": 10740.436464088398,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "frames": 120,
+          "full_visibility_samples": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "gpu_correct_frames": 120,
+          "gpu_distinct_patterns": 120,
+          "positive_timestamps": 119,
+          "reported_steady_cadence": {
+            "above_25ms": 109,
+            "max_ms": 34.52830600144807,
+            "p95_ms": 34.42088500014506,
+            "samples": 109
+          },
+          "stage_timings_after_frame_10": {
+            "acquisition_ms": {
+              "max_ms": 34.46798599907197,
+              "p50_ms": 17.48320399929071,
+              "p95_ms": 17.637981996813323,
+              "samples": 110
+            },
+            "commit_to_completed_ms": {
+              "max_ms": 20.206832996336743,
+              "p50_ms": 0.2989619970321655,
+              "p95_ms": 0.4039609993924387,
+              "samples": 110
+            },
+            "cpu_reference_readback_ms": {
+              "max_ms": 0.04838200402446091,
+              "p50_ms": 0.018290003936272115,
+              "p95_ms": 0.031009003578219563,
+              "samples": 110
+            },
+            "eligibility_and_stream_start_ms": {
+              "max_ms": 18.680578999919817,
+              "p50_ms": 0.0012680029612965882,
+              "p95_ms": 0.0023609973140992224,
+              "samples": 110
+            },
+            "encode_ms": {
+              "max_ms": 0.12927200441481546,
+              "p50_ms": 0.07292800000868738,
+              "p95_ms": 0.10136199853150174,
+              "samples": 110
+            },
+            "gpu_ms": {
+              "max_ms": 0.06444799510063604,
+              "p50_ms": 0.061440005083568394,
+              "p95_ms": 0.06348799797706306,
+              "samples": 110
+            },
+            "hold_sleep_ms": {
+              "max_ms": 7.299968274310231e-05,
+              "p50_ms": 2.299930201843381e-05,
+              "p95_ms": 5.199399311095476e-05,
+              "samples": 110
+            }
+          },
+          "stream_analysis": {
+            "capture_id_coverage": "NOT VERIFIED",
+            "captured_reference_contents": "NOT VERIFIED",
+            "max_metadata_interval_ms": 66.09319799463265,
+            "metadata_capture": "PASS",
+            "metadata_intervals_above_25ms": 116,
+            "note": "metadata only; pixel correctness and captured frame identities unavailable",
+            "physical_scanout": "NOT VERIFIED",
+            "pixel_sampling_enabled": false,
+            "records": 120,
+            "stream_stopped": true
+          },
+          "verdict": {
+            "automated_visual_validation": "FAIL",
+            "checks": {
+              "gpu_frame_contents": "PASS",
+              "own_window_capture": "NOT VERIFIED",
+              "presentation_timestamps": "PASS",
+              "reported_presentation_cadence": "FAIL",
+              "system_display_activity": "PASS",
+              "visible_window_state": "PASS"
+            },
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          },
+          "visible_frames": 120
+        }
+      ],
+      "schema_version": 1
+    },
+    "pixels": {
+      "automated_visual_validation": "FAIL",
+      "capture_helper_source_sha256": "6539b988e134f5f0d4131de50226b5b1a91c40ffe5152ccbed12f14cd3c78a74",
+      "checks": {
+        "gpu_frame_contents": "PASS",
+        "own_window_capture": "NOT VERIFIED",
+        "presentation_timestamps": "PASS",
+        "reported_presentation_cadence": "FAIL",
+        "system_display_activity": "PASS",
+        "visible_window_state": "PASS"
+      },
+      "completed_runs": 1,
+      "desktop_smoothness": "NOT VERIFIED",
+      "execution": "PASS",
+      "installed_driver_fixed": false,
+      "negative_control": null,
+      "physical_scanout": "NOT VERIFIED",
+      "pixel_sampling_enabled": true,
+      "probe": "ga102_visual_present",
+      "probe_source_sha256": "3f16971a0445d1cbd95b5e6271b3e88a4dd416c02af7133967ff48b1b0f59339",
+      "reproducibility": "NOT VERIFIED",
+      "requested_runs": 1,
+      "runs": [
+        {
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 173,
+              "debug.nvaccel_iop_ok": 173,
+              "debug.nvrmfb_flip_n": 173,
+              "debug.nvrmfb_flip_us_sum": 1938106
+            },
+            "mean_flip_call_us": 11202.92485549133,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "frames": 120,
+          "full_visibility_samples": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "gpu_correct_frames": 120,
+          "gpu_distinct_patterns": 120,
+          "positive_timestamps": 119,
+          "reported_steady_cadence": {
+            "above_25ms": 109,
+            "max_ms": 34.53318100218894,
+            "p95_ms": 34.427796003001276,
+            "samples": 109
+          },
+          "stage_timings_after_frame_10": {
+            "acquisition_ms": {
+              "max_ms": 18.550586995843332,
+              "p50_ms": 17.500647001725156,
+              "p95_ms": 17.62719900580123,
+              "samples": 110
+            },
+            "commit_to_completed_ms": {
+              "max_ms": 19.058880003285594,
+              "p50_ms": 0.3026890044566244,
+              "p95_ms": 0.4282159934518859,
+              "samples": 110
+            },
+            "cpu_reference_readback_ms": {
+              "max_ms": 0.058760000683832914,
+              "p50_ms": 0.018244994862470776,
+              "p95_ms": 0.03300899697933346,
+              "samples": 110
+            },
+            "eligibility_and_stream_start_ms": {
+              "max_ms": 18.536342999141198,
+              "p50_ms": 0.001344000338576734,
+              "p95_ms": 0.00269600423052907,
+              "samples": 110
+            },
+            "encode_ms": {
+              "max_ms": 0.11981600255239755,
+              "p50_ms": 0.07176800136221573,
+              "p95_ms": 0.10679299884941429,
+              "samples": 110
+            },
+            "gpu_ms": {
+              "max_ms": 0.064512001699768,
+              "p50_ms": 0.061440005083568394,
+              "p95_ms": 0.06348799797706306,
+              "samples": 110
+            },
+            "hold_sleep_ms": {
+              "max_ms": 0.00013300450518727303,
+              "p50_ms": 2.299930201843381e-05,
+              "p95_ms": 5.099718691781163e-05,
+              "samples": 110
+            }
+          },
+          "stream_analysis": {
+            "capture_id_coverage": "NOT VERIFIED",
+            "capture_pts_increasing": true,
+            "captured_reference_contents": "PASS",
+            "change_intervals_above_25ms": 117,
+            "correct_records": 119,
+            "desktop_smoothness": "NOT VERIFIED",
+            "distinct_frame_ids": 119,
+            "frame_ids_nondecreasing": true,
+            "invalid_records": 0,
+            "max_change_interval_ms": 66.46727499901317,
+            "missing_capture_ids": [
+              1
+            ],
+            "note": "capture PTS cadence/ID loss is capture-path evidence, not physical scanout or exclusive compositor timing",
+            "physical_scanout": "NOT VERIFIED",
+            "records": 119,
+            "stream_failed": false,
+            "stream_overflow": false,
+            "stream_status_counts": {
+              "0": 119,
+              "1": 16
+            },
+            "stream_stopped": true
+          },
+          "verdict": {
+            "automated_visual_validation": "FAIL",
+            "checks": {
+              "gpu_frame_contents": "PASS",
+              "own_window_capture": "NOT VERIFIED",
+              "presentation_timestamps": "PASS",
+              "reported_presentation_cadence": "FAIL",
+              "system_display_activity": "PASS",
+              "visible_window_state": "PASS"
+            },
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          },
+          "visible_frames": 120
+        }
+      ],
+      "schema_version": 1
+    }
+  },
+  "initial_relative_sleep": {
+    "capture_helper_source_sha256": "f3ddad620800d84ba8cdc6542535faaa380ade997058be0952db942f76009eab",
+    "note": "emitted initial gate checked content/timestamps only; later independent cadence assessment uses numeric saved evidence, not a rerun",
+    "probe_source_sha256": "f477f615874bbfc4db4da94c85755d26e9652c6e09c51f714365270ccd3257a8",
+    "runs": [
+      {
+        "display_correlation": {
+          "available_counters": 7,
+          "deltas": {
+            "debug.nvaccel_iop_async_drop": 0,
+            "debug.nvaccel_iop_async_refused": 0,
+            "debug.nvaccel_iop_fail": 0,
+            "debug.nvaccel_iop_flips": 179,
+            "debug.nvaccel_iop_ok": 180,
+            "debug.nvrmfb_flip_n": 179,
+            "debug.nvrmfb_flip_us_sum": 1927602
+          },
+          "mean_flip_call_us": 10768.72625698324,
+          "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+          "visible_presentation": "candidate"
+        },
+        "frames": 120,
+        "full_visibility_samples": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gpu_correct_frames": 120,
+        "gpu_distinct_patterns": 120,
+        "later_cadence_assessment": {
+          "automated_visual_validation": "FAIL",
+          "checks": {
+            "gpu_frame_contents": "PASS",
+            "own_window_capture": "PASS",
+            "presentation_timestamps": "PASS",
+            "reported_presentation_cadence": "FAIL",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        },
+        "positive_timestamps": 120,
+        "reported_steady_cadence": {
+          "above_25ms": 109,
+          "max_ms": 34.50773599615786,
+          "p95_ms": 34.43341799720656,
+          "samples": 109
+        },
+        "stage_timings_after_frame_10": {},
+        "stream_analysis": {
+          "capture_id_coverage": "PASS",
+          "capture_pts_increasing": true,
+          "captured_reference_contents": "PASS",
+          "change_intervals_above_25ms": 118,
+          "correct_records": 120,
+          "desktop_smoothness": "NOT VERIFIED",
+          "distinct_frame_ids": 120,
+          "frame_ids_nondecreasing": true,
+          "invalid_records": 0,
+          "max_change_interval_ms": 51.60577099741204,
+          "missing_capture_ids": [],
+          "note": "capture PTS cadence/ID loss is capture-path evidence, not physical scanout or exclusive compositor timing",
+          "physical_scanout": "NOT VERIFIED",
+          "records": 120,
+          "stream_failed": false,
+          "stream_overflow": false,
+          "stream_status_counts": {
+            "0": 120,
+            "1": 16
+          },
+          "stream_stopped": true
+        },
+        "verdict": {
+          "automated_visual_validation": "PASS",
+          "checks": {
+            "gpu_frame_contents": "PASS",
+            "own_window_capture": "PASS",
+            "presentation_timestamps": "PASS",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        },
+        "visible_frames": 120
+      },
+      {
+        "display_correlation": {
+          "available_counters": 7,
+          "deltas": {
+            "debug.nvaccel_iop_async_drop": 0,
+            "debug.nvaccel_iop_async_refused": 0,
+            "debug.nvaccel_iop_fail": 0,
+            "debug.nvaccel_iop_flips": 178,
+            "debug.nvaccel_iop_ok": 177,
+            "debug.nvrmfb_flip_n": 178,
+            "debug.nvrmfb_flip_us_sum": 2037164
+          },
+          "mean_flip_call_us": 11444.741573033707,
+          "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+          "visible_presentation": "candidate"
+        },
+        "frames": 120,
+        "full_visibility_samples": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gpu_correct_frames": 120,
+        "gpu_distinct_patterns": 120,
+        "later_cadence_assessment": {
+          "automated_visual_validation": "FAIL",
+          "checks": {
+            "gpu_frame_contents": "PASS",
+            "own_window_capture": "PASS",
+            "presentation_timestamps": "PASS",
+            "reported_presentation_cadence": "FAIL",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        },
+        "positive_timestamps": 120,
+        "reported_steady_cadence": {
+          "above_25ms": 109,
+          "max_ms": 34.57500300282845,
+          "p95_ms": 34.45044600084657,
+          "samples": 109
+        },
+        "stage_timings_after_frame_10": {},
+        "stream_analysis": {
+          "capture_id_coverage": "PASS",
+          "capture_pts_increasing": true,
+          "captured_reference_contents": "PASS",
+          "change_intervals_above_25ms": 119,
+          "correct_records": 120,
+          "desktop_smoothness": "NOT VERIFIED",
+          "distinct_frame_ids": 120,
+          "frame_ids_nondecreasing": true,
+          "invalid_records": 0,
+          "max_change_interval_ms": 40.30402400530875,
+          "missing_capture_ids": [],
+          "note": "capture PTS cadence/ID loss is capture-path evidence, not physical scanout or exclusive compositor timing",
+          "physical_scanout": "NOT VERIFIED",
+          "records": 120,
+          "stream_failed": false,
+          "stream_overflow": false,
+          "stream_status_counts": {
+            "0": 120,
+            "1": 17
+          },
+          "stream_stopped": true
+        },
+        "verdict": {
+          "automated_visual_validation": "PASS",
+          "checks": {
+            "gpu_frame_contents": "PASS",
+            "own_window_capture": "PASS",
+            "presentation_timestamps": "PASS",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        },
+        "visible_frames": 120
+      },
+      {
+        "display_correlation": {
+          "available_counters": 7,
+          "deltas": {
+            "debug.nvaccel_iop_async_drop": 0,
+            "debug.nvaccel_iop_async_refused": 0,
+            "debug.nvaccel_iop_fail": 0,
+            "debug.nvaccel_iop_flips": 178,
+            "debug.nvaccel_iop_ok": 179,
+            "debug.nvrmfb_flip_n": 178,
+            "debug.nvrmfb_flip_us_sum": 2021037
+          },
+          "mean_flip_call_us": 11354.140449438202,
+          "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+          "visible_presentation": "candidate"
+        },
+        "frames": 120,
+        "full_visibility_samples": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gpu_correct_frames": 120,
+        "gpu_distinct_patterns": 120,
+        "later_cadence_assessment": {
+          "automated_visual_validation": "FAIL",
+          "checks": {
+            "gpu_frame_contents": "PASS",
+            "own_window_capture": "PASS",
+            "presentation_timestamps": "PASS",
+            "reported_presentation_cadence": "FAIL",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        },
+        "positive_timestamps": 120,
+        "reported_steady_cadence": {
+          "above_25ms": 109,
+          "max_ms": 34.60273300152039,
+          "p95_ms": 34.43918200355256,
+          "samples": 109
+        },
+        "stage_timings_after_frame_10": {},
+        "stream_analysis": {
+          "capture_id_coverage": "PASS",
+          "capture_pts_increasing": true,
+          "captured_reference_contents": "PASS",
+          "change_intervals_above_25ms": 116,
+          "correct_records": 120,
+          "desktop_smoothness": "NOT VERIFIED",
+          "distinct_frame_ids": 120,
+          "frame_ids_nondecreasing": true,
+          "invalid_records": 0,
+          "max_change_interval_ms": 50.44762200122932,
+          "missing_capture_ids": [],
+          "note": "capture PTS cadence/ID loss is capture-path evidence, not physical scanout or exclusive compositor timing",
+          "physical_scanout": "NOT VERIFIED",
+          "records": 120,
+          "stream_failed": false,
+          "stream_overflow": false,
+          "stream_status_counts": {
+            "0": 120,
+            "1": 17
+          },
+          "stream_stopped": true
+        },
+        "verdict": {
+          "automated_visual_validation": "PASS",
+          "checks": {
+            "gpu_frame_contents": "PASS",
+            "own_window_capture": "PASS",
+            "presentation_timestamps": "PASS",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        },
+        "visible_frames": 120
+      }
+    ]
+  },
+  "installed_driver_fixed": false,
+  "negative_controls": [
+    {
+      "acceptance": "PASS",
+      "control": "held-content",
+      "expected": "PASS",
+      "run": {
+        "display_correlation": {
+          "available_counters": 7,
+          "deltas": {
+            "debug.nvaccel_iop_async_drop": 0,
+            "debug.nvaccel_iop_async_refused": 0,
+            "debug.nvaccel_iop_fail": 0,
+            "debug.nvaccel_iop_flips": 279,
+            "debug.nvaccel_iop_ok": 279,
+            "debug.nvrmfb_flip_n": 279,
+            "debug.nvrmfb_flip_us_sum": 3329826
+          },
+          "mean_flip_call_us": 11934.860215053763,
+          "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+          "visible_presentation": "candidate"
+        },
+        "frames": 12,
+        "full_visibility_samples": [
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gpu_correct_frames": 12,
+        "gpu_distinct_patterns": 12,
+        "positive_timestamps": 12,
+        "reported_steady_cadence": {
+          "above_25ms": 1,
+          "max_ms": 449.6108980019926,
+          "p95_ms": 449.6108980019926,
+          "samples": 1
+        },
+        "stage_timings_after_frame_10": {
+          "acquisition_ms": {
+            "max_ms": 0.03456100239418447,
+            "p50_ms": 0.020324994693510234,
+            "p95_ms": 0.03456100239418447,
+            "samples": 2
+          },
+          "commit_to_completed_ms": {
+            "max_ms": 0.2954640003736131,
+            "p50_ms": 0.2813729952322319,
+            "p95_ms": 0.2954640003736131,
+            "samples": 2
+          },
+          "cpu_reference_readback_ms": {
+            "max_ms": 0.015541001630481333,
+            "p50_ms": 0.015203004295472056,
+            "p95_ms": 0.015541001630481333,
+            "samples": 2
+          },
+          "eligibility_and_stream_start_ms": {
+            "max_ms": 2.411399000266101,
+            "p50_ms": 2.3364640001091175,
+            "p95_ms": 2.411399000266101,
+            "samples": 2
+          },
+          "encode_ms": {
+            "max_ms": 0.0979229953372851,
+            "p50_ms": 0.0823010050226003,
+            "p95_ms": 0.0979229953372851,
+            "samples": 2
+          },
+          "gpu_ms": {
+            "max_ms": 0.06246399425435811,
+            "p50_ms": 0.06143999780761078,
+            "p95_ms": 0.06246399425435811,
+            "samples": 2
+          },
+          "hold_sleep_ms": {
+            "max_ms": 319.23219499731204,
+            "p50_ms": 301.5191469967249,
+            "p95_ms": 319.23219499731204,
+            "samples": 2
+          }
+        },
+        "stream_analysis": {
+          "captured_reference_contents": "NOT VERIFIED"
+        },
+        "verdict": {
+          "automated_visual_validation": "PASS",
+          "checks": {
+            "gpu_frame_contents": "PASS",
+            "own_window_capture": "PASS",
+            "presentation_timestamps": "PASS",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        },
+        "visible_frames": 12
+      }
+    },
+    {
+      "acceptance": "PASS",
+      "control": "static",
+      "expected": "FAIL",
+      "run": {
+        "display_correlation": {
+          "available_counters": 7,
+          "deltas": {
+            "debug.nvaccel_iop_async_drop": 0,
+            "debug.nvaccel_iop_async_refused": 0,
+            "debug.nvaccel_iop_fail": 0,
+            "debug.nvaccel_iop_flips": 166,
+            "debug.nvaccel_iop_ok": 166,
+            "debug.nvrmfb_flip_n": 166,
+            "debug.nvrmfb_flip_us_sum": 1857904
+          },
+          "mean_flip_call_us": 11192.192771084337,
+          "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+          "visible_presentation": "candidate"
+        },
+        "frames": 120,
+        "full_visibility_samples": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gpu_correct_frames": 1,
+        "gpu_distinct_patterns": 1,
+        "positive_timestamps": 119,
+        "reported_steady_cadence": {
+          "above_25ms": 109,
+          "max_ms": 34.4586330029415,
+          "p95_ms": 34.26163100084523,
+          "samples": 109
+        },
+        "stage_timings_after_frame_10": {
+          "acquisition_ms": {
+            "max_ms": 18.844493002688978,
+            "p50_ms": 17.50730899948394,
+            "p95_ms": 17.618607002077624,
+            "samples": 110
+          },
+          "commit_to_completed_ms": {
+            "max_ms": 19.08185600041179,
+            "p50_ms": 0.29417299811029807,
+            "p95_ms": 0.3759849932976067,
+            "samples": 110
+          },
+          "cpu_reference_readback_ms": {
+            "max_ms": 0.04186900332570076,
+            "p50_ms": 0.016229998436756432,
+            "p95_ms": 0.024688997655175626,
+            "samples": 110
+          },
+          "eligibility_and_stream_start_ms": {
+            "max_ms": 18.50125700002536,
+            "p50_ms": 0.0011790034477598965,
+            "p95_ms": 0.00242000533035025,
+            "samples": 110
+          },
+          "encode_ms": {
+            "max_ms": 0.11149800411658362,
+            "p50_ms": 0.06235599721549079,
+            "p95_ms": 0.08942600106820464,
+            "samples": 110
+          },
+          "gpu_ms": {
+            "max_ms": 0.06649599527008832,
+            "p50_ms": 0.06246399425435811,
+            "p95_ms": 0.06348799797706306,
+            "samples": 110
+          },
+          "hold_sleep_ms": {
+            "max_ms": 5.5995769798755646e-05,
+            "p50_ms": 2.200249582529068e-05,
+            "p95_ms": 3.899913281202316e-05,
+            "samples": 110
+          }
+        },
+        "stream_analysis": {
+          "capture_id_coverage": "NOT VERIFIED",
+          "capture_pts_increasing": true,
+          "captured_reference_contents": "NOT VERIFIED",
+          "change_intervals_above_25ms": 0,
+          "correct_records": 120,
+          "desktop_smoothness": "NOT VERIFIED",
+          "distinct_frame_ids": 1,
+          "frame_ids_nondecreasing": true,
+          "invalid_records": 0,
+          "max_change_interval_ms": null,
+          "missing_capture_ids": [
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38,
+            39,
+            40,
+            41,
+            42,
+            43,
+            44,
+            45,
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53,
+            54,
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62,
+            63,
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71,
+            72,
+            73,
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            81,
+            82,
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89,
+            90,
+            91,
+            92,
+            93,
+            94,
+            95,
+            96,
+            97,
+            98,
+            99,
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            108,
+            109,
+            110,
+            111,
+            112,
+            113,
+            114,
+            115,
+            116,
+            117,
+            118,
+            119
+          ],
+          "note": "capture PTS cadence/ID loss is capture-path evidence, not physical scanout or exclusive compositor timing",
+          "physical_scanout": "NOT VERIFIED",
+          "records": 120,
+          "stream_failed": false,
+          "stream_overflow": false,
+          "stream_status_counts": {
+            "0": 120,
+            "1": 18
+          },
+          "stream_stopped": true
+        },
+        "verdict": {
+          "automated_visual_validation": "FAIL",
+          "checks": {
+            "gpu_frame_contents": "FAIL",
+            "own_window_capture": "NOT VERIFIED",
+            "presentation_timestamps": "PASS",
+            "reported_presentation_cadence": "FAIL",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        },
+        "visible_frames": 120
+      }
+    },
+    {
+      "acceptance": "PASS",
+      "control": "timestamps",
+      "expected": "NOT VERIFIED",
+      "run": {
+        "display_correlation": {
+          "available_counters": 7,
+          "deltas": {
+            "debug.nvaccel_iop_async_drop": 0,
+            "debug.nvaccel_iop_async_refused": 0,
+            "debug.nvaccel_iop_fail": 0,
+            "debug.nvaccel_iop_flips": 177,
+            "debug.nvaccel_iop_ok": 177,
+            "debug.nvrmfb_flip_n": 177,
+            "debug.nvrmfb_flip_us_sum": 1969742
+          },
+          "mean_flip_call_us": 11128.485875706214,
+          "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+          "visible_presentation": "candidate"
+        },
+        "frames": 120,
+        "full_visibility_samples": [
+          true,
+          true,
+          true,
+          true,
+          true
+        ],
+        "gpu_correct_frames": 120,
+        "gpu_distinct_patterns": 120,
+        "positive_timestamps": 0,
+        "reported_steady_cadence": {
+          "above_25ms": 0,
+          "max_ms": null,
+          "p95_ms": null,
+          "samples": 0
+        },
+        "stage_timings_after_frame_10": {
+          "acquisition_ms": {
+            "max_ms": 18.548382999142632,
+            "p50_ms": 17.500312998890877,
+            "p95_ms": 17.619231002754532,
+            "samples": 110
+          },
+          "commit_to_completed_ms": {
+            "max_ms": 18.382549002126325,
+            "p50_ms": 0.304133995086886,
+            "p95_ms": 0.3908139988197945,
+            "samples": 110
+          },
+          "cpu_reference_readback_ms": {
+            "max_ms": 0.040644001273903996,
+            "p50_ms": 0.020334002329036593,
+            "p95_ms": 0.03217399353161454,
+            "samples": 110
+          },
+          "eligibility_and_stream_start_ms": {
+            "max_ms": 18.682310001167934,
+            "p50_ms": 0.0013760000001639128,
+            "p95_ms": 0.0021899977582506835,
+            "samples": 110
+          },
+          "encode_ms": {
+            "max_ms": 0.11806499969679862,
+            "p50_ms": 0.07957500201882794,
+            "p95_ms": 0.11021299724234268,
+            "samples": 110
+          },
+          "gpu_ms": {
+            "max_ms": 0.06656000186922029,
+            "p50_ms": 0.06246399425435811,
+            "p95_ms": 0.06348799797706306,
+            "samples": 110
+          },
+          "hold_sleep_ms": {
+            "max_ms": 7.900234777480364e-05,
+            "p50_ms": 3.300374373793602e-05,
+            "p95_ms": 6.300251698121428e-05,
+            "samples": 110
+          }
+        },
+        "stream_analysis": {
+          "capture_id_coverage": "PASS",
+          "capture_pts_increasing": true,
+          "captured_reference_contents": "PASS",
+          "change_intervals_above_25ms": 117,
+          "correct_records": 120,
+          "desktop_smoothness": "NOT VERIFIED",
+          "distinct_frame_ids": 120,
+          "frame_ids_nondecreasing": true,
+          "invalid_records": 0,
+          "max_change_interval_ms": 67.1228040009737,
+          "missing_capture_ids": [],
+          "note": "capture PTS cadence/ID loss is capture-path evidence, not physical scanout or exclusive compositor timing",
+          "physical_scanout": "NOT VERIFIED",
+          "records": 120,
+          "stream_failed": false,
+          "stream_overflow": false,
+          "stream_status_counts": {
+            "0": 120,
+            "1": 19
+          },
+          "stream_stopped": true
+        },
+        "verdict": {
+          "automated_visual_validation": "NOT VERIFIED",
+          "checks": {
+            "gpu_frame_contents": "PASS",
+            "own_window_capture": "PASS",
+            "presentation_timestamps": "NOT VERIFIED",
+            "reported_presentation_cadence": "NOT VERIFIED",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        },
+        "visible_frames": 120
+      }
+    },
+    {
+      "acceptance": "PASS",
+      "control": "hidden",
+      "expected": "NOT VERIFIED",
+      "run": {
+        "display_correlation": {
+          "available_counters": 7,
+          "deltas": {
+            "debug.nvaccel_iop_async_drop": 0,
+            "debug.nvaccel_iop_async_refused": 0,
+            "debug.nvaccel_iop_fail": 0,
+            "debug.nvaccel_iop_flips": 101,
+            "debug.nvaccel_iop_ok": 101,
+            "debug.nvrmfb_flip_n": 101,
+            "debug.nvrmfb_flip_us_sum": 1189211
+          },
+          "mean_flip_call_us": 11774.366336633664,
+          "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+          "visible_presentation": "candidate"
+        },
+        "frames": 120,
+        "full_visibility_samples": [
+          false,
+          false,
+          false,
+          false,
+          false
+        ],
+        "gpu_correct_frames": 120,
+        "gpu_distinct_patterns": 120,
+        "positive_timestamps": 0,
+        "reported_steady_cadence": {
+          "above_25ms": 0,
+          "max_ms": null,
+          "p95_ms": null,
+          "samples": 0
+        },
+        "stage_timings_after_frame_10": {
+          "acquisition_ms": {
+            "max_ms": 0.04793099651578814,
+            "p50_ms": 0.010422001651022583,
+            "p95_ms": 0.019557002815417945,
+            "samples": 110
+          },
+          "commit_to_completed_ms": {
+            "max_ms": 0.5931769992457703,
+            "p50_ms": 0.27408999449107796,
+            "p95_ms": 0.30185800278559327,
+            "samples": 110
+          },
+          "cpu_reference_readback_ms": {
+            "max_ms": 0.04385500506032258,
+            "p50_ms": 0.014159006241243333,
+            "p95_ms": 0.024638000468257815,
+            "samples": 110
+          },
+          "eligibility_and_stream_start_ms": {
+            "max_ms": 6.297733998508193,
+            "p50_ms": 0.0017740021576173604,
+            "p95_ms": 0.008759001502767205,
+            "samples": 110
+          },
+          "encode_ms": {
+            "max_ms": 0.11196099512744695,
+            "p50_ms": 0.05262799822958186,
+            "p95_ms": 0.07684999582124874,
+            "samples": 110
+          },
+          "gpu_ms": {
+            "max_ms": 0.06246400153031573,
+            "p50_ms": 0.06143999780761078,
+            "p95_ms": 0.06246400153031573,
+            "samples": 110
+          },
+          "hold_sleep_ms": {
+            "max_ms": 18.88516399776563,
+            "p50_ms": 17.776133005099837,
+            "p95_ms": 18.880632997024804,
+            "samples": 110
+          }
+        },
+        "stream_analysis": {
+          "captured_reference_contents": "NOT VERIFIED"
+        },
+        "verdict": {
+          "automated_visual_validation": "NOT VERIFIED",
+          "checks": {
+            "gpu_frame_contents": "PASS",
+            "own_window_capture": "NOT VERIFIED",
+            "presentation_timestamps": "NOT VERIFIED",
+            "reported_presentation_cadence": "NOT VERIFIED",
+            "system_display_activity": "PASS",
+            "visible_window_state": "NOT VERIFIED"
+          },
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        },
+        "visible_frames": 0
+      }
+    }
+  ],
+  "physical_scanout": "NOT VERIFIED",
+  "schema_version": 1,
+  "scope": "encoded Metal/readback/presented reference vs own-window SCK enabled/disabled and metadata-only controls"
+}

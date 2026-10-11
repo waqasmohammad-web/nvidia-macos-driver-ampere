@@ -10,6 +10,16 @@ except ImportError:
 
 def analyze_stream(raw, submitted=120):
     records = raw.get('records', [])
+    if raw.get('pixel_sampling_enabled',True)==False:
+        clocks=[r.get('pts_seconds') for r in records]
+        ordered=all(isinstance(t,(int,float)) and math.isfinite(t) for t in clocks) and all(b>a for a,b in zip(clocks,clocks[1:]))
+        intervals=[(b-a)*1000 for a,b in zip(clocks,clocks[1:])] if ordered else []
+        return {'captured_reference_contents':'NOT VERIFIED','capture_id_coverage':'NOT VERIFIED',
+                'metadata_capture':'FAIL' if not ordered else 'PASS' if len(records)>=3 and raw.get('stopped') and not raw.get('failed') and not raw.get('overflow') else 'NOT VERIFIED',
+                'records':len(records),'pixel_sampling_enabled':False,'stream_stopped':bool(raw.get('stopped')),
+                'metadata_intervals_above_25ms':sum(x>25 for x in intervals),
+                'max_metadata_interval_ms':max(intervals) if intervals else None,
+                'physical_scanout':'NOT VERIFIED','note':'metadata only; pixel correctness and captured frame identities unavailable'}
     decoded = []
     invalid = 0
     origin = records[0].get('pts_seconds', 0) if records else 0
@@ -51,12 +61,16 @@ def analyze_stream(raw, submitted=120):
 
 
 class StreamBroker(CaptureBroker):
-    def __init__(self, library, directory):
+    def __init__(self, library, directory, sample_pixels=True):
         super().__init__(library,directory)
         self.library.ga102_stream_start.argtypes=[ctypes.c_uint,ctypes.c_int]
         self.library.ga102_stream_start.restype=ctypes.c_int
         self.library.ga102_stream_stop.restype=ctypes.c_void_p
         self.library.ga102_capture_free.argtypes=[ctypes.c_void_p]
+        self.library.ga102_capture_free.restype=None
+        self.library.ga102_stream_sample_pixels.argtypes=[ctypes.c_int]
+        self.library.ga102_stream_sample_pixels.restype=None
+        self.library.ga102_stream_sample_pixels(int(sample_pixels))
         self.analysis=None
 
     def close(self):

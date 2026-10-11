@@ -110,24 +110,34 @@ def main():
     parser.add_argument("--graphics-copy-queue", action="store_true", help="Attempt test-process-only NVRM_610_CECHAN=0; verify engine selection in logs (installed builds may differ)")
     parser.add_argument("--negative-control", choices=("static", "timestamps", "hidden"))
     parser.add_argument("--display-linked", action="store_true")
+    parser.add_argument("--reference-only", action="store_true", help="CA comparison without extra animated layers")
+    parser.add_argument("--first-frame-half-period", action="store_true", help="Timing-only startup phase control; shifts first client draw by 8.333 ms")
     parser.add_argument("--double-buffered", action="store_true", help="Use two drawables in this probe's CAMetalLayer only; no framebuffer/display changes")
-    parser.add_argument('--continuous', action='store_true', help='120 Core Animation reference transactions with one owned-window SCStream')
+    parser.add_argument('--continuous', action='store_true', help='120 CA or Metal reference frames with one owned-window SCStream')
     parser.add_argument('--onscreen-every-frame', action='store_true', help='Diagnostic control: synchronous session/window queries on every continuous CA frame')
+    parser.add_argument('--capture-disabled', action='store_true', help='Continuous Metal control: do not start capture; full visual capture validation cannot pass')
+    parser.add_argument('--capture-metadata-only', action='store_true', help='Continuous Metal control: capture metadata without pixel-buffer CPU access; content NOT VERIFIED')
     parser.add_argument("--capture-bridge", action="store_true", help="Capture only the owned visual window via ScreenCaptureKit in this Python process; never requests permission")
     parser.add_argument("--result-json", type=Path, help="Save scoped visual-probe verdicts and numeric metrics, excluding raw logs and machine identities")
     args = parser.parse_args()
-    if args.continuous and (args.probe != 'ga102_ca_visual' or not args.capture_bridge):
-        parser.error('--continuous requires ga102_ca_visual --capture-bridge')
-    if args.onscreen_every_frame and not args.continuous:
-        parser.error('--onscreen-every-frame requires --continuous')
+    if args.continuous and (args.probe not in ('ga102_ca_visual','ga102_visual_present') or not args.capture_bridge):
+        parser.error('--continuous requires an owned-window visual probe --capture-bridge')
+    if args.onscreen_every_frame and (not args.continuous or args.probe != 'ga102_ca_visual'):
+        parser.error('--onscreen-every-frame requires ga102_ca_visual --continuous')
+    if args.capture_disabled and (not args.continuous or args.probe != 'ga102_visual_present'):
+        parser.error('--capture-disabled requires ga102_visual_present --continuous')
+    if args.capture_metadata_only and (not args.continuous or args.probe != 'ga102_visual_present' or args.capture_disabled):
+        parser.error('--capture-metadata-only requires continuous Metal capture enabled')
     if args.capture_bridge and args.probe not in ('ga102_visual_present', 'ga102_ca_visual'):
         parser.error('--capture-bridge requires an owned-window visual probe')
     if args.result_json and args.probe not in (*CORE_PROBES, "ga102_visual_present", "ga102_metal_present", "ga102_ca_visual"):
         parser.error("--result-json requires a core correctness or presentation probe")
     if args.result_json and args.result_json.exists():
         parser.error("--result-json must name a new file; existing evidence is never overwritten")
-    if args.display_linked and args.probe != "ga102_metal_present":
-        parser.error("--display-linked requires ga102_metal_present")
+    if args.reference_only and args.probe != 'ga102_ca_visual':parser.error('--reference-only requires CA probe')
+    if args.display_linked and not (args.probe == 'ga102_metal_present' or args.probe in ('ga102_visual_present','ga102_ca_visual') and args.continuous):
+        parser.error('--display-linked requires a pacing probe or continuous visual probe')
+    if args.first_frame_half_period and (args.probe != 'ga102_metal_present' or not args.display_linked):parser.error('--first-frame-half-period requires linked timing probe')
     if args.double_buffered and args.probe != 'ga102_metal_present':
         parser.error('--double-buffered requires ga102_metal_present')
     if args.negative_control and args.probe not in ('ga102_visual_present', 'ga102_ca_visual'):
@@ -184,7 +194,7 @@ def main():
             broker = None
             if args.capture_bridge:
                 channel = scratch / f'capture-{iteration}'; channel.mkdir(mode=0o700)
-                broker = (StreamBroker if args.continuous else CaptureBroker)(capture_library, channel)
+                broker = (StreamBroker(capture_library,channel,not args.capture_metadata_only) if args.continuous else CaptureBroker(capture_library,channel))
                 env['GA102_CAPTURE_IPC'] = str(channel)
                 env['GA102_CAPTURE_PERMISSION'] = '1' if broker.allowed else '0'
             with output.open("w") as log:
@@ -193,14 +203,18 @@ def main():
                     command.append("--display-linked")
                 if args.double_buffered:
                     command.append('--double-buffered')
+                if args.first_frame_half_period:command.append('--first-frame-half-period')
+                if args.reference_only: command.append('--reference-only')
                 if args.continuous: command.append('--continuous')
                 if args.onscreen_every_frame: command.append('--onscreen-every-frame')
+                if args.capture_disabled: command.append('--capture-disabled')
                 if args.negative_control:
                     command.append(args.negative_control)
                 try:
                     code = (run_owned(command, log, 45, env, broker.poll) if broker else run_owned(command, log, 45, env))
                 finally:
                     if isinstance(broker, StreamBroker): broker.close()
+            probe_exit_code = code
             if args.probe in ("ga102_metal_present", "ga102_visual_present", "ga102_ca_visual"):
                 correlation = display_delta(before, display_counters())
                 print("result: " + json.dumps({"display_correlation": correlation}, sort_keys=True), flush=True)
@@ -209,7 +223,10 @@ def main():
             # into public reports; print only probe-owned result lines here.
             lines = output.read_text(errors="replace").splitlines()
             for line in lines:
-                if args.probe in ('ga102_metal_present','ga102_ca_visual') and line.startswith('result: '):
+                if args.probe in ('ga102_metal_present','ga102_ca_visual') or args.continuous:
+                    if not line.startswith('result: '):
+                        if line.startswith(('PASS','FAIL','NOT VERIFIED','device:')): print(line,flush=True)
+                        continue
                     summary = json.loads(line[8:])
                     for key in ('frame_trace', 'presented_times', 'presented_frame_ids','samples'):
                         if key in summary: summary[key] = 'full data retained in private log/result artifact'
@@ -231,11 +248,11 @@ def main():
                             metrics = {key: evidence[key] for key in ('frames', 'transactions', 'preflight_ready',
                                 'visible_frames', 'capture_permission', 'capture_attempted', 'capture_received_frames',
                                 'capture_correct_frames', 'capture_distinct_patterns', 'samples', 'continuous',
-                                'stream_started', 'stream_analysis','full_visibility_samples','onscreen_query_every_frame') if key in evidence}
+                                'stream_started', 'stream_analysis','full_visibility_samples','onscreen_query_every_frame','display_linked','reference_only','missed_display_ticks') if key in evidence}
                             verdict = evaluate_ca(evidence, correlation)
                             print('result: ' + json.dumps(verdict, sort_keys=True), flush=True)
                             if verdict['automated_ca_validation'] == 'FAIL': code = 1
-                runs.append(dict(exit_code=code, metrics=metrics, verdict=verdict or {}, display_correlation=correlation))
+                runs.append(dict(exit_code=probe_exit_code, validation_exit_code=code, metrics=metrics, verdict=verdict or {}, display_correlation=correlation))
             elif args.probe == "ga102_visual_present":
                 verdict = None
                 metrics = {}
@@ -249,11 +266,15 @@ def main():
                                                   "visible_frames", "capture_permission", "capture_attempted",
                                                   "capture_received_frames", "capture_correct_frames", "capture_distinct_patterns")
                                        and isinstance(value, (int, float, bool))}
+                            metrics.update({key:evidence[key] for key in ('continuous','stream_started','stream_analysis',
+                                'full_visibility_samples','steady_reported_presentation','display_linked',
+                                'missed_display_ticks','frame_trace','pipeline_initialization_ms') if key in evidence})
+                            if 'capture_disabled_control' in evidence:metrics['capture_disabled_control']=evidence['capture_disabled_control']
                             verdict = evaluate_visual(evidence, correlation)
                             print("result: " + json.dumps(verdict, sort_keys=True), flush=True)
                             if verdict["automated_visual_validation"] == "FAIL":
                                 code = 1
-                runs.append({"exit_code": code, "metrics": metrics, "verdict": verdict or {},
+                runs.append({"exit_code": probe_exit_code, "validation_exit_code": code, "metrics": metrics, "verdict": verdict or {},
                              "display_correlation": correlation})
             elif args.probe in CORE_PROBES:
                 records = [{k: v for k, v in json.loads(line[8:]).items() if k in FIELDS}
@@ -262,7 +283,7 @@ def main():
                 print('result: ' + json.dumps(verdict, sort_keys=True), flush=True)
                 if verdict['automated_core_validation'] == 'FAIL':
                     code = 1
-                runs.append({'exit_code': code, 'metrics': records, 'verdict': verdict})
+                runs.append({'exit_code': probe_exit_code, 'validation_exit_code': code, 'metrics': records, 'verdict': verdict})
             elif args.probe == "ga102_metal_present":
                 verdict = None
                 metrics = {}
@@ -285,7 +306,7 @@ def main():
                             print("result: " + json.dumps(verdict, sort_keys=True), flush=True)
                             if verdict["automated_pacing_validation"] == "FAIL":
                                 code = 1
-                runs.append({"exit_code": code, "metrics": metrics, "verdict": verdict or {},
+                runs.append({"exit_code": probe_exit_code, "validation_exit_code": code, "metrics": metrics, "verdict": verdict or {},
                              "display_correlation": correlation})
             if code:
                 print(f"Failure details remain in {output}", flush=True)
@@ -303,6 +324,9 @@ def main():
                 report['pacing'] = 'AppKit display link' if args.display_linked else '60 Hz timer'
             if args.probe in ('ga102_visual_present', 'ga102_ca_visual'):
                 report['capture_method'] = 'ScreenCaptureKit owned-window broker' if args.capture_bridge else 'ScreenCaptureKit in probe'
+                report['capture_mode'] = 'bounded SCStream' if args.continuous else 'held screenshot references'
+                if args.capture_metadata_only:report['capture_mode']='bounded SCStream, metadata only'
+                if args.continuous and args.probe == 'ga102_visual_present':report['scope']='120 encoded GPU/readback/presented frames and owned-window captured IDs; cadence evaluated separately'
                 if capture_source_hash: report['capture_helper_source_sha256'] = capture_source_hash
             with args.result_json.open("x") as output:
                 json.dump(report, output, indent=2, sort_keys=True, allow_nan=False)

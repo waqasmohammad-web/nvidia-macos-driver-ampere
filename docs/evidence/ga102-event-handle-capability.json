@@ -1,0 +1,16 @@
+{
+  "compiler_exit": 0,
+  "evidence": {
+    "cross_process_ordering": "NOT VERIFIED",
+    "desktop_causality": "NOT VERIFIED",
+    "event_created": 1,
+    "handle_export": "FAIL",
+    "probe": "shared_event_handle_capability",
+    "same_process_handle_import": "NOT VERIFIED",
+    "same_process_value_roundtrip": "PASS",
+    "scope": "API handle creation/reimport only; no GPU work or XPC transfer",
+    "target_device_available": 1
+  },
+  "probe_source_sha256": "73be0fb681204724c840abae236dfc32592c04929525d9c138db5bbaa5dca382",
+  "runner_exit_code": 0
+}
