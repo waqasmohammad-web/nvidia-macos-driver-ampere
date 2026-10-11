@@ -1,5 +1,6 @@
 // SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
-// Six-second ordinary window probe, existing display mode; no graphics settings.
+// Six-second timing probe; full visual checks are in ga102_visual_present.swift.
+// Existing display mode; no graphics settings.
 import AppKit
 import QuartzCore
 import Metal
@@ -34,6 +35,7 @@ window.contentView = view; window.center(); window.orderFront(nil)
 let lock = NSLock()
 var inFlight = 0, completed = 0, errors = 0, skipped = 0, attempted = 0
 var presented = [Int: Double](), acquisition = [Double](), gpu = [Double]()
+var drawStarts = [Double]()
 var encoding = [Double](), commitReturn = [Double](), scheduledLatency = [Double](), completionLatency = [Double]()
 var visibility = [[String: Any]]()
 func snapshot() -> [String: Any] {
@@ -52,21 +54,29 @@ func snapshot() -> [String: Any] {
             "display_active": CGDisplayIsActive(display) != 0,
             "display_asleep": CGDisplayIsAsleep(display) != 0]
 }
+let linked = CommandLine.arguments.contains("--display-linked")
+var displayLink: CADisplayLink?
+class DisplayTick: NSObject {
+    let callback: () -> Void
+    init(_ callback: @escaping () -> Void) { self.callback = callback; super.init() }
+    @objc func fire(_ link: CADisplayLink) { callback() }
+}
 var timer: Timer?
 func draw() {
     if attempted % 60 == 0 && visibility.count < 4 { visibility.append(snapshot()) }
-    guard attempted < 120 else { timer?.invalidate(); return }
+    guard attempted < 120 else { timer?.invalidate(); displayLink?.invalidate(); return }
     lock.lock(); let busy = inFlight >= 3; lock.unlock()
     if busy { skipped += 1; return }
     let t = CACurrentMediaTime()
     guard let drawable = layer.nextDrawable() else { skipped += 1; return }
     let acquired = CACurrentMediaTime()
+    drawStarts.append(t)
     guard let commands = queue.makeCommandBuffer() else { fail("command buffer allocation") }
     let pass = MTLRenderPassDescriptor()
     pass.colorAttachments[0].texture = drawable.texture
     pass.colorAttachments[0].loadAction = .clear; pass.colorAttachments[0].storeAction = .store
-    let color = 0.25 + 0.1 * sin(Double(attempted) / 20)
-    pass.colorAttachments[0].clearColor = MTLClearColorMake(color, 0.3, 0.4, 1)
+    let phase = (attempted / 30) % 3
+    pass.colorAttachments[0].clearColor = MTLClearColorMake(phase == 0 ? 1 : 0, phase == 1 ? 1 : 0, phase == 2 ? 1 : 0, 1)
     guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { fail("render encoder allocation") }
     encoder.endEncoding()
     let encodedAt = CACurrentMediaTime()
@@ -92,32 +102,55 @@ func draw() {
     commands.present(drawable); commands.commit()
     commitReturn.append(CACurrentMediaTime() - commitAt)
 }
+let tick = DisplayTick { draw() }
 DispatchQueue.main.async {
-    timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { _ in draw() }
+    if linked {
+        displayLink = view.displayLink(target: tick, selector: #selector(DisplayTick.fire(_:)))
+        displayLink?.add(to: .main, forMode: .common)
+    } else {
+        timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { _ in draw() }
+    }
 }
 DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) {
-    timer?.invalidate()
+    timer?.invalidate(); displayLink?.invalidate()
     lock.lock()
     let shown = presented.filter { $0.value > 0 }.sorted { $0.key < $1.key }
     let finish = completed, failure = errors, outstanding = inFlight, callbackCount = presented.count
     let GPU = gpu, scheduled = scheduledLatency, completion = completionLatency
     lock.unlock()
     // presentedTime is an API observation; physical scanout is not independently measured.
+    let latePairs = zip(shown.dropFirst(), shown).filter { $0.0.value - $0.1.value > 0.025 }
+    let lateCorrelation: [[String: Any]] = latePairs.prefix(24).map { current, previous in
+        let id = current.key
+        return ["frame": id, "interval_ms": (current.value - previous.value) * 1000,
+                "acquisition_ms": id < acquisition.count ? acquisition[id] * 1000 : -1,
+                "cpu_draw_interval_ms": id > 0 && id < drawStarts.count ? (drawStarts[id] - drawStarts[id-1]) * 1000 : -1]
+    }
     let times = shown.dropFirst(10).map { $0.value }
     let intervals = zip(times.dropFirst(), times).map { $0 - $1 }.filter { $0 > 0 }
-    let result: [String: Any] = ["attempted": attempted, "completed": finish,
-        "visibility_samples": visibility + [snapshot()], "command_errors": failure, "outstanding": outstanding, "timer_skips": skipped,
+    let states = visibility + [snapshot()]
+    let eligible = states.allSatisfy { state in
+        ["window_visible", "window_on_active_space", "window_unoccluded", "window_in_onscreen_list", "session_on_console", "display_active"].allSatisfy { state[$0] as? Bool == true }
+        && state["display_asleep"] as? Bool == false
+    }
+    let result: [String: Any] = ["pacing": linked ? "AppKit display link" : "60 Hz timer", "attempted": attempted, "completed": finish,
+        "visibility_samples": states, "command_errors": failure, "outstanding": outstanding, "timer_skips": skipped,
         "presented_callbacks": callbackCount, "positive_presented_times": shown.count,
         "presentation_intervals": stats(intervals), "intervals_above_25ms": intervals.filter { $0 > 0.025 }.count,
+        "late_frame_correlations": lateCorrelation, "cpu_draw_intervals": stats(zip(drawStarts.dropFirst(), drawStarts).map { $0 - $1 }),
         "encode": stats(encoding), "commit_return": stats(commitReturn),
         "commit_to_scheduled_callback": stats(scheduled), "commit_to_completed_callback": stats(completion),
         "drawable_acquisition": stats(acquisition), "gpu": stats(GPU)]
     let data = try! JSONSerialization.data(withJSONObject: result, options: [.sortedKeys])
     print("result: \(String(data: data, encoding: .utf8)!)")
     window.orderOut(nil); window.close()
+    if !eligible && finish == attempted && failure == 0 && outstanding == 0 {
+        print("NOT VERIFIED: view/display not continuously eligible for visible presentation; no driver failure inferred")
+        fflush(stdout); exit(0)
+    }
     guard attempted == 120 && finish == 120 && failure == 0 && outstanding == 0 else { fail("bounded presentation submission/completion") }
     if shown.count < 110 {
-        print("PASS: submission completed; presentation timing UNAVAILABLE (callbacks/visibility need investigation)")
+        print("NOT VERIFIED: GPU submissions completed; presentation timing unavailable")
     } else { print("PASS: windowed presentation API observations collected; not physical scanout verification") }
     fflush(stdout); exit(0)
 }

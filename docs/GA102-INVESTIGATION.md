@@ -1,7 +1,8 @@
 # GA102 desktop acceleration investigation
 
-Status: initial architecture audit and bounded investigation completed; validated
-cache source fix published; desktop root cause unresolved, 2026-10-11.
+Status: autonomous visual validation and compositor tracing in progress;
+GPU pattern/negative controls validated; own-window capture unavailable;
+desktop root cause and installed-driver improvement unresolved, 2026-10-11.
 Branch: `dev/ga102-3080ti-diagnostics`. Starting revision: `c52e088`.
 
 ## Scope and operating constraints
@@ -616,7 +617,8 @@ component was installed or loaded. Rollback is a normal source revert.
 
 ### Current blockers and next experiments
 
-- Physical window observation is pending. Continue that experiment only with
+- At milestone 5, physical window observation was pending. That request is
+  superseded by milestone 6 automated validation. The earlier plan was to continue with
   the user's visibility/stutter report; prior offscreen success is not a substitute.
 - WindowServer CPU stack sampling is blocked by macOS privileges. A permitted
   compositor trace/profiling route is needed to directly quantify its waits;
@@ -633,3 +635,199 @@ component was installed or loaded. Rollback is a normal source revert.
 The primary objective remains open: no measured improvement to the installed
 macOS desktop is claimed. This stage closes several missing-evidence gaps and
 prepares reliable wait instrumentation; it does not establish a root cause.
+
+## Milestone 6 — user-run presentation reproduced; desktop-compositing probe in progress
+
+**User-reported instrumented run**, exit 0: 120/120 commands completed without
+errors; 118 positive presentation timestamps; interval p50 16.592 ms, p95
+17.389 ms, none over 25 ms. Drawable acquisition p50 5.55 ms, p95 6.34 ms;
+reported GPU duration p50 approximately 0.005 ms. System-wide flips advanced
+283 with no new refusals/errors/drops. All four samples reported on-screen,
+unoccluded active-desktop visibility. This is successful instrumented windowed
+presentation, **not verified physical scanout or full desktop acceleration**.
+The report does not substitute these measurements for a physical observation.
+
+Three bounded repetitions are being collected to assess reproducibility and
+variation in acquisition versus presentation. A new ordinary Core Animation
+window uses 32 translucent rounded layers with shadows, explicit animations,
+and idle/animation/idle phases. It records visibility and counter deltas; client
+presentation-layer positions and timer intervals will not be labeled displayed
+frames or GPU completion. Required synchronization remains unchanged.
+
+### Repetition results and test-design correction
+
+The requested three repetitions completed all 120 commands in each process with
+awake/unoccluded active-session samples. Runs 1/2 had presentation p95 17.292 /
+17.418 ms and no measured post-warmup intervals over 25 ms. Run 3 had p95
+**33.451 ms**, maximum 34.006 ms and **16 intervals over 25 ms**, while reported
+GPU duration stayed approximately 0.005 ms. Drawable acquisition p95 was
+0.022 / 0.021 / **21.424 ms** respectively. Mean system-wide flip-call duration
+was 10.505 / 10.100 / 9.849 ms with no new failure/drop/refusal counts. Thus
+smooth timing is **not yet reproducible across all runs**. The acquisition/late-
+frame correlation is observed, not proof that acquisition or synchronization is
+defective. Client pacing, backpressure, other desktop work and vblank phase are
+still candidates. New per-frame late-interval/acquisition/CPU-draw correlations
+have been added to the timing probe.
+
+The user's physical observation was a window appearing nearly static. The old
+red oscillation was subtle; this is a test-design weakness, not a proven driver
+failure. Routine human observation is no longer an acceptance dependency.
+The timing probe now uses plainly distinct red/green/blue phases, and a separate
+`ga102_visual_present.swift` renders explicit binary frame identifiers, a moving
+white bar and contrasting RGB backgrounds. Each of 12 slow-changing frames is
+read back by GPU blit and checked at 24 positions against an independent CPU
+pattern model. Slow changes keep this a correctness test, not a 60 Hz benchmark.
+
+### Automated visual verdict and negative controls
+
+`ga102_visual_validation.py` evaluates each claim separately. Correct distinct
+GPU pixels, increasing distinct presentation times, visible-window state,
+matched distinct own-window captures and clean system display activity are
+required for full automated visual PASS. Physical scanout is always
+**NOT VERIFIED**, even when screenshot validation passes. The evaluator also
+never declares the installed driver fixed. Nine Python regression tests pass
+across visual verdicts and display-counter handling, including static output,
+wrong capture pixels, absent/constant timing, hidden presentation, permission
+absence, missing/reset counters and display drops.
+
+Sequential live controls, with one probe window at a time:
+
+| Case | Correct / distinct GPU patterns | Positive timestamps | Visible samples | Automated visual verdict |
+|---|---:|---:|---:|---|
+| normal | 12 / 12 | 11 | 12 | NOT VERIFIED: capture unavailable; other measured categories PASS |
+| deliberately static | 1 / 1 | 11 | 12 | FAIL: changing expected pixels contradicted |
+| timing suppressed | 12 / 12 | 0 | 12 | NOT VERIFIED |
+| deliberately hidden | 12 / 12 | 0 | 0 | NOT VERIFIED |
+
+The hidden control still had 137 additional **system-wide** flips. This proves
+that GPU completion and advancing global flip counters cannot alone validate a
+specific window. It also reproduces zero presentation timestamps without a GPU
+rendering failure. Earlier all-zero runs remain retrospectively unclassified,
+but hidden/occluded presentation is now an experimentally supported explanation.
+An initial overlapping own Core Animation probe occluded the visual window:
+only 3 visible samples / 4 positive timestamps were obtained despite 12 correct
+GPU patterns. It was classified NOT VERIFIED and excluded from isolated timing
+comparisons; later live controls were explicitly serialized.
+
+Screen capture uses `CGPreflightScreenCaptureAccess` without requesting access.
+When already permitted, ScreenCaptureKit selects only the current process's
+window ID and uses `SCContentFilter(desktopIndependentWindow:)`; it captures no
+other window/display pixels. Captured images are normalized in memory and
+compared with expected sample pixels and across frame identifiers; images are
+not saved. **Capture permission is currently unavailable**, so capture-image
+comparison remains NOT VERIFIED; the capture method is blocked by that external
+permission. No authorization prompt or permission change was made. The capture
+branch compiles but has not been runtime-validated on this machine.
+
+### Ordinary Core Animation observations
+
+Added `ga102_core_animation.swift`: a normal 960 × 600 AppKit window with 32
+translucent rounded layers and shadows, explicit animations, and idle / four-
+second animation / idle phases. The initial run observed 234 changing client
+presentation-layer positions; animation phase advanced 230 global flips over
+3.902 seconds, with no new errors. Client timer p95 was 17.385 ms. This collects
+real Core Animation workload activity, but client presentation-tree interpolation
+is not a rendered-frame timestamp or independent pixel check. Visual validation
+and physical scanout remain NOT VERIFIED. The initial run overlapped another
+probe and is exploratory only.
+
+Unprivileged cumulative WindowServer CPU time is readable through `ps`, even
+though protected stack sampling remains blocked. The next version adds phase
+CPU deltas and will run separately, allowing an idle-versus-animation comparison
+without privileged sampling. This is process-wide correlation, not exclusive
+attribution to this window or a replacement for actual GPU/compositor profiling.
+No required completion wait has been removed or shortened.
+
+### Final pattern validation and isolated compositor CPU measurements
+
+The final high-contrast probe passed **12/12 expected GPU patterns**, all 12
+patterns distinct, **12/12 increasing distinct presentation times**, and 12
+visible-window samples. Global flips advanced 158 with no new errors. Overall
+automated visual status remains **NOT VERIFIED** solely because own-window
+capture permission is unavailable; physical scanout remains NOT VERIFIED.
+No human observation is required to run these checks.
+
+Two sequential, isolated Core Animation runs produced:
+
+| Phase | Run 1 WindowServer CPU s / elapsed s | Run 2 CPU s / elapsed s | Run 1 / 2 global flips |
+|---|---:|---:|---:|
+| idle before | 0.31 / 1.834 | 0.34 / 1.847 | 55 / 62 |
+| animation | 1.84 / 4.202 | 1.88 / 4.202 | 249 / 247 |
+| idle after | 0.37 / 2.101 | 0.45 / 2.087 | 70 / 86 |
+
+Animation correlates with approximately **44–45% of one CPU core** in WindowServer,
+versus approximately 17–22% during these idle phases. Both runs observed 241
+changing client presentation-layer positions, active visible-window samples,
+and zero new display errors/drops/refusals. Animation flip-call means were
+approximately 6.68 / 6.42 ms, versus approximately 11.1–11.3 ms during idle phases.
+This phase dependence is evidence against treating a high average completion
+wait as inherently defective; it includes vblank phase and scheduling effects.
+CPU statistics are cumulative `ps` time differences (centisecond resolution)
+and process-wide; background desktop activity is not eliminated.
+
+Client timer p95 was approximately 18.18 / 18.34 ms during animation. These are
+client wakeups, not measured composited frame timestamps; no pixel-level
+Core Animation validation or physical scanout claim follows. This workload
+contains shadows and translucency but does not reproduce every real desktop
+application or Mission Control. A filtered ten-minute unprivileged unified-log
+query found zero matching WindowServer NVMTL/NVK events; absent/suppressed logs
+cannot prove absence of graphics failures.
+
+The earlier three-repeat batch overlapped source typechecking during part of
+its lifetime. That background CPU load is an additional possible confound for
+its third-run stall. Three isolated per-frame traces are now being collected;
+no driver optimization is justified by the confounded outlier alone.
+
+### Isolated timer trace follow-up
+
+Three isolated high-contrast timer traces completed 120/120 commands each,
+returned 118 positive presentation times per run, and showed all visibility
+samples active/unoccluded. Presentation p95 was **17.417 / 17.266 / 17.275 ms**;
+all three had zero intervals above 25 ms and no new display errors. Acquisition
+p95 was **4.120 / 7.992 / 8.026 ms**, while GPU p50 remained approximately 0.005 ms.
+Per-frame late-interval lists were empty. The earlier 33 ms outlier did not
+recur in these isolated runs. This supports reproducible simple timed
+presentation under these conditions, not universal desktop smoothness.
+
+An optional `--display-linked` pacing mode now uses AppKit's `NSView.displayLink`
+to compare client scheduling against the existing timer. It changes no display
+mode, refresh, vsync or synchronization contract. Three controlled runs are
+being collected before assessing whether acquisition costs are scheduling-
+phase effects. No driver defect or optimization is inferred in advance.
+
+### Display-linked comparison blocked by inactive display
+
+The first display-linked run completed no draw callbacks. Crucially, its state
+snapshot reported **display_active=false, display_asleep=true**, an occluded
+window, and zero display-counter deltas. The SDK documents that `NSView` display
+link callbacks stop when the view is hidden or not on a display. This is
+**NOT VERIFIED: inactive display**, not evidence of an NVIDIA callback defect.
+The comparison is blocked by current display activity; no wake operation,
+mode/refresh setting or power-setting change was attempted.
+
+The timing probe initially mislabeled this condition FAIL because it expected
+120 calls unconditionally. It now checks visible eligibility before that
+acceptance criterion, while retaining FAIL for actual command errors or
+unfinished submitted commands. Ineligible presentation never gets a full timing
+PASS. This is a substantiated **test-classification correction**, not an installed
+driver correction. Screen capture remains unavailable without authorization;
+no request is made. Routine human observation has been removed as a dependency.
+
+Current next priorities are a display-linked versus timer comparison when the
+session becomes naturally active, and frame-content validation of the Core
+Animation workload if window-only capture becomes available. The high-contrast
+GPU checks, negative controls and existing coherence/event checks can run without
+panel observation. Protected WindowServer stacks, deployed NVKMS completion
+counters and physical scanout remain unverified/blocked under current access.
+No substantiated execution/synchronization defect was found that warrants
+removing or shortening any mandatory wait. No installed-driver speed improvement
+is claimed.
+
+Final verification: nine Python verdict/counter tests pass; high-contrast Metal
+and Core Animation probes compiled and executed. The final timing and compositor
+sources pass typechecking; the timing source retains a Swift 6 concurrency-mode
+warning under the current default Swift 5 mode. Callbacks that inspect AppKit
+state are scheduled on the main run loop; strict Swift 6 migration is unvalidated.
+No source-only change in this milestone modifies driver execution. All additions
+are diagnostics, validation logic and documentation. Installed components,
+system graphics, EFI, SIP and display/power settings remain unchanged.
