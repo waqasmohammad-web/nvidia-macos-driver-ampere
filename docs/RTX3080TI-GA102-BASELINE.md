@@ -85,6 +85,19 @@ Metal GPU: NVIDIA GeForce RTX 3080 Ti (NVMTL over NVIDIA GeForce RTX 3080 Ti (NV
 
 **Result:** `MTLCreateSystemDefaultDevice()` returned a GPU device. This **does not** prove Metal command-buffer completion, accelerated WindowServer compositing, or correct shader output. The diagnostic errors are recorded without assigning causal responsibility for perceived desktop sluggishness. Shader-cache creation was denied; the copy-engine queue creation failed and the driver printed a graphics-queue fallback. Avoid changing display modes until actual GPU execution is tested.
 
+## Metal compute smoke test: PASS
+
+Executed `tools/ga102_metal_smoketest.swift` from commit `4f2c2589f7bf0d1bad8af5c143595e46e3f5d209` on macOS 15.8.1 with NullMoth 1.11.0. The driver repeated startup warnings (shader cache permission denied, Vulkan copy-engine queue fallback, sector-promotion NV status) but the Metal command buffer completed and returned correct GPU-computed values:
+
+```text
+Metal GPU: NVIDIA GeForce RTX 3080 Ti (NVMTL over NVIDIA GeForce RTX 3080 Ti (NVK GA102-A))
+Submitting a four-element Metal compute workload...
+Computed values: [2.0, 4.0, 6.0, 8.0]
+PASS: Metal compute dispatch completed with correct results
+```
+
+**Validated:** Metal shader compilation and small compute dispatch with correct result readback. **Not yet validated:** render pipeline, WindowServer composition, display flips, performance, or higher refresh rates. User reports macOS desktop still feels less accelerated than past Hackintosh builds.
+
 ## First diagnostic goal
 
 1. Record installed driver release and exact macOS build.
