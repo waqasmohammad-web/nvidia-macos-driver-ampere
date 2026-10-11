@@ -2022,3 +2022,35 @@ Candidate retention update: copied all five candidate/rollback/proof files to
 and verified every copied SHA-256 against the prepared artifacts. This is durable
 local retention, not tested external recovery media. No installation occurred;
 live approval and recovery-access verification remain outstanding.
+
+### User-authorized recovery USB preparation — 11 October 2026
+
+The user authorized a recovery checklist and original-driver backup on the
+existing installer USB, and confirmed FileVault is disabled. The connected USB
+was identified as external USB storage with a writable FAT32 volume. Created
+only a new `GA102-Recovery` folder on its data volume; no EFI/OpenCore or recovery
+boot file was changed. Content-hash comparisons of both protected trees passed.
+
+Ten backup/checklist/manifest files were copied and hash-verified, including the
+authentic original 1.11.0 installer, original framebuffer archive, current
+auxiliary kernel collection, private current driver configuration backup and
+recovery hash manifests. The collection was inspected read-only and contains
+all four NullMoth kext identifiers. The recovery archive preserves required
+ownership/mode metadata even though FAT32 does not. Private configuration,
+collection bytes and system manifests remain on the USB/local backup only; none
+is committed. Public evidence records preparation outcomes only:
+[`evidence/ga102-recovery-usb-preparation.json`](evidence/ga102-recovery-usb-preparation.json).
+
+[`GA102-RECOVERY-CHECKLIST.md`](GA102-RECOVERY-CHECKLIST.md) documents separately
+approved recovery, correct APFS System/Data selection, dependency hash gates,
+backup of failed artifacts and restoration of the original bundle and saved
+auxiliary collection. Cached rollback follows the actual Intel installer's
+publication path and avoids assuming a Recovery/KDK rebuild succeeds. It is a
+technically justified plan, not a boot-tested guarantee. The USB previously
+booted the installer according to the user; access to the current Sequoia Data
+volume, write access and actual rollback boot remain NOT VERIFIED.
+
+Preparation is PASS. No candidate was copied to the USB, installed or loaded;
+no sudo, reboot, service restart, display change or system-permission change was
+performed. Live testing still requires separate approval and confirmed recovery
+access. The USB folder is ready; this authorization was preparation only.

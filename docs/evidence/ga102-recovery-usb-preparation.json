@@ -1,0 +1,8 @@
+{
+  "backup_files_verified": 10,
+  "efi_and_recovery_boot_unchanged": true,
+  "external_usb_writable": true,
+  "framebuffer_and_auxiliary_backup_verified": true,
+  "current_recovery_access": "NOT VERIFIED",
+  "installed_or_loaded": false
+}
