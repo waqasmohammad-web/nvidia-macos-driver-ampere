@@ -4,6 +4,7 @@ import AppKit
 import QuartzCore
 import Metal
 import Dispatch
+import CoreGraphics
 func fail(_ text: String) -> Never { fputs("FAIL: \(text)\n", stderr); exit(1) }
 func stats(_ samples: [Double]) -> [String: Double] {
     let s = samples.sorted()
@@ -33,8 +34,27 @@ window.contentView = view; window.center(); window.orderFront(nil)
 let lock = NSLock()
 var inFlight = 0, completed = 0, errors = 0, skipped = 0, attempted = 0
 var presented = [Int: Double](), acquisition = [Double](), gpu = [Double]()
+var encoding = [Double](), commitReturn = [Double](), scheduledLatency = [Double](), completionLatency = [Double]()
+var visibility = [[String: Any]]()
+func snapshot() -> [String: Any] {
+    let session = CGSessionCopyCurrentDictionary() as? [String: Any]
+    let display = (window.screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? CGMainDisplayID()
+    let own = (CGWindowListCopyWindowInfo(.optionOnScreenOnly, kCGNullWindowID) as? [[String: Any]])?.contains {
+        ($0[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value == getpid() &&
+        ($0[kCGWindowNumber as String] as? NSNumber)?.intValue == window.windowNumber
+    }
+    return ["window_visible": window.isVisible, "window_on_active_space": window.isOnActiveSpace,
+            "window_unoccluded": window.occlusionState.contains(.visible),
+            "window_in_onscreen_list": own as Any? ?? "unavailable",
+            "quartz_session": session != nil,
+            "session_on_console": session?[kCGSessionOnConsoleKey as String] ?? "unavailable",
+            "session_login_done": session?[kCGSessionLoginDoneKey as String] ?? "unavailable",
+            "display_active": CGDisplayIsActive(display) != 0,
+            "display_asleep": CGDisplayIsAsleep(display) != 0]
+}
 var timer: Timer?
 func draw() {
+    if attempted % 60 == 0 && visibility.count < 4 { visibility.append(snapshot()) }
     guard attempted < 120 else { timer?.invalidate(); return }
     lock.lock(); let busy = inFlight >= 3; lock.unlock()
     if busy { skipped += 1; return }
@@ -49,19 +69,28 @@ func draw() {
     pass.colorAttachments[0].clearColor = MTLClearColorMake(color, 0.3, 0.4, 1)
     guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { fail("render encoder allocation") }
     encoder.endEncoding()
+    let encodedAt = CACurrentMediaTime()
+    encoding.append(encodedAt - acquired)
     let id = attempted; attempted += 1; acquisition.append(acquired - t)
     drawable.addPresentedHandler { shown in
         lock.lock(); presented[id] = shown.presentedTime; lock.unlock()
     }
     lock.lock(); inFlight += 1; lock.unlock()
+    let commitAt = CACurrentMediaTime()
+    commands.addScheduledHandler { _ in
+        let observedAt = CACurrentMediaTime()
+        lock.lock(); scheduledLatency.append(observedAt - commitAt); lock.unlock()
+    }
     commands.addCompletedHandler { command in
         lock.lock(); defer { lock.unlock() }
         inFlight -= 1; completed += 1
+        completionLatency.append(CACurrentMediaTime() - commitAt)
         if command.status != .completed { errors += 1 }
         let a = command.gpuStartTime, b = command.gpuEndTime
         if a > 0 && b >= a { gpu.append(b - a) }
     }
     commands.present(drawable); commands.commit()
+    commitReturn.append(CACurrentMediaTime() - commitAt)
 }
 DispatchQueue.main.async {
     timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { _ in draw() }
@@ -71,15 +100,17 @@ DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) {
     lock.lock()
     let shown = presented.filter { $0.value > 0 }.sorted { $0.key < $1.key }
     let finish = completed, failure = errors, outstanding = inFlight, callbackCount = presented.count
-    let GPU = gpu
+    let GPU = gpu, scheduled = scheduledLatency, completion = completionLatency
     lock.unlock()
     // presentedTime is an API observation; physical scanout is not independently measured.
     let times = shown.dropFirst(10).map { $0.value }
     let intervals = zip(times.dropFirst(), times).map { $0 - $1 }.filter { $0 > 0 }
     let result: [String: Any] = ["attempted": attempted, "completed": finish,
-        "command_errors": failure, "outstanding": outstanding, "timer_skips": skipped,
+        "visibility_samples": visibility + [snapshot()], "command_errors": failure, "outstanding": outstanding, "timer_skips": skipped,
         "presented_callbacks": callbackCount, "positive_presented_times": shown.count,
         "presentation_intervals": stats(intervals), "intervals_above_25ms": intervals.filter { $0 > 0.025 }.count,
+        "encode": stats(encoding), "commit_return": stats(commitReturn),
+        "commit_to_scheduled_callback": stats(scheduled), "commit_to_completed_callback": stats(completion),
         "drawable_acquisition": stats(acquisition), "gpu": stats(GPU)]
     let data = try! JSONSerialization.data(withJSONObject: result, options: [.sortedKeys])
     print("result: \(String(data: data, encoding: .utf8)!)")

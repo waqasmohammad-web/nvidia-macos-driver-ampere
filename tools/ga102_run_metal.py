@@ -7,6 +7,7 @@ scratch directories to compare process starts (other compiler caches remain).
 Logs stay in a new private temporary directory, never auto-committed.
 """
 import argparse
+import json
 import os
 import signal
 from pathlib import Path
@@ -15,7 +16,7 @@ import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
 PROBES = ("ga102_metal_smoketest", "ga102_metal_render_smoketest", "ga102_metal_benchmark",
-          "ga102_metal_memory", "ga102_metal_present", "ga102_metal_composite")
+          "ga102_metal_memory", "ga102_metal_present", "ga102_metal_composite", "ga102_metal_crossprocess", "ga102_metal_events")
 
 
 def run_owned(command, log, timeout, env=None):
@@ -41,6 +42,36 @@ def run_owned(command, log, timeout, env=None):
             child.wait()
             raise
 
+
+DISPLAY_COUNTERS = tuple("debug." + name for name in (
+    "nvaccel_iop_ok", "nvaccel_iop_flips", "nvaccel_iop_async_refused",
+    "nvaccel_iop_async_drop", "nvaccel_iop_fail", "nvrmfb_flip_n",
+    "nvrmfb_flip_us_sum", "nvrmfb_flip_us_max"))
+
+def display_counters():
+    """Read only named integer counters; unavailable data stays unavailable."""
+    result = {}
+    try:
+        read = subprocess.run(["/usr/sbin/sysctl", *DISPLAY_COUNTERS],
+                              capture_output=True, text=True, timeout=5)
+        for line in read.stdout.splitlines():
+            key, _, value = line.partition(": ")
+            if key in DISPLAY_COUNTERS:
+                try: result[key] = int(value)
+                except ValueError: pass
+    except (OSError, subprocess.TimeoutExpired):
+        pass
+    return result
+
+def display_delta(before, after):
+    delta = {key: after[key] - before[key] for key in DISPLAY_COUNTERS
+             if key in before and key in after and not key.endswith("_max")}
+    n = delta.get("debug.nvrmfb_flip_n", 0)
+    return {"deltas": delta, "available_counters": len(delta),
+            "mean_flip_call_us": delta["debug.nvrmfb_flip_us_sum"] / n
+            if n > 0 and delta.get("debug.nvrmfb_flip_us_sum", -1) >= 0 else None,
+            "visible_presentation": "candidate" if n > 0 else "unverified",
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait"}
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
@@ -73,9 +104,12 @@ def main():
             return code
         for iteration in range(args.repeat):
             output = scratch / f"run-{iteration + 1}.log"
+            before = display_counters() if args.probe == "ga102_metal_present" else {}
             with output.open("w") as log:
                 command = [str(executable)] + (["--surface-comparison"] if args.surface_comparison else [])
                 code = run_owned(command, log, 45, env)
+            if args.probe == "ga102_metal_present":
+                print("result: " + json.dumps({"display_correlation": display_delta(before, display_counters())}, sort_keys=True), flush=True)
             print(f"Run {iteration + 1}: exit {code}", flush=True)
             # Avoid copying paths, addresses and process identities from driver logs
             # into public reports; print only probe-owned result lines here.

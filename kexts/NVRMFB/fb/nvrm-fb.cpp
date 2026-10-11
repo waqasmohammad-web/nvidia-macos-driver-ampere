@@ -24,6 +24,7 @@
 #include <libkern/OSAtomic.h>
 #include "nvrm-hud.h"
 #include "nvrm-fb-safety.h"
+#include "nvrm-flip-wait.h"
 #include "nvrm-allocation-table.h"
 static IORecursiveLock *startLock();
 class NVRMCallReference {
@@ -852,6 +853,24 @@ static IORecursiveLock *startLock()
     }
     return gL;
 }
+static SInt64 gCompletionPriorN, gCompletionSubmittedN, gCompletionPolls, gCompletionSleeps;
+static SInt64 gCompletionQueryFailed, gCompletionExhausted, gCompletionPriorUs, gCompletionSubmittedUs;
+static SInt64 gCompletionOver25ms, gCompletionMaxUs;
+static void nvrmNoteCompletion(const NVRMFlipWaitResult &r, bool prior, uint64_t start)
+{
+    uint64_t ns = 0; absolutetime_to_nanoseconds(mach_absolute_time() - start, &ns);
+    OSAddAtomic64(1, prior ? &gCompletionPriorN : &gCompletionSubmittedN);
+    const SInt64 us = ns / 1000;
+    OSAddAtomic64(us, prior ? &gCompletionPriorUs : &gCompletionSubmittedUs);
+    if (us > 25000) OSAddAtomic64(1, &gCompletionOver25ms);
+    for (;;) {
+        const SInt64 old = OSAddAtomic64(0, &gCompletionMaxUs);
+        if (us <= old || OSCompareAndSwap64((UInt64)old, (UInt64)us, (volatile UInt64 *)&gCompletionMaxUs)) break;
+    }
+    OSAddAtomic64(r.polls, &gCompletionPolls); OSAddAtomic64(r.sleeps, &gCompletionSleeps);
+    if (r.queryFailed) OSAddAtomic64(1, &gCompletionQueryFailed);
+    else if (!r.complete) OSAddAtomic64(1, &gCompletionExhausted);
+}
 NvBool NVRMNVDAFramebuffer::submitConfig(struct NvKmsKapiRequestedModeSetConfig *cfg,
                                             struct NvKmsKapiModeSetReplyConfig *rep, NvBool commit, bool bootstrap,
                                             bool cursorOnly)
@@ -867,14 +886,14 @@ NvBool NVRMNVDAFramebuffer::submitConfig(struct NvKmsKapiRequestedModeSetConfig 
     if (fSubmissionSeen) {
         // Initial console acceptance is asynchronous. A still-pending prior flip
         // must receive the same bounded completion wait as a newly committed flip.
-        bool complete = false;
-        for (unsigned i = 0; i < 100; ++i) {
-            NvBool pending = NV_TRUE;
-            if (!fKms->getFlipPendingStatus(fDev, fHead, NVKMS_KAPI_LAYER_PRIMARY_IDX, &pending)) break;
-            if (!pending) { complete = true; break; }
-            IOSleep(1);
-        }
-        if (!complete) {
+        const uint64_t start = mach_absolute_time();
+        const NVRMFlipWaitResult wait = nvrmWaitFlipCompletion([&](bool &pending) {
+            NvBool p = NV_TRUE;
+            const bool ok = fKms->getFlipPendingStatus(fDev, fHead, NVKMS_KAPI_LAYER_PRIMARY_IDX, &p);
+            pending = p != NV_FALSE; return ok;
+        }, [] { IOSleep(1); });
+        nvrmNoteCompletion(wait, true, start);
+        if (!wait.complete) {
             FBLOG("presentation blocked: prior completion unavailable on head %u", fHead);
             fSubmissionFaulted = true; return NV_FALSE;
         }
@@ -899,12 +918,14 @@ NvBool NVRMNVDAFramebuffer::submitConfig(struct NvKmsKapiRequestedModeSetConfig 
     fSubmissionSeen = true;
     // Initial acceptance permits console handoff, never surface retirement. The owned boot surface remains pinned.
     if (bootstrap) return NV_TRUE;
-    for (unsigned i = 0; i < 100; ++i) {
-        NvBool pending = NV_TRUE;
-        if (!fKms->getFlipPendingStatus(fDev, fHead, NVKMS_KAPI_LAYER_PRIMARY_IDX, &pending)) break;
-        if (!pending) return NV_TRUE;
-        IOSleep(1);
-    }
+    const uint64_t start = mach_absolute_time();
+    const NVRMFlipWaitResult wait = nvrmWaitFlipCompletion([&](bool &pending) {
+        NvBool p = NV_TRUE;
+        const bool ok = fKms->getFlipPendingStatus(fDev, fHead, NVKMS_KAPI_LAYER_PRIMARY_IDX, &p);
+        pending = p != NV_FALSE; return ok;
+    }, [] { IOSleep(1); });
+    nvrmNoteCompletion(wait, false, start);
+    if (wait.complete) return NV_TRUE;
     // Keep both the old front and submitted surface alive until a proven recovery/reboot.
     FBLOG("presentation blocked: submitted completion unavailable on head %u", fHead);
     fSubmissionFaulted = true; return NV_FALSE;
@@ -1965,10 +1986,31 @@ SYSCTL_INT(_debug, OID_AUTO, nvrmfb_flip_interval, CTLFLAG_RW | CTLFLAG_LOCKED, 
 SYSCTL_QUAD(_debug, OID_AUTO, nvrmfb_flip_us_sum, CTLFLAG_RD | CTLFLAG_LOCKED, (SInt64 *)&gFlipUsSum, "microseconds spent in pure-flip applyModeSetConfig");
 SYSCTL_QUAD(_debug, OID_AUTO, nvrmfb_flip_n, CTLFLAG_RD | CTLFLAG_LOCKED, (SInt64 *)&gFlipN, "pure flips timed");
 SYSCTL_QUAD(_debug, OID_AUTO, nvrmfb_flip_us_max, CTLFLAG_RD | CTLFLAG_LOCKED, (SInt64 *)&gFlipUsMax, "the slowest pure flip, us");
+SYSCTL_QUAD(_debug, OID_AUTO, nvrmfb_completion_prior_n, CTLFLAG_RD | CTLFLAG_LOCKED, &gCompletionPriorN, "actual primary completion wait prior_n");
+SYSCTL_QUAD(_debug, OID_AUTO, nvrmfb_completion_submitted_n, CTLFLAG_RD | CTLFLAG_LOCKED, &gCompletionSubmittedN, "actual primary completion wait submitted_n");
+SYSCTL_QUAD(_debug, OID_AUTO, nvrmfb_completion_polls, CTLFLAG_RD | CTLFLAG_LOCKED, &gCompletionPolls, "actual primary completion wait polls");
+SYSCTL_QUAD(_debug, OID_AUTO, nvrmfb_completion_sleeps, CTLFLAG_RD | CTLFLAG_LOCKED, &gCompletionSleeps, "actual primary completion wait sleeps");
+SYSCTL_QUAD(_debug, OID_AUTO, nvrmfb_completion_query_failed, CTLFLAG_RD | CTLFLAG_LOCKED, &gCompletionQueryFailed, "actual primary completion wait query_failed");
+SYSCTL_QUAD(_debug, OID_AUTO, nvrmfb_completion_exhausted, CTLFLAG_RD | CTLFLAG_LOCKED, &gCompletionExhausted, "actual primary completion wait exhausted");
+SYSCTL_QUAD(_debug, OID_AUTO, nvrmfb_completion_prior_us, CTLFLAG_RD | CTLFLAG_LOCKED, &gCompletionPriorUs, "actual primary completion wait prior_us");
+SYSCTL_QUAD(_debug, OID_AUTO, nvrmfb_completion_submitted_us, CTLFLAG_RD | CTLFLAG_LOCKED, &gCompletionSubmittedUs, "actual primary completion wait submitted_us");
+SYSCTL_QUAD(_debug, OID_AUTO, nvrmfb_completion_over25ms, CTLFLAG_RD | CTLFLAG_LOCKED, &gCompletionOver25ms, "actual primary completion waits exceeding 25 ms");
+SYSCTL_QUAD(_debug, OID_AUTO, nvrmfb_completion_max_us, CTLFLAG_RD | CTLFLAG_LOCKED, &gCompletionMaxUs, "longest actual primary completion wait, microseconds");
 static bool gFbSysctl = false;
 static void nvrmfbInstallSysctl(void)
 {
     if (gFbSysctl) return; gFbSysctl = true;
+    sysctl_register_oid(&sysctl__debug_nvrmfb_completion_over25ms);
+    sysctl_register_oid(&sysctl__debug_nvrmfb_completion_max_us);
+    sysctl_register_oid(&sysctl__debug_nvrmfb_completion_prior_n);
+    sysctl_register_oid(&sysctl__debug_nvrmfb_completion_submitted_n);
+    sysctl_register_oid(&sysctl__debug_nvrmfb_completion_polls);
+    sysctl_register_oid(&sysctl__debug_nvrmfb_completion_sleeps);
+    sysctl_register_oid(&sysctl__debug_nvrmfb_completion_query_failed);
+    sysctl_register_oid(&sysctl__debug_nvrmfb_completion_exhausted);
+    sysctl_register_oid(&sysctl__debug_nvrmfb_completion_prior_us);
+    sysctl_register_oid(&sysctl__debug_nvrmfb_completion_submitted_us);
+
     sysctl_register_oid(&sysctl__debug_nvrmfb_vram_grants);   sysctl_register_oid(&sysctl__debug_nvrmfb_vram_grant_bytes);
     sysctl_register_oid(&sysctl__debug_nvrmfb_vram_releases); sysctl_register_oid(&sysctl__debug_nvrmfb_vram_release_bytes);
     sysctl_register_oid(&sysctl__debug_nvrmfb_vram_mapped_bytes); sysctl_register_oid(&sysctl__debug_nvrmfb_vram_budget_bytes);

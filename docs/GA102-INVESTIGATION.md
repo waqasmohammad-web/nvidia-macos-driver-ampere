@@ -481,8 +481,155 @@ Observed costs include first-pipeline creation near one frame, shared-buffer
 bandwidth and imported-surface rendering overhead. None yet establishes the
 root cause of subjective desktop sluggishness.
 
-The only driver implementation change made is the regression-tested cache policy
+At milestone 4, the only driver implementation change made was the regression-tested cache policy
 correction (`f3ebd0c`); it was built but not installed or loaded. Test additions
 and this report are independently reviewable. No system/graphics configuration,
 installed driver, EFI, SIP, system permissions, display mode or refresh rate was changed;
 no sudo, reboot, service interruption or production-cache deletion occurred.
+
+## Milestone 5 — visible presentation, handoff coherence and completion instrumentation
+
+Continued from `98a3db8`; prior architecture and offscreen benchmarks were not
+repeated. The window probe was rerun specifically to explain missing presentation
+evidence and measure submission phases.
+
+### Visibility now measured instead of assumed
+
+`tools/ga102_metal_present.swift` records only non-identifying booleans for Quartz
+session availability, console/login state, display awake/active state, active
+Space, window visibility/occlusion, and presence of this process's window in
+CoreGraphics' on-screen list. It does not capture screen pixels or other window
+titles. `ga102_run_metal.py` reads named display counters immediately before/after
+execution, computes deltas, and leaves unavailable/idle evidence unverified.
+Four Python regression cases cover missing, idle, active, partial and reset data.
+
+All new window runs reported an active logged-in console, awake active display,
+and visible/unoccluded/on-screen window throughout sampled checkpoints. Four
+runs produced 118–119 positive timestamps from 120 completed submissions, with
+presentation p50 approximately 16.65–16.66 ms and p95 17.10–17.58 ms; none of the
+measured intervals exceeded 25 ms. The earliest one or two zero timestamps remain
+unexplained. Three counter-correlated runs advanced 364, 268 and 281 pure flips,
+with zero deltas for refusal/drop/failure counters. These are system-wide counts
+and cannot be attributed exclusively to the test window.
+
+**Confirmed:** the probe can obtain OS-visible presentation evidence on the
+current console; missing timestamps are not a universal failure of this path.
+**Unresolved:** the earlier all-zero runs cannot be retrospectively classified
+because visibility/session/display-power state was not recorded. Hidden or
+inactive-session behavior remains a hypothesis. No display-power or session
+state was changed to force a result.
+
+For physical confirmation, the user was asked to run, in repository Terminal:
+
+```sh
+python3 tools/ga102_run_metal.py ga102_metal_present --isolated-cache
+```
+
+Leave the six-second “GA102 bounded presentation probe” window unobstructed;
+report whether its slowly changing color is visible and whether it stutters.
+Human observation is pending. Software flags and callbacks do not independently
+establish scanout or input-to-photon latency.
+
+### Application-side latency versus display completion
+
+The final instrumented visible run measured 120 commands:
+
+| Phase | p50 (ms) | p95 (ms) | Maximum (ms) |
+|---|---:|---:|---:|
+| acquire drawable | 0.051 | 0.067 | 2.196 |
+| encode | 0.055 | 0.096 | 1.041 |
+| commit return | 0.010 | 0.036 | 0.057 |
+| commit to scheduled callback | 0.031 | 0.057 | 0.126 |
+| commit to completed callback | 0.208 | 0.258 | 10.837 |
+| reported GPU duration | 0.005 | 0.006 | 0.006 |
+
+Callback times include worker/dispatch scheduling and are not exact hardware
+fence times. No persistent application-side submission stall is demonstrated by
+this simple clear workload; the completion outlier remains worth retaining.
+Across three correlated runs the mean framebuffer flip-call duration was
+11.285, 11.201 and 11.174 ms. This includes NVKMS completion/vblank waiting; it
+is not pure apply-call cost, GPU drawing time, FPS or proof of a harmful stall.
+One run had drawable-acquisition p95 8.91 ms while maintaining timed presentation;
+acquisition latency depends on scheduling phase/backpressure, not only GPU work.
+
+A process-only `NVMTL_PERF_LOG=1` attempt emitted **zero PERFSUB records** from the
+installed plugin. No internal phase timing was inferred from that absence.
+A single three-second unprivileged `sample` attempt on WindowServer was denied
+by macOS for insufficient privileges. This experiment is **blocked** under the
+current permissions. No sudo, permission change, or retry was used. Actual
+WindowServer CPU stacks and mandatory-wait durations remain unmeasured.
+
+### Cross-process IOSurface coherence
+
+Added `tools/ga102_metal_crossprocess.swift`: one persistent 64² BGRA8 surface,
+two independent processes/imported textures, eight explicitly synchronized
+roundtrips. Four producer frames use CPU lock/write/unlock, four GPU clears;
+the consumer validates all pixels through GPU blit readback, writes a distinct
+GPU response, and the producer validates all response pixels through its reused
+texture. **262144 byte checks PASS**, with no stale response detected.
+
+The initial non-global surface could not be looked up by ID in the consumer;
+it failed before GPU testing. This was a test transport failure, not a proven
+driver-coherency defect. The passing variant explicitly makes the owned synthetic
+surface global and shares its ID. This legacy transport contains only generated
+colors. Production sharing should transfer a Mach/XPC right, as described by
+[Apple's IOSurfaceCreateMachPort documentation](https://developer.apple.com/documentation/IOSurface/IOSurfaceCreateMachPort%28_%3A%29).
+It does not establish the production Mach-right ownership/lifetime path.
+Roundtrip times 6.56–18.28 ms include 5 ms file polling and process scheduling;
+they are **not GPU transfer benchmarks**. Concurrent unsynchronized access,
+process termination during ownership, and compositor-owned surfaces remain untested.
+
+### Cross-queue event ordering
+
+Added `tools/ga102_metal_events.swift`: two queues, one shared event, 16 changing
+signal/wait values and private-buffer producer fill → consumer readback. Eight
+iterations deliberately commit the waiting consumer before its producer.
+**65536 byte checks PASS**; all event values advanced. Commit-to-consumer-callback
+time was 0.070–0.759 ms (first iteration largest). No deadlock/stale data was
+observed in this bounded workload. This does not stress external shared-event
+handles or all WindowServer event patterns.
+
+### Source-only NVKMS completion observability
+
+Changed active `kexts/NVRMFB/fb/nvrm-fb.cpp::submitConfig`, using the new production
+`nvrm-flip-wait.h` helper. New read-only `debug.nvrmfb_completion_*` counters cover
+prior/submitted wait counts and microseconds, queries, sleeps, failed status
+queries, poll exhaustion, waits above 25 ms and an atomic maximum duration.
+Unlike the inactive legacy latch counters, these update at the actual completion
+loops. Tick durations are converted through `absolutetime_to_nanoseconds`.
+
+Synchronization is preserved: 100 status queries, existing 1 ms sleeps,
+query failure/exhaustion are not successful completion, and the original fault
+latch and surface lifetime behavior remain. Bootstrap/cursor-only paths retain
+their existing exceptions. No sleep reduction or early surface retirement was
+introduced. This is an observability correction, **not a demonstrated smoothness
+optimization**. Future deployed measurements can separate prior versus newly
+submitted waits and detect long-tail stalls without relying on inert counters.
+
+`python3 -m unittest tools.test_flip_wait tools.test_ga102_display_counters -v`:
+**5 tests PASS**, including **39 production C++ poll assertions under ASan/UBSan**.
+The new accounting function and all counter declarations compile against the real
+kernel SDK with `-Werror`. Full framebuffer translation-unit checking stops at
+missing generated `nvkms.h`; full kext build/link and deployed behavior are
+**unvalidated**. No stub was substituted to pretend this check passed. No modified
+component was installed or loaded. Rollback is a normal source revert.
+
+### Current blockers and next experiments
+
+- Physical window observation is pending. Continue that experiment only with
+  the user's visibility/stutter report; prior offscreen success is not a substitute.
+- WindowServer CPU stack sampling is blocked by macOS privileges. A permitted
+  compositor trace/profiling route is needed to directly quantify its waits;
+  the current application callback measurements cannot answer that question.
+- New kernel counters cannot be read from the unchanged installed driver.
+  Obtain the matching generated NVKMS header/build context, compile/link the
+  paired stack in isolation, and seek explicit installation approval only after
+  it is concrete and reviewable. Deployment remains outside current authorization.
+- If visible simple rendering is smooth but desktop effects stutter, record a
+  controlled real UI action (window drag, Mission Control, transparency/blur)
+  with activity and timing correlation. Do not optimize completion ordering
+  or remove mandatory waits based solely on the 11 ms average flip call.
+
+The primary objective remains open: no measured improvement to the installed
+macOS desktop is claimed. This stage closes several missing-evidence gaps and
+prepares reliable wait instrumentation; it does not establish a root cause.
