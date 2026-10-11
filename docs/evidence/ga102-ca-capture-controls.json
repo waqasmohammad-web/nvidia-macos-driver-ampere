@@ -1,0 +1,142 @@
+{
+  "capture_helper_source_sha256": "9558b341767bca31c3634e7948cb05ea9753f267b5cc34274b66cd766ddb549d",
+  "controls": [
+    {
+      "acceptance": "PASS",
+      "control": "static",
+      "display_correlation": {
+        "available_counters": 7,
+        "deltas": {
+          "debug.nvaccel_iop_async_drop": 0,
+          "debug.nvaccel_iop_async_refused": 0,
+          "debug.nvaccel_iop_fail": 0,
+          "debug.nvaccel_iop_flips": 369,
+          "debug.nvaccel_iop_ok": 369,
+          "debug.nvrmfb_flip_n": 369,
+          "debug.nvrmfb_flip_us_sum": 2364971
+        },
+        "mean_flip_call_us": 6409.135501355014,
+        "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+        "visible_presentation": "candidate"
+      },
+      "expected_rejection": "FAIL",
+      "metrics": {
+        "capture_attempted": 12,
+        "capture_correct_frames": 1,
+        "capture_distinct_patterns": 1,
+        "capture_permission": true,
+        "capture_received_frames": 12,
+        "frames": 12,
+        "preflight_ready": true,
+        "transactions": 12,
+        "visible_frames": 12
+      },
+      "runner_exit_code": 0,
+      "verdict": {
+        "animation_frame_pacing": "NOT VERIFIED",
+        "automated_ca_validation": "FAIL",
+        "checks": {
+          "own_window_capture": "FAIL",
+          "reference_pattern_submission": "PASS",
+          "system_display_activity": "PASS",
+          "visible_window_state": "PASS"
+        },
+        "gpu_completion": "NOT VERIFIED",
+        "installed_driver_fixed": false,
+        "physical_scanout": "NOT VERIFIED"
+      }
+    },
+    {
+      "acceptance": "PASS",
+      "control": "hidden",
+      "display_correlation": {
+        "available_counters": 7,
+        "deltas": {
+          "debug.nvaccel_iop_async_drop": 0,
+          "debug.nvaccel_iop_async_refused": 0,
+          "debug.nvaccel_iop_fail": 0,
+          "debug.nvaccel_iop_flips": 164,
+          "debug.nvaccel_iop_ok": 163,
+          "debug.nvrmfb_flip_n": 164,
+          "debug.nvrmfb_flip_us_sum": 1955290
+        },
+        "mean_flip_call_us": 11922.5,
+        "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+        "visible_presentation": "candidate"
+      },
+      "expected_rejection": "NOT VERIFIED",
+      "metrics": {
+        "capture_attempted": 0,
+        "capture_correct_frames": 0,
+        "capture_distinct_patterns": 0,
+        "capture_permission": true,
+        "capture_received_frames": 0,
+        "frames": 12,
+        "preflight_ready": false,
+        "transactions": 12,
+        "visible_frames": 0
+      },
+      "runner_exit_code": 0,
+      "verdict": {
+        "animation_frame_pacing": "NOT VERIFIED",
+        "automated_ca_validation": "NOT VERIFIED",
+        "checks": {
+          "own_window_capture": "NOT VERIFIED",
+          "reference_pattern_submission": "PASS",
+          "system_display_activity": "PASS",
+          "visible_window_state": "NOT VERIFIED"
+        },
+        "gpu_completion": "NOT VERIFIED",
+        "installed_driver_fixed": false,
+        "physical_scanout": "NOT VERIFIED"
+      }
+    },
+    {
+      "acceptance": "PASS",
+      "control": "capture-unavailable",
+      "display_correlation": {
+        "available_counters": 7,
+        "deltas": {
+          "debug.nvaccel_iop_async_drop": 0,
+          "debug.nvaccel_iop_async_refused": 0,
+          "debug.nvaccel_iop_fail": 0,
+          "debug.nvaccel_iop_flips": 252,
+          "debug.nvaccel_iop_ok": 252,
+          "debug.nvrmfb_flip_n": 252,
+          "debug.nvrmfb_flip_us_sum": 1691006
+        },
+        "mean_flip_call_us": 6710.341269841269,
+        "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+        "visible_presentation": "candidate"
+      },
+      "expected_rejection": "NOT VERIFIED",
+      "metrics": {
+        "capture_attempted": 0,
+        "capture_correct_frames": 0,
+        "capture_distinct_patterns": 0,
+        "capture_permission": false,
+        "capture_received_frames": 0,
+        "frames": 12,
+        "preflight_ready": true,
+        "transactions": 12,
+        "visible_frames": 12
+      },
+      "runner_exit_code": 0,
+      "verdict": {
+        "animation_frame_pacing": "NOT VERIFIED",
+        "automated_ca_validation": "NOT VERIFIED",
+        "checks": {
+          "own_window_capture": "NOT VERIFIED",
+          "reference_pattern_submission": "PASS",
+          "system_display_activity": "PASS",
+          "visible_window_state": "PASS"
+        },
+        "gpu_completion": "NOT VERIFIED",
+        "installed_driver_fixed": false,
+        "physical_scanout": "NOT VERIFIED"
+      }
+    }
+  ],
+  "probe_source_sha256": "a5ee3e600b7528cfab1a77e9ae973b7bdbe8dd95b07bbd08727272280d1c01c0",
+  "scope": "static/hidden live controls and process-only simulated unavailable capture; no TCC setting changes"
+}

@@ -26,11 +26,14 @@ def plan(profile, repeat):
         jobs += [(probe, [], repeat, None) for probe in CORE_PROBES]
     if profile in ('presentation', 'all'):
         jobs += [('ga102_visual_present', ['--capture-bridge'], repeat, None),
+                 ('ga102_ca_visual', ['--capture-bridge'], repeat, None),
                  ('ga102_metal_present', [], repeat, None),
                  ('ga102_metal_present', ['--display-linked'], repeat, None)]
     if profile in ('negative-controls', 'all'):
         jobs += [('ga102_visual_present', ['--capture-bridge', '--negative-control', mode], 1, expected)
                  for mode, expected in (('static', 'FAIL'), ('timestamps', 'NOT VERIFIED'), ('hidden', 'NOT VERIFIED'))]
+        jobs += [('ga102_ca_visual', ['--capture-bridge', '--negative-control', mode], 1, expected)
+                 for mode, expected in (('static', 'FAIL'), ('hidden', 'NOT VERIFIED'))]
     return jobs
 
 
@@ -72,7 +75,7 @@ def main():
             if artifact.exists():
                 report = json.loads(artifact.read_text())
                 actual = next((report[k] for k in ('automated_core_validation', 'automated_visual_validation',
-                                                  'automated_pacing_validation') if k in report), 'NOT VERIFIED')
+                                                  'automated_pacing_validation', 'automated_ca_validation') if k in report), 'NOT VERIFIED')
                 acceptance = actual
                 if expected is not None:
                     acceptance = 'PASS' if actual == expected and report.get('completed_runs') == 1 else 'FAIL'

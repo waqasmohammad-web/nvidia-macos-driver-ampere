@@ -1,0 +1,117 @@
+// SPDX-License-Identifier: PolyForm-Noncommercial-1.0.0
+// Ordinary Core Animation content. Own-window broker only; no Metal injection,
+// permission requests, activation, mode changes, or presentation-time claims.
+import AppKit
+import QuartzCore
+import CoreGraphics
+import Darwin
+
+let negative=CommandLine.arguments.dropFirst().first ?? "none"
+let app=NSApplication.shared;app.setActivationPolicy(.accessory)
+let window=NSWindow(contentRect:NSRect(x:0,y:0,width:640,height:360),styleMask:.borderless,backing:.buffered,defer:false)
+window.isReleasedWhenClosed=false
+let view=NSView(frame:NSRect(x:0,y:0,width:640,height:360));view.wantsLayer=true
+window.contentView=view;window.center()
+let root=view.layer!
+let space=CGColorSpace(name:CGColorSpace.sRGB)!
+func color(_ r:CGFloat,_ g:CGFloat,_ b:CGFloat,_ a:CGFloat=1)->CGColor {
+    return CGColor(colorSpace:space,components:[r,g,b,a])!
+}
+// These animated translucent layers exercise normal compositor content between
+// the independent reference sample rows. They are not themselves pixel-validated.
+for i in 0..<32 {
+    let l=CALayer();l.bounds=CGRect(x:0,y:0,width:24,height:24)
+    l.position=CGPoint(x:20+(i%16)*40,y:i<16 ? 95:265)
+    l.backgroundColor=color(1,0.5,0,0.55);l.cornerRadius=6
+    l.shadowColor=color(0,0,0);l.shadowOpacity=0.35;l.shadowRadius=4
+    root.addSublayer(l)
+    let animation=CABasicAnimation(keyPath:"position.x")
+    animation.fromValue=l.position.x;animation.toValue=l.position.x+10
+    animation.duration=0.6;animation.autoreverses=true;animation.repeatCount=10
+    l.add(animation,forKey:"bounded-motion")
+}
+var bits=[CALayer]()
+for y in [0,320] {for cell in 0..<8 {
+    let l=CALayer();l.frame=CGRect(x:cell*80,y:y,width:80,height:40)
+    root.addSublayer(l);bits.append(l)
+}}
+let bar=CALayer();bar.backgroundColor=color(1,1,1)
+root.addSublayer(bar)
+if negative != "hidden" {window.orderFront(nil)}
+func visible()->Bool {
+    let display=(window.screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? CGMainDisplayID()
+    let session=CGSessionCopyCurrentDictionary() as? [String:Any]
+    let listed=(CGWindowListCopyWindowInfo(.optionOnScreenOnly,kCGNullWindowID) as? [[String:Any]])?.contains {
+        ($0[kCGWindowOwnerPID as String] as? NSNumber)?.int32Value==getpid() &&
+        ($0[kCGWindowNumber as String] as? NSNumber)?.intValue==window.windowNumber
+    } ?? false
+    return listed && window.isVisible && window.isOnActiveSpace && window.occlusionState.contains(.visible) &&
+        CGDisplayIsAsleep(display)==0 && CGDisplayIsActive(display) != 0 &&
+        (session?[kCGSessionOnConsoleKey as String] as? Bool)==true
+}
+let channel=ProcessInfo.processInfo.environment["GA102_CAPTURE_IPC"].map {URL(fileURLWithPath:$0,isDirectory:true)}
+let permission=channel != nil && ProcessInfo.processInfo.environment["GA102_CAPTURE_PERMISSION"]=="1"
+var attempted=0,received=0,correct=0,distinct=0,visibleFrames=0,transactions=0
+var stopped=false,preflightReady=false
+var samples=[[String:Any]]()
+Task { @MainActor in
+    // Allow window publication, without waking/activating anything.
+    try? await Task.sleep(nanoseconds:250_000_000)
+    let readyDeadline=Date().addingTimeInterval(2)
+    while !visible() && negative != "hidden" && Date()<readyDeadline {
+        try? await Task.sleep(nanoseconds:50_000_000)
+    }
+    preflightReady=visible()
+    for frame in 0..<12 {
+        let rendered=negative=="static" ? 0:frame
+        let started=CACurrentMediaTime()
+        CATransaction.begin();CATransaction.setDisableActions(true)
+        root.backgroundColor=color(rendered%3==0 ? 1:0,rendered%3==1 ? 1:0,rendered%3==2 ? 1:0)
+        for (index,l) in bits.enumerated() {
+            let value=(rendered>>(index%8))&1
+            l.backgroundColor=color(CGFloat(value),CGFloat(value),CGFloat(value))
+        }
+        bar.frame=CGRect(x:(rendered%8)*80,y:40,width:40,height:280)
+        CATransaction.commit();CATransaction.flush();transactions+=1
+        let transactionMS=(CACurrentMediaTime()-started)*1000
+        try? await Task.sleep(nanoseconds:300_000_000)
+        let eligible=visible();if eligible {visibleFrames+=1}
+        var captureMS:Double=0,matched=false
+        // Hidden/inactive content cannot produce a full visual PASS. Never ask
+        // SCK for another window or retry an unavailable capture method.
+        if let directory=channel,permission && !stopped && eligible {
+            attempted+=1
+            let request:[String:Any]=["frame":frame,"window_id":window.windowNumber,"pid":getpid()]
+            do {
+                let bytes=try JSONSerialization.data(withJSONObject:request)
+                try bytes.write(to:directory.appendingPathComponent("request.json"),options:.atomic)
+                let response=directory.appendingPathComponent("response-\(frame).json")
+                let captureStart=CACurrentMediaTime(),deadline=Date().addingTimeInterval(6)
+                while !FileManager.default.fileExists(atPath:response.path) && Date()<deadline {
+                    try? await Task.sleep(nanoseconds:10_000_000)
+                }
+                captureMS=(CACurrentMediaTime()-captureStart)*1000
+                let value=try JSONSerialization.jsonObject(with:Data(contentsOf:response)) as? [String:Any]
+                if value?["received"] as? Bool==true {
+                    received+=1;matched=value?["correct"] as? Bool==true
+                    if matched {correct+=1}
+                    distinct=value?["distinct_patterns"] as? Int ?? distinct
+                }else{stopped=true}
+            }catch{stopped=true}
+        }
+        samples.append(["frame":frame,"eligible":eligible,"transaction_ms":transactionMS,
+                        "capture_roundtrip_ms":captureMS,"captured_pattern_correct":matched])
+    }
+    let result:[String:Any]=["probe":"ca_visual","frames":12,"negative_control":negative,
+        "preflight_ready":preflightReady,"transactions":transactions,"visible_frames":visibleFrames,
+        "capture_permission":permission,"capture_attempted":attempted,"capture_received_frames":received,
+        "capture_correct_frames":correct,"capture_distinct_patterns":distinct,"samples":samples,
+        "capture_method":"ScreenCaptureKit owned-window broker",
+        "scope":"12 held Core Animation reference patterns; 32 additional animated layers unsampled",
+        "physical_scanout":"NOT VERIFIED","presentation_timestamps":"NOT VERIFIED",
+        "gpu_completion":"not measured by this probe"]
+    let data=try! JSONSerialization.data(withJSONObject:result,options:.sortedKeys)
+    print("result: \(String(data:data,encoding:.utf8)!)")
+    window.orderOut(nil);window.close();fflush(stdout);exit(0)
+}
+app.run()

@@ -1,0 +1,411 @@
+{
+  "animation_frame_pacing": "NOT VERIFIED",
+  "automated_ca_validation": "PASS",
+  "capture_helper_source_sha256": "9558b341767bca31c3634e7948cb05ea9753f267b5cc34274b66cd766ddb549d",
+  "capture_method": "ScreenCaptureKit owned-window broker",
+  "checks": {
+    "own_window_capture": "PASS",
+    "reference_pattern_submission": "PASS",
+    "system_display_activity": "PASS",
+    "visible_window_state": "PASS"
+  },
+  "completed_runs": 3,
+  "desktop_smoothness": "NOT VERIFIED",
+  "execution": "PASS",
+  "gpu_completion": "NOT VERIFIED",
+  "installed_driver_fixed": false,
+  "negative_control": null,
+  "physical_scanout": "NOT VERIFIED",
+  "probe": "ga102_ca_visual",
+  "probe_source_sha256": "a5ee3e600b7528cfab1a77e9ae973b7bdbe8dd95b07bbd08727272280d1c01c0",
+  "reproducibility": "PASS",
+  "requested_runs": 3,
+  "runs": [
+    {
+      "display_correlation": {
+        "available_counters": 7,
+        "deltas": {
+          "debug.nvaccel_iop_async_drop": 0,
+          "debug.nvaccel_iop_async_refused": 0,
+          "debug.nvaccel_iop_fail": 0,
+          "debug.nvaccel_iop_flips": 379,
+          "debug.nvaccel_iop_ok": 379,
+          "debug.nvrmfb_flip_n": 379,
+          "debug.nvrmfb_flip_us_sum": 2312024
+        },
+        "mean_flip_call_us": 6100.327176781003,
+        "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+        "visible_presentation": "candidate"
+      },
+      "exit_code": 0,
+      "metrics": {
+        "capture_attempted": 12,
+        "capture_correct_frames": 12,
+        "capture_distinct_patterns": 12,
+        "capture_permission": true,
+        "capture_received_frames": 12,
+        "frames": 12,
+        "preflight_ready": true,
+        "samples": [
+          {
+            "capture_roundtrip_ms": 230.3430149986525,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 0,
+            "transaction_ms": 0.09378600225318223
+          },
+          {
+            "capture_roundtrip_ms": 181.26235799718415,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 1,
+            "transaction_ms": 0.06367400055751204
+          },
+          {
+            "capture_roundtrip_ms": 158.6499700024433,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 2,
+            "transaction_ms": 0.07332999666687101
+          },
+          {
+            "capture_roundtrip_ms": 179.36681100036367,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 3,
+            "transaction_ms": 0.06687600034638308
+          },
+          {
+            "capture_roundtrip_ms": 178.2907940032601,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 4,
+            "transaction_ms": 0.06321200271486305
+          },
+          {
+            "capture_roundtrip_ms": 159.85306199945626,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 5,
+            "transaction_ms": 0.05410399899119511
+          },
+          {
+            "capture_roundtrip_ms": 159.05992899934063,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 6,
+            "transaction_ms": 0.06420900172088295
+          },
+          {
+            "capture_roundtrip_ms": 157.4047089998203,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 7,
+            "transaction_ms": 0.06812799983890727
+          },
+          {
+            "capture_roundtrip_ms": 171.6267660012818,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 8,
+            "transaction_ms": 0.10203000056208111
+          },
+          {
+            "capture_roundtrip_ms": 157.4487260004389,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 9,
+            "transaction_ms": 0.05571700239670463
+          },
+          {
+            "capture_roundtrip_ms": 180.7566939969547,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 10,
+            "transaction_ms": 0.08442199759883806
+          },
+          {
+            "capture_roundtrip_ms": 179.32520199974533,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 11,
+            "transaction_ms": 0.05879400123376399
+          }
+        ],
+        "transactions": 12,
+        "visible_frames": 12
+      },
+      "verdict": {
+        "animation_frame_pacing": "NOT VERIFIED",
+        "automated_ca_validation": "PASS",
+        "checks": {
+          "own_window_capture": "PASS",
+          "reference_pattern_submission": "PASS",
+          "system_display_activity": "PASS",
+          "visible_window_state": "PASS"
+        },
+        "gpu_completion": "NOT VERIFIED",
+        "installed_driver_fixed": false,
+        "physical_scanout": "NOT VERIFIED"
+      }
+    },
+    {
+      "display_correlation": {
+        "available_counters": 7,
+        "deltas": {
+          "debug.nvaccel_iop_async_drop": 0,
+          "debug.nvaccel_iop_async_refused": 0,
+          "debug.nvaccel_iop_fail": 0,
+          "debug.nvaccel_iop_flips": 374,
+          "debug.nvaccel_iop_ok": 374,
+          "debug.nvrmfb_flip_n": 374,
+          "debug.nvrmfb_flip_us_sum": 2751863
+        },
+        "mean_flip_call_us": 7357.922459893048,
+        "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+        "visible_presentation": "candidate"
+      },
+      "exit_code": 0,
+      "metrics": {
+        "capture_attempted": 12,
+        "capture_correct_frames": 12,
+        "capture_distinct_patterns": 12,
+        "capture_permission": true,
+        "capture_received_frames": 12,
+        "frames": 12,
+        "preflight_ready": true,
+        "samples": [
+          {
+            "capture_roundtrip_ms": 180.42986300133634,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 0,
+            "transaction_ms": 0.07620899850735441
+          },
+          {
+            "capture_roundtrip_ms": 178.61210399860283,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 1,
+            "transaction_ms": 0.08935200094128959
+          },
+          {
+            "capture_roundtrip_ms": 179.89574699822697,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 2,
+            "transaction_ms": 0.09663099990575574
+          },
+          {
+            "capture_roundtrip_ms": 161.43987699979334,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 3,
+            "transaction_ms": 0.0496280008519534
+          },
+          {
+            "capture_roundtrip_ms": 181.03290800354443,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 4,
+            "transaction_ms": 0.08466700091958046
+          },
+          {
+            "capture_roundtrip_ms": 171.09321300085867,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 5,
+            "transaction_ms": 0.05747799878008664
+          },
+          {
+            "capture_roundtrip_ms": 158.1211969969445,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 6,
+            "transaction_ms": 0.055398002587025985
+          },
+          {
+            "capture_roundtrip_ms": 158.41561699926388,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 7,
+            "transaction_ms": 0.0683110010868404
+          },
+          {
+            "capture_roundtrip_ms": 157.85739100101637,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 8,
+            "transaction_ms": 0.06854700041003525
+          },
+          {
+            "capture_roundtrip_ms": 160.7601239993528,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 9,
+            "transaction_ms": 0.05634500121232122
+          },
+          {
+            "capture_roundtrip_ms": 159.00375999990501,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 10,
+            "transaction_ms": 0.05973699808237143
+          },
+          {
+            "capture_roundtrip_ms": 168.61190700001316,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 11,
+            "transaction_ms": 0.05432399848359637
+          }
+        ],
+        "transactions": 12,
+        "visible_frames": 12
+      },
+      "verdict": {
+        "animation_frame_pacing": "NOT VERIFIED",
+        "automated_ca_validation": "PASS",
+        "checks": {
+          "own_window_capture": "PASS",
+          "reference_pattern_submission": "PASS",
+          "system_display_activity": "PASS",
+          "visible_window_state": "PASS"
+        },
+        "gpu_completion": "NOT VERIFIED",
+        "installed_driver_fixed": false,
+        "physical_scanout": "NOT VERIFIED"
+      }
+    },
+    {
+      "display_correlation": {
+        "available_counters": 7,
+        "deltas": {
+          "debug.nvaccel_iop_async_drop": 0,
+          "debug.nvaccel_iop_async_refused": 0,
+          "debug.nvaccel_iop_fail": 0,
+          "debug.nvaccel_iop_flips": 370,
+          "debug.nvaccel_iop_ok": 370,
+          "debug.nvrmfb_flip_n": 370,
+          "debug.nvrmfb_flip_us_sum": 2353935
+        },
+        "mean_flip_call_us": 6361.986486486487,
+        "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+        "visible_presentation": "candidate"
+      },
+      "exit_code": 0,
+      "metrics": {
+        "capture_attempted": 12,
+        "capture_correct_frames": 12,
+        "capture_distinct_patterns": 12,
+        "capture_permission": true,
+        "capture_received_frames": 12,
+        "frames": 12,
+        "preflight_ready": true,
+        "samples": [
+          {
+            "capture_roundtrip_ms": 188.78425400180276,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 0,
+            "transaction_ms": 0.08494600115227513
+          },
+          {
+            "capture_roundtrip_ms": 159.67390300284023,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 1,
+            "transaction_ms": 0.06330399992293678
+          },
+          {
+            "capture_roundtrip_ms": 159.06105500107515,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 2,
+            "transaction_ms": 0.07071700019878335
+          },
+          {
+            "capture_roundtrip_ms": 177.42431999795372,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 3,
+            "transaction_ms": 0.05786099791293964
+          },
+          {
+            "capture_roundtrip_ms": 157.29067999927793,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 4,
+            "transaction_ms": 0.06412600123439915
+          },
+          {
+            "capture_roundtrip_ms": 161.14320500128088,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 5,
+            "transaction_ms": 0.06554200081154704
+          },
+          {
+            "capture_roundtrip_ms": 149.2040180019103,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 6,
+            "transaction_ms": 0.06573800055775791
+          },
+          {
+            "capture_roundtrip_ms": 169.9446180027735,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 7,
+            "transaction_ms": 0.057756002206588164
+          },
+          {
+            "capture_roundtrip_ms": 148.16707000136375,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 8,
+            "transaction_ms": 0.060892998590134084
+          },
+          {
+            "capture_roundtrip_ms": 181.68981800045003,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 9,
+            "transaction_ms": 0.05939200127613731
+          },
+          {
+            "capture_roundtrip_ms": 157.37707800144562,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 10,
+            "transaction_ms": 0.05747400064137764
+          },
+          {
+            "capture_roundtrip_ms": 159.6660549985245,
+            "captured_pattern_correct": true,
+            "eligible": true,
+            "frame": 11,
+            "transaction_ms": 0.0544360009371303
+          }
+        ],
+        "transactions": 12,
+        "visible_frames": 12
+      },
+      "verdict": {
+        "animation_frame_pacing": "NOT VERIFIED",
+        "automated_ca_validation": "PASS",
+        "checks": {
+          "own_window_capture": "PASS",
+          "reference_pattern_submission": "PASS",
+          "system_display_activity": "PASS",
+          "visible_window_state": "PASS"
+        },
+        "gpu_completion": "NOT VERIFIED",
+        "installed_driver_fixed": false,
+        "physical_scanout": "NOT VERIFIED"
+      }
+    }
+  ],
+  "schema_version": 1,
+  "scope": "12 held Core Animation reference patterns; extra animated layers not pixel-validated"
+}

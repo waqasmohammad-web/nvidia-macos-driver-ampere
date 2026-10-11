@@ -32,7 +32,8 @@ Branch: `dev/ga102-3080ti-diagnostics`. Starting revision: `c52e088`.
   has been installed. Existing synchronization waits are preserved.
 - **Latest safe work:** isolated capture broker, explicit color-space matching,
   private source snapshots and scoped acceptance; per-frame submission traces and
-  a two/three-drawable startup comparison; 31 Python tests pass.
+  a two/three-drawable startup comparison and owned Core Animation reference
+  capture; 33 Python tests pass.
   Objective remains open.
 
 ## Scope and operating constraints
@@ -1222,3 +1223,53 @@ Physical scanout and actual desktop responsiveness remain NOT VERIFIED.
 Next: extend window-only capture to ordinary Core Animation content so that
 compositor output, rather than only a CAMetalLayer client, is independently
 validated before pursuing a rendering/synchronization correction.
+
+
+### Independent ordinary Core Animation content validation
+
+`tools/ga102_ca_visual.swift` is an ordinary accessory AppKit client with CALayers,
+not a replacement Metal plugin. It opens only a 640×360 borderless window,
+performs twelve disabled-action reference transactions held for at least 300 ms,
+and closes. The reference includes primary colors, mirrored binary frame strips
+and a moving white bar. Thirty-two additional translucent rounded layers with
+shadows animate between the reference sample rows. Their motion is a compositor
+workload, but is explicitly **not** pixel-validated by this test.
+
+The existing authorized Python/ScreenCaptureKit broker selects only that child's
+PID/window ID; it compares 24 RGB reference points per capture to the independent
+Python frame model. No desktop image, other-window image, screenshot file or
+process/window identifier enters public evidence. No activation, display wake,
+permission prompt or graphics-system mutation occurs. The capture helper and
+its independent CPU color-normalization fixture are unchanged.
+
+**PASS, sampled compositor reference content:** three independent processes each
+submitted twelve reference transactions and produced twelve correct, distinct
+captured patterns (36/36), with all sampled window/session eligibility checks
+passing. System-wide flips increased by 379/374/370 with no new errors, refused
+flips or drops. The captured pixels establish changing ordinary Core Animation
+reference output in this owned-window capture path, rather than only successful
+CAMetalLayer/GPU completion callbacks. They do not verify physical scanout,
+every animation frame, the extra animated layers, GPU completion, or desktop
+input-to-display latency. These remain NOT VERIFIED.
+
+**PASS, negative-control rejection:** the same built probe/helper was reused.
+Static rendering yielded only 1/12 correct expected patterns and one distinct
+pattern, so validation FAIL was correctly detected. Hidden output had zero
+eligible/captured frames and remained NOT VERIFIED. A process-only simulated
+unavailable-capture flag likewise produced zero capture calls and NOT VERIFIED;
+no actual TCC permission was revoked or claimed unavailable. All three controls
+rejected a full compositor-content PASS.
+
+`tools/ga102_ca_validation.py` enforces the scoped content/eligibility/display
+checks; `ga102_run_metal.py` saves exact source/helper hashes and `ga102_suite.py`
+includes the new probe in presentation/all profiles and its static/hidden
+controls in negative-controls/all. Thirty-three Python tests PASS. Swift and
+capture-helper compilation PASS. Source changes affect diagnostics only.
+
+Evidence: [`evidence/ga102-ca-owned-capture.json`](evidence/ga102-ca-owned-capture.json)
+and [`evidence/ga102-ca-capture-controls.json`](evidence/ga102-ca-capture-controls.json).
+The observed screenshot IPC round trips (roughly 148–230 ms) include SCK setup,
+capture, polling and normalization and are **not** compositor rendering latency.
+They make per-frame SCScreenshotManager calls unsuitable for measuring 60 Hz
+animation. Next safe experiment: one bounded owned-window SCStream with encoded
+reference frame IDs, keeping capture loss distinct from actual panel drops.

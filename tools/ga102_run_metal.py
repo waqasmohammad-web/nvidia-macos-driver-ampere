@@ -22,16 +22,18 @@ try:
     from .ga102_core_validation import CORE_PROBES, FIELDS, evaluate as evaluate_core, repeated_core_result
     from .ga102_capture_bridge import CaptureBroker
     from .ga102_presentation_trace import analyze as analyze_trace
+    from .ga102_ca_validation import evaluate as evaluate_ca, repeated_ca_result
 except ImportError:
     from ga102_visual_validation import evaluate as evaluate_visual, repeated_result
     from ga102_pacing_validation import evaluate as evaluate_pacing, repeated_pacing_result
     from ga102_core_validation import CORE_PROBES, FIELDS, evaluate as evaluate_core, repeated_core_result
     from ga102_capture_bridge import CaptureBroker
     from ga102_presentation_trace import analyze as analyze_trace
+    from ga102_ca_validation import evaluate as evaluate_ca, repeated_ca_result
 
 ROOT = Path(__file__).resolve().parent.parent
 PROBES = ("ga102_metal_smoketest", "ga102_metal_render_smoketest", "ga102_metal_benchmark",
-          "ga102_metal_memory", "ga102_metal_present", "ga102_metal_composite", "ga102_metal_crossprocess", "ga102_metal_events", "ga102_core_animation", "ga102_visual_present")
+          "ga102_metal_memory", "ga102_metal_present", "ga102_metal_composite", "ga102_metal_crossprocess", "ga102_metal_events", "ga102_core_animation", "ga102_visual_present", "ga102_ca_visual")
 
 
 def run_owned(command, log, timeout, env=None, observer=None):
@@ -110,9 +112,9 @@ def main():
     parser.add_argument("--capture-bridge", action="store_true", help="Capture only the owned visual window via ScreenCaptureKit in this Python process; never requests permission")
     parser.add_argument("--result-json", type=Path, help="Save scoped visual-probe verdicts and numeric metrics, excluding raw logs and machine identities")
     args = parser.parse_args()
-    if args.capture_bridge and args.probe != 'ga102_visual_present':
-        parser.error('--capture-bridge requires ga102_visual_present')
-    if args.result_json and args.probe not in (*CORE_PROBES, "ga102_visual_present", "ga102_metal_present"):
+    if args.capture_bridge and args.probe not in ('ga102_visual_present', 'ga102_ca_visual'):
+        parser.error('--capture-bridge requires an owned-window visual probe')
+    if args.result_json and args.probe not in (*CORE_PROBES, "ga102_visual_present", "ga102_metal_present", "ga102_ca_visual"):
         parser.error("--result-json requires a core correctness or presentation probe")
     if args.result_json and args.result_json.exists():
         parser.error("--result-json must name a new file; existing evidence is never overwritten")
@@ -120,8 +122,10 @@ def main():
         parser.error("--display-linked requires ga102_metal_present")
     if args.double_buffered and args.probe != 'ga102_metal_present':
         parser.error('--double-buffered requires ga102_metal_present')
-    if args.negative_control and args.probe != "ga102_visual_present":
-        parser.error("--negative-control requires ga102_visual_present")
+    if args.negative_control and args.probe not in ('ga102_visual_present', 'ga102_ca_visual'):
+        parser.error('--negative-control requires an owned-window visual probe')
+    if args.probe == 'ga102_ca_visual' and args.negative_control == 'timestamps':
+        parser.error('Core Animation probe does not claim presentation timestamps')
     if args.surface_comparison and args.probe != "ga102_metal_benchmark":
         parser.error("--surface-comparison requires ga102_metal_benchmark")
     scratch = Path(tempfile.mkdtemp(prefix="ga102-metal-"))
@@ -167,7 +171,7 @@ def main():
                 return code
         for iteration in range(args.repeat):
             output = scratch / f"run-{iteration + 1}.log"
-            before = display_counters() if args.probe in ("ga102_metal_present", "ga102_visual_present") else {}
+            before = display_counters() if args.probe in ("ga102_metal_present", "ga102_visual_present", "ga102_ca_visual") else {}
             broker = None
             if args.capture_bridge:
                 channel = scratch / f'capture-{iteration}'; channel.mkdir(mode=0o700)
@@ -183,7 +187,7 @@ def main():
                 if args.negative_control:
                     command.append(args.negative_control)
                 code = (run_owned(command, log, 45, env, broker.poll) if broker else run_owned(command, log, 45, env))
-            if args.probe in ("ga102_metal_present", "ga102_visual_present"):
+            if args.probe in ("ga102_metal_present", "ga102_visual_present", "ga102_ca_visual"):
                 correlation = display_delta(before, display_counters())
                 print("result: " + json.dumps({"display_correlation": correlation}, sort_keys=True), flush=True)
             print(f"Run {iteration + 1}: exit {code}", flush=True)
@@ -201,7 +205,21 @@ def main():
                                     "device:", "device_creation_ms:", "library_creation_ms:",
                                     "pipeline_creation_ms_in_order:", "result:")):
                     print(line, flush=True)
-            if args.probe == "ga102_visual_present":
+            if args.probe == 'ga102_ca_visual':
+                verdict = None
+                metrics = {}
+                for line in lines:
+                    if line.startswith('result: '):
+                        evidence = json.loads(line[8:])
+                        if evidence.get('probe') == 'ca_visual':
+                            metrics = {key: evidence[key] for key in ('frames', 'transactions', 'preflight_ready',
+                                'visible_frames', 'capture_permission', 'capture_attempted', 'capture_received_frames',
+                                'capture_correct_frames', 'capture_distinct_patterns', 'samples') if key in evidence}
+                            verdict = evaluate_ca(evidence, correlation)
+                            print('result: ' + json.dumps(verdict, sort_keys=True), flush=True)
+                            if verdict['automated_ca_validation'] == 'FAIL': code = 1
+                runs.append(dict(exit_code=code, metrics=metrics, verdict=verdict or {}, display_correlation=correlation))
+            elif args.probe == "ga102_visual_present":
                 verdict = None
                 metrics = {}
                 for line in lines:
@@ -261,11 +279,12 @@ def main():
     finally:
         if args.result_json:
             report = (repeated_pacing_result(runs, args.repeat, source_hash) if args.probe == "ga102_metal_present"
+                      else repeated_ca_result(runs, args.repeat, source_hash, args.negative_control) if args.probe == 'ga102_ca_visual'
                       else repeated_core_result(args.probe, runs, args.repeat, source_hash) if args.probe in CORE_PROBES
                       else repeated_result(runs, args.repeat, source_hash, args.negative_control))
             if args.probe == "ga102_metal_present":
                 report['pacing'] = 'AppKit display link' if args.display_linked else '60 Hz timer'
-            if args.probe == 'ga102_visual_present':
+            if args.probe in ('ga102_visual_present', 'ga102_ca_visual'):
                 report['capture_method'] = 'ScreenCaptureKit owned-window broker' if args.capture_bridge else 'ScreenCaptureKit in probe'
                 if capture_source_hash: report['capture_helper_source_sha256'] = capture_source_hash
             with args.result_json.open("x") as output:
