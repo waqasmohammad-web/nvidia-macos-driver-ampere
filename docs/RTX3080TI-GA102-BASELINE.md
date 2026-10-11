@@ -113,6 +113,20 @@ The shader rendered a full-screen triangle to an offscreen RGBA8 target and the 
 
 The `/tmp/ga102_metal_render_smoketest.swift` file was a successful temporary storage location for the Swift test itself, unrelated to the shader-cache warning.
 
+## Shader cache A/B test: user-owned path eliminates warning
+
+Baseline Swift compute/render tests emitted:
+
+```text
+Failed to create /var/folders/zz/zyxvpxvq6csfxvn_n0000000000000/C/nvmtl-mesa for shader cache (Permission denied)---disabling.
+```
+
+The user ran the **same offscreen render smoke test** after creating `$HOME/Library/Caches/nvmtl-mesa` and setting `MESA_SHADER_CACHE_DIR` for **only that one command**. The cache permission warning disappeared; the Metal offscreen pixel result remained `[64, 127, 191, 255]` and the test passed. Other NVRM/Vulkan warnings remained.
+
+The fork's diagnostic branch now contains a proposed change in `plugin/nvmtl_vk.c` (commit `8516ac8f8e99c85a5e3d92a1f846eb37674ef7a5`): when no cache choice or opt-out is set, prefer a writable `HOME/Library/Caches/nvmtl-mesa` directory if available, falling back to the existing Darwin user-cache logic. It does not overwrite explicit `MESA_SHADER_CACHE_DIR`/`XDG_CACHE_HOME` or bypass `NVMTL_NO_MESA_CACHE_DIR`.
+
+**Status:** source-level experimental patch, **not built or installed**, and **not validated** for WindowServer or GPU performance. Disappearance of the warning doesn't prove a measurable performance improvement; other Vulkan/NVRM diagnostics are independent.
+
 ## First diagnostic goal
 
 1. Record installed driver release and exact macOS build.
