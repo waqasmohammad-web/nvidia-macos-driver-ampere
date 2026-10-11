@@ -59,7 +59,7 @@ def failure_requires_stop(report):
     for run in runs:
         checks=run.get('verdict',{}).get('checks',{})
         failed={k for k,v in checks.items() if v=='FAIL'}
-        if failed != {'reported_presentation_cadence'}:return True
+        if not failed or not failed.issubset({'reported_presentation_cadence','known_adjacent_reported_cadence'}):return True
         if any(checks.get(k) != 'PASS' for k in ('gpu_frame_contents','presentation_timestamps',
             'visible_window_state','system_display_activity')):return True
     return False

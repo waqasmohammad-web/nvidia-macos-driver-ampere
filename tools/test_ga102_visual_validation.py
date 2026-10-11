@@ -49,6 +49,13 @@ class VisualValidationTests(unittest.TestCase):
         self.assertEqual(r['checks']['runloop_trace_collection'],'NOT VERIFIED')
         self.assertEqual(r['automated_visual_validation'],'NOT VERIFIED')
 
+    def test_incomplete_coverage_does_not_hide_known_adjacent_stall(self):
+        e=self.evidence();e.update(continuous=True,frame_trace=[dict(frame=10,draw_start_ms=0,reported_presented_ms=1),dict(frame=11,draw_start_ms=16,reported_presented_ms=34)])
+        r=evaluate(e,self.correlation())
+        self.assertEqual(r['checks']['known_adjacent_reported_cadence'],'FAIL')
+        e['frame_trace'][1]['frame']=12
+        self.assertEqual(evaluate(e,self.correlation())['checks']['known_adjacent_reported_cadence'],'NOT VERIFIED')
+
     def test_drop(self):
         c=self.correlation();c['deltas']['debug.nvaccel_iop_async_drop']=1
         self.assertEqual(evaluate(self.evidence(),c)['automated_visual_validation'],'FAIL')

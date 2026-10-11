@@ -1702,3 +1702,48 @@ control is drawable-paced submission versus explicitly waiting for each display
 link tick, to determine whether the probe's scheduling combines with drawable
 backpressure to create the sustained 33 ms cadence. Any such control must keep
 real GPU completion/readback ordering and full frame/presentation gates intact.
+
+### Follow-up: drawable-paced client control
+
+The optional `--drawable-paced` continuous Metal experiment removes only the
+probe's extra display-link wait/16.667 ms sleep, allowing drawable availability
+to pace its next iteration. Actual GPU completion, shared-buffer readback reuse,
+visibility checks and final settling are unchanged. The default linked and
+held-reference baselines are preserved; this is not a production optimization.
+The runner rejects simultaneous drawable-paced/display-linked options.
+
+Three capture-on and three capture-disabled runs each produce 120 different,
+correct GPU references with clean error/drop counters and eligible visibility.
+Capture-on still submits at ~33.18–33.31 ms median: acquisition p50 becomes
+32.76–32.87 ms instead of ~17.5 ms. Thus eliminating the separate tick wait
+moves the time into drawable acquisition rather than restoring delivery rate.
+It rules out a duplicated explicit client pacing wait as the *sole* explanation
+of sustained 33 ms capture-on delivery. Timing/capture coverage gets worse:
+positive timestamps 97/71/98, captured IDs 98/74/100. Reported interval medians
+remain 33.27–33.34 ms. Capture-disabled repetitions vary: one has 118 positive
+timestamps with clean steady cadence, others return only 57/107 and have an
+observed ~50 ms interval. Bursty producer scheduling/callback coalescing remains
+a hypothesis, not a measured physical-display drop or accepted workaround.
+
+A validation edge case was exposed: insufficient callback count caused the
+existing cadence gate to say NOT VERIFIED even when *adjacent known frame IDs*
+had measured >25 ms reported intervals. An additional independent check now
+reports those contradictions as FAIL without interpreting a gap across missing
+IDs as a measured frame drop. It does not lower the minimum callback/sample
+coverage required for PASS. Reanalysis finds 86/70/96 adjacent known intervals
+over 25 ms in the capture-on runs, so all three correctly FAIL this additional
+check. Original verdicts remain retained alongside the stricter reanalysis.
+A skip from ID 10 to 12 alone stays NOT VERIFIED, covered by a regression test.
+Bounded independent suite checks may continue after these cadence-only failures
+only when real execution, GPU contents, presentation timestamps, visibility and
+display error counters are all healthy; FAIL remains in the aggregate.
+
+Evidence: [`evidence/ga102-drawable-paced-control.json`](evidence/ga102-drawable-paced-control.json),
+including submitted/captured/timestamp identities and source hashes.
+57 Python regression tests PASS; the experimental Swift client compiled and
+ran. No installed-driver fix is claimed. The remaining capture-specific
+question is whether an independently updating uncaptured client changes the
+captured layer's cadence, separating per-layer recycling/capture behavior from
+an entire compositor scheduling limit. Real desktop root attribution remains
+unresolved, with installed fence/flip phase instrumentation unavailable under
+the current no-deployment restrictions.

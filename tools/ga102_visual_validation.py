@@ -39,6 +39,16 @@ def evaluate(evidence, correlation):
         except ImportError:
             from ga102_runloop_analysis import analyze as analyze_runloop
         checks['runloop_trace_collection']=analyze_runloop(evidence)['trace_collection']
+    if evidence.get('continuous') and evidence.get('frame_trace'):
+        try:
+            from .ga102_delivery_analysis import analyze as analyze_delivery
+        except ImportError:
+            from ga102_delivery_analysis import analyze as analyze_delivery
+        observed=analyze_delivery(evidence)
+        # Incomplete callback coverage cannot erase a measured >25 ms interval
+        # between two known adjacent frame IDs. Missing IDs alone prove no drop.
+        count=observed['adjacent_reported_presentation_intervals']['samples']
+        checks['known_adjacent_reported_cadence']=('FAIL' if observed['adjacent_reported_intervals_above_25ms'] else 'PASS' if count>=100 else 'NOT VERIFIED')
     deltas = correlation.get('deltas', {})
     errors = ('debug.nvaccel_iop_async_drop', 'debug.nvaccel_iop_async_refused', 'debug.nvaccel_iop_fail')
     checks['system_display_activity'] = ('FAIL' if any(deltas.get(k, 0) > 0 for k in errors) else
@@ -61,6 +71,7 @@ def repeated_result(runs, requested_runs, source_sha256, negative_control=None, 
              'own_window_capture', 'system_display_activity')
     if check_names is None and any(r.get('metrics',{}).get('continuous') is True for r in runs):
         names=(*names,'reported_presentation_cadence')
+    if check_names is None and any(r.get('metrics',{}).get('continuous') and r.get('metrics',{}).get('frame_trace') for r in runs):names=(*names,'known_adjacent_reported_cadence')
     if check_names is None and any(r.get('metrics',{}).get('runloop_trace_enabled') for r in runs):names=(*names,'runloop_trace_collection')
     complete = len(runs) == requested_runs and all(r.get('exit_code') == 0 for r in runs)
     for name in names:

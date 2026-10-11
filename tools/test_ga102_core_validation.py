@@ -43,6 +43,8 @@ class CoreTests(unittest.TestCase):
                     system_display_activity='PASS',own_window_capture='NOT VERIFIED',reported_presentation_cadence='FAIL')
         r={'runs':[{'exit_code':0,'verdict':{'checks':checks}}]}
         self.assertFalse(failure_requires_stop(r))
+        checks['known_adjacent_reported_cadence']='FAIL'
+        self.assertFalse(failure_requires_stop(r))
         for key in ('gpu_frame_contents','system_display_activity','visible_window_state'):
             checks[key]='FAIL';self.assertTrue(failure_requires_stop(r));checks[key]='PASS'
         r['runs'][0]['exit_code']=124;self.assertTrue(failure_requires_stop(r))

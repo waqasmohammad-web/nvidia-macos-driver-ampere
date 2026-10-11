@@ -9,7 +9,7 @@ def distribution(values):
 
 
 def analyze(metrics):
-    metal=metrics.get('probe')=='visual'
+    metal=metrics.get('probe')=='visual' or 'gpu_correct_frames' in metrics
     rows=metrics.get('frame_trace',[]) if metal else metrics.get('samples',[])
     key='draw_start_ms' if metal else 'transaction_start_ms'
     starts=[r[key] for r in rows if key in r]
@@ -38,7 +38,10 @@ def analyze(metrics):
             for r in rows if r['frame']>=10 and r.get('commit_to_completed_ms',0)>5]
         ordered=[r for r in rows if 'reported_presented_ms' in r and r['frame']>=10]
         gaps=[b['reported_presented_ms']-a['reported_presented_ms'] for a,b in zip(ordered,ordered[1:])]
-        result.update({'reported_presentation_intervals':distribution(gaps),
+        adjacent=[b['reported_presented_ms']-a['reported_presented_ms'] for a,b in zip(ordered,ordered[1:]) if b['frame']==a['frame']+1]
+        result.update({'adjacent_reported_presentation_intervals':distribution(adjacent),
+                       'adjacent_reported_intervals_above_25ms':sum(v>25 for v in adjacent),
+                       'reported_presentation_intervals':distribution(gaps),
                        'reported_presented_without_capture_ids':sorted(presented-captured),
                        'submitted_without_positive_presentation_ids':sorted(submitted-presented),
                        'presentation_intervals_above_25ms':sum(v>25 for v in gaps)})

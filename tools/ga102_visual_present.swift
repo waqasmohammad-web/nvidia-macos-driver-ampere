@@ -8,6 +8,7 @@ import CoreGraphics
 import Dispatch
 let negative=CommandLine.arguments.dropFirst().first(where:{!$0.hasPrefix("--")}) ?? "none"
 let continuous=CommandLine.arguments.contains("--continuous")
+let drawablePaced=CommandLine.arguments.contains("--drawable-paced")
 let linked=CommandLine.arguments.contains("--display-linked")
 let traceRunLoop=CommandLine.arguments.contains("--runloop-trace")
 let captureDisabled=CommandLine.arguments.contains("--capture-disabled")
@@ -203,7 +204,7 @@ Task { @MainActor in
         let readAt=CACurrentMediaTime()
         // Held screenshot references and continuous capture are distinct scopes.
         if !continuous || id==0 {try? await Task.sleep(nanoseconds:300_000_000)}
-        else if !linked || displayLink==nil {try? await Task.sleep(nanoseconds:16_666_667)}
+        else if !drawablePaced && (!linked || displayLink==nil) {try? await Task.sleep(nanoseconds:16_666_667)}
         let sleepAt=CACurrentMediaTime()
         let full = !continuous || id%30==0
         let eligible=visible(full)
@@ -328,7 +329,7 @@ Task { @MainActor in
         "runloop_trace_enabled":traceRunLoop,"runloop_long_gaps":loopEvents,"runloop_event_count":loopEventCount,"runloop_overflow":loopOverflow,
         "pipeline_initialization_ms":pipelineInitializationMS,
         "continuous":continuous,"stream_started":streamStarted,"stream_analysis":streamAnalysis,
-        "display_linked":linked,"missed_display_ticks":missedTicks,"frame_trace":frameTrace,
+        "drawable_paced":drawablePaced,"display_linked":linked,"missed_display_ticks":missedTicks,"frame_trace":frameTrace,
         "capture_disabled_control":captureDisabled,
         "full_visibility_samples":fullVisibility,"steady_reported_presentation":pacing,
         "capture_method":captureIPC != nil ? "ScreenCaptureKit owned-window broker":"ScreenCaptureKit in probe",
