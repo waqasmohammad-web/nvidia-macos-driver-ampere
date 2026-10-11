@@ -2156,3 +2156,25 @@ rejects writes, stop rather than disabling SIP, clearing flags or improvising
 security changes. Recovery restoration and successful original boot remain
 BLOCKED on execution outside the running OS. The prior preparation was insufficient
 to guarantee live rollback under the USB-booted session's security policy.
+
+### Authorized recovery escalation
+
+The user explicitly authorized SIP changes and necessary recovery work. This
+supersedes the previous prohibition on changing SIP for this recovery; it does
+not establish that broader security changes or another candidate deployment are
+needed. Local `csrutil` usage confirms disabling/enabling SIP is available only
+in Recovery OS. The agent cannot enter Recovery while retaining this live session.
+
+Prepared `tools/ga102_recover_original.sh` and copied it, hash-verified, to the
+existing USB backup as `RESTORE-ORIGINAL.sh`. Shell syntax validation PASS;
+Recovery execution NOT VERIFIED. The helper takes explicit System/Data mount
+paths, requires matching APFS volume groups, refuses the active OS Library,
+verifies backup and unchanged dependency manifests, preserves pre-restore files
+in a fresh directory, restores only original collection/framebuffer and verifies
+their hashes. It does not alter EFI/security policy, load kexts or reboot.
+If Recovery denies collection writes, the user's authorization permits
+`csrutil disable` in Recovery and returning to Recovery after restart before
+retrying restoration. No authenticated-root change is justified. Restoring SIP
+after successful recovery is a separate recovery step; OpenCore boot policy may
+affect effective SIP state, so the command alone cannot prove the next boot's
+security state. Normal original-driver boot remains NOT VERIFIED.
