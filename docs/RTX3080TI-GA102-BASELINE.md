@@ -54,6 +54,19 @@ After reinstalling the NVIDIA driver via 1401 1.11.0, the user reports a functio
 
 Private monitor serial number, Mac serial numbers and machine-specific identifiers are intentionally excluded from this public log.
 
+## Loaded kernel-extension confirmation
+
+The user subsequently ran `kmutil showloaded --list-only | grep -i nullmoth` on macOS 15.8.1 with driver 1.11.0. All four extensions were present:
+
+```text
+com.nullmoth.NVRMFB (0.1)       loaded
+com.nullmoth.NVRMAGDC (0.1)     loaded
+com.nullmoth.NVRM (0.1)         loaded
+com.nullmoth.NVAccel (0.1)      loaded
+```
+
+This confirms extension loading, not that compute or rendering workloads are correct. The routine `No variant specified, falling back to release` message from `kmutil` is not a driver load failure.
+
 ## First diagnostic goal
 
 1. Record installed driver release and exact macOS build.
