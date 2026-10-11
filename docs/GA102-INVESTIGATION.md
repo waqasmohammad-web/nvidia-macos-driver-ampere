@@ -2267,3 +2267,52 @@ source-only; user-space correctness/build work is the safer optimization route
 while kernel boot compatibility remains unresolved. No new performance fix,
 installed collection build, security change, reboot or live experiment is approved
 or performed. Desktop performance improvement remains NOT VERIFIED.
+
+### Focused offline baseline control — 11 October 2026
+
+Previous recovery verification was progress: it established the actual loaded
+original stack and correct GPU results. This continuation performed no live
+presentation/performance experiment. Its single control rebuild asks whether
+binary layout differences are specific to the completion instrumentation.
+
+Restored the exact NVIDIA 610.57.04 checkout at
+`e4a5faa2567f28c8eabe0ebb6422b6d0abcf37eb` in durable local artifact storage;
+the prior `/private/tmp` vendor checkout was gone after restart. Exported the
+authentic v1.11.0 `kexts` tree from
+`e404ab30b94d6588bdf63b3724d59f1e713ad963` into an isolated artifact directory.
+Used the display builder's actual compile/include/link flags to compile and
+link only this unchanged NVRMFB source, with existing SDK/compiler. No driver
+or collection was installed or loaded; no system collection was built.
+
+**SOURCE BUILD PASS; RUNTIME COMPATIBILITY NOT VERIFIED.** Unchanged-source
+binary SHA256:
+`8cfe426c3987b7b55f8538fd6c21b6dddd36a66adc25dbeedda336517de11ac4`.
+Its undefined-import set and external-definition set both exactly match the
+authentic installed framebuffer. Its constructor and destructor tables each
+contain one 8-byte entry, as do the authentic binary and failed candidate.
+Vtable/constant-section size, writable-data size and BSS size match the authentic
+binary. Text size differs (`0x114be` rebuilt versus `0x112ae` authentic), and
+the linker places `__got` before the initialization tables rather than after
+the writable data. The same ordering appears in the failed candidate. Therefore
+that section-order difference is not instrumentation-specific. Neither section
+order nor text-size difference is proven invalid or causal.
+
+The failed candidate adds only one undefined import,
+`_absolutetime_to_nanoseconds`; the loaded original NVRM already imports it.
+No existing external framebuffer definitions are removed. Its additional
+exports are the ten completion sysctl records. SDK `sys/sysctl.h` explicitly
+requires manual `sysctl_register_oid` calls for IOKit/kext sysctls; that pattern
+was already used by the baseline. The diff preserves the 100-query/1 ms-sleep
+completion contract, fault handling and pinned-surface lifetime. These facts
+exclude an obvious missing-import, additional-init-entry or deliberately
+removed-wait explanation; they do not prove the timing calls, registration or
+binary work correctly during boot.
+
+All outputs, exact commands, symbol/section comparison and restored vendor
+sources remain under local `ga102-release-artifacts` storage, outside the public
+repository. No private build commands/paths or raw diagnostics are published.
+No source optimization is justified by these observations. Before further
+kernel experimentation, obtain the authentic release compiler/linker recipe
+or explain the unchanged-source binary differences and acquire boot-stage
+evidence sufficient to distinguish initialization from collection linkage.
+The failed candidate remains retired; the working baseline remains untouched.
