@@ -20,9 +20,10 @@ Branch: `dev/ga102-3080ti-diagnostics`. Starting revision: `c52e088`.
   GPU pixels, sampled visibility, ordered timestamps and clean display counters
   also passed. Screenshots do not verify physical scanout or desktop smoothness.
 - **NOT VERIFIED:** physical scanout and desktop improvement remain unverified.
-  Latest timer batch has two scoped pacing PASS runs; the third has only 117
-  positive timestamps and does not meet the strict gate. No steady-state stall
-  was measured. Display-linked versus timer comparison remains pending.
+  After a bounded window-readiness check, timer and display-link modes each have
+  three steady-state pacing PASS runs. Acquisition waits vary with scheduling
+  phase; a reproducible early 33 ms interval is retained in startup evidence.
+  No ongoing desktop-performance defect or installed-driver fix is established.
 - **BLOCKED:** protected WindowServer stack access and full framebuffer build
   inputs (missing generated `nvkms.h`). Capture now works in the broker process.
   No permission request, privilege escalation or stub replacement was used.
@@ -30,7 +31,7 @@ Branch: `dev/ga102-3080ti-diagnostics`. Starting revision: `c52e088`.
   accounting, within the build/test limits documented below. No changed driver
   has been installed. Existing synchronization waits are preserved.
 - **Latest safe work:** isolated capture broker, explicit color-space matching,
-  private source snapshots and scoped acceptance; 26 Python tests pass.
+  private source snapshots and scoped acceptance; 27 Python tests pass.
   Objective remains open.
 
 ## Scope and operating constraints
@@ -1119,3 +1120,57 @@ Acquisition p95 varied from 0.062/7.965/0.079 ms while completion-callback p95
 was 0.261/0.227/0.252 ms; this variation motivates the pending display-linked
 comparison rather than removal of mandatory waits. Saved timing evidence is
 [`evidence/ga102-timer-active.json`](evidence/ga102-timer-active.json).
+
+### Window readiness and matched pacing comparison
+
+The first display-linked batch had one pacing PASS and two NOT VERIFIED runs:
+their first sampled AppKit occlusion state was not eligible and only 117
+timestamps were positive. That is retained in
+[`evidence/ga102-linked-active-before-readiness.json`](evidence/ga102-linked-active-before-readiness.json).
+The timing probe now allows 250 ms for initial AppKit state publication, then
+waits at most two seconds for eligible window/session/display metadata before
+starting the timed workload. It never activates the app, raises its window,
+wakes the display or changes mode/refresh. If readiness is unavailable, no
+draws begin and the result is NOT VERIFIED. All eligibility samples taken
+during the workload still have to pass. The Python gate requires an explicit
+readiness result; hidden/inactive or missing preflight evidence cannot pass.
+The six-second observation period and command/error/timestamp/interval criteria
+are otherwise unchanged. This is a test-startup correction, not a driver fix.
+
+Both modes then completed three isolated runs at reported 3440×1440, approximately
+60 Hz, without overlapping capture/probe/compiler workloads during drawing.
+Each completed 120/120 commands with clean counters, no skipped draws and no
+steady-state interval above 25 ms. The readiness samples were all eligible.
+
+| Pacing | Positive timestamps | Steady-state interval p95 (ms) | Drawable acquisition p95 (ms) |
+|---|---|---|---|
+| AppKit display link | 119 / 119 / 119 | 17.509 / 17.457 / 17.198 | 0.066 / 0.043 / 0.053 |
+| 60 Hz timer | 118 / 118 / 119 | 17.232 / 17.265 / 17.250 | 11.697 / 11.481 / 0.067 |
+
+Both meet the existing **steady-state** pacing gate and three-run reproducibility.
+The large timer acquisition waits did not coincide with slower steady-state
+presentation; the third timer run also had almost no acquisition wait. This
+supports scheduling-phase/backpressure as a hypothesis for the wait, without
+proving its underlying implementation or justifying removal of synchronization.
+GPU work remained approximately 0.005 ms and completion-callback p95 stayed
+sub-millisecond. The display-link result does not establish an end-to-end input
+latency improvement or full desktop performance fix.
+
+**Startup remains measured separately:** all three display-link runs had a
+33.091–33.629 ms interval at frame 2; the third timer run had 32.932 ms there too.
+These occur inside the ten-presentation warm-up exclusion already defined by
+the gate. They remain in raw timestamps and late-frame correlations and are
+not hidden by the steady-state PASS. Correlated acquisition was 0.776–1.391 ms
+for display-linked startup and 4.361 ms for that timer startup, with client draw
+intervals around one refresh. The cause is not yet attributed to WindowServer,
+first-surface setup, command completion or shader compilation. Further per-frame
+submission/completion evidence is needed before changing driver code.
+
+Twenty-seven Python tests PASS, including no-draw/missing-preflight classification.
+The timing probe compiled and ran in both modes; existing default-mode Swift 6
+concurrency warnings remain. Evidence:
+[`evidence/ga102-linked-ready.json`](evidence/ga102-linked-ready.json) and
+[`evidence/ga102-timer-ready.json`](evidence/ga102-timer-ready.json).
+Capture validation remains a separate sampled-content experiment; these timing
+runs do not independently verify every rendered frame or physical scanout.
+All active graphics components and synchronization contracts remain unchanged.

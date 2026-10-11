@@ -7,6 +7,7 @@ class PacingTests(unittest.TestCase):
     def evidence(self):
         state = {key: True for key in STATE_KEYS}; state['display_asleep'] = False
         return dict(attempted=120, completed=120, command_errors=0, outstanding=0,
+                    preflight_ready=True,
                     timer_skips=0, visibility_samples=[state] * 4,
                     display_width=3440, display_height=1440, display_refresh_hz=59.973,
                     presented_frame_ids=list(range(118)), presented_times=[1 + i / 60 for i in range(118)])
@@ -24,7 +25,7 @@ class PacingTests(unittest.TestCase):
             self.assertEqual(result[key], 'NOT VERIFIED')
 
     def test_inactive_missing_configuration_and_timestamps(self):
-        for key, value in [('visibility_samples', []), ('display_refresh_hz', 0),
+        for key, value in [('preflight_ready', False), ('visibility_samples', []), ('display_refresh_hz', 0),
                            ('display_width', 640), ('presented_times', [])]:
             e = self.evidence(); e[key] = value
             self.assertEqual(evaluate(e, self.correlation())['automated_pacing_validation'], 'NOT VERIFIED')
@@ -49,6 +50,13 @@ class PacingTests(unittest.TestCase):
         self.assertEqual(evaluate(e, self.correlation())['automated_pacing_validation'], 'FAIL')
         c = self.correlation(); c['deltas']['debug.nvaccel_iop_fail'] = -1
         self.assertEqual(evaluate(self.evidence(), c)['checks']['system_display_activity'], 'NOT VERIFIED')
+
+    def test_no_draws_without_readiness_is_not_driver_failure(self):
+        e = self.evidence(); e.update(preflight_ready=False, attempted=0, completed=0,
+                                      presented_times=[], presented_frame_ids=[])
+        self.assertEqual(evaluate(e, self.correlation())['automated_pacing_validation'], 'NOT VERIFIED')
+        e.pop('preflight_ready')
+        self.assertEqual(evaluate(e, self.correlation())['automated_pacing_validation'], 'NOT VERIFIED')
 
 
 if __name__ == '__main__':

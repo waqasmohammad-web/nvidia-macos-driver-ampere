@@ -55,6 +55,12 @@ func snapshot() -> [String: Any] {
             "display_asleep": CGDisplayIsAsleep(display) != 0]
 }
 let linked = CommandLine.arguments.contains("--display-linked")
+func isEligible(_ state:[String:Any])->Bool {
+    ["window_visible", "window_on_active_space", "window_unoccluded", "window_in_onscreen_list", "session_on_console", "display_active"].allSatisfy { state[$0] as? Bool == true }
+    && state["display_asleep"] as? Bool == false
+}
+let preflightStart=CACurrentMediaTime()
+var preflightReady=false, preflightMs=0.0
 var displayLink: CADisplayLink?
 class DisplayTick: NSObject {
     let callback: () -> Void
@@ -103,7 +109,14 @@ func draw() {
     commitReturn.append(CACurrentMediaTime() - commitAt)
 }
 let tick = DisplayTick { draw() }
-DispatchQueue.main.async {
+func startWhenReady() {
+    guard isEligible(snapshot()) else {
+        if CACurrentMediaTime()-preflightStart < 2 {
+            DispatchQueue.main.asyncAfter(deadline:.now()+0.05) { startWhenReady() }
+        }
+        return
+    }
+    preflightReady=true;preflightMs=(CACurrentMediaTime()-preflightStart)*1000
     if linked {
         displayLink = view.displayLink(target: tick, selector: #selector(DisplayTick.fire(_:)))
         displayLink?.add(to: .main, forMode: .common)
@@ -111,6 +124,8 @@ DispatchQueue.main.async {
         timer = Timer.scheduledTimer(withTimeInterval: 1.0 / 60, repeats: true) { _ in draw() }
     }
 }
+// Allow AppKit to publish window occlusion/onscreen state before measurement.
+DispatchQueue.main.asyncAfter(deadline:.now()+0.25) { startWhenReady() }
 DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) {
     timer?.invalidate(); displayLink?.invalidate()
     lock.lock()
@@ -129,14 +144,12 @@ DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) {
     let times = shown.dropFirst(10).map { $0.value }
     let intervals = zip(times.dropFirst(), times).map { $0 - $1 }
     let states = visibility + [snapshot()]
-    let eligible = states.allSatisfy { state in
-        ["window_visible", "window_on_active_space", "window_unoccluded", "window_in_onscreen_list", "session_on_console", "display_active"].allSatisfy { state[$0] as? Bool == true }
-        && state["display_asleep"] as? Bool == false
-    }
+    let eligible = preflightReady && states.allSatisfy { isEligible($0) }
     let display = (window.screen?.deviceDescription[NSDeviceDescriptionKey("NSScreenNumber")] as? NSNumber)?.uint32Value ?? CGMainDisplayID()
     let mode = CGDisplayCopyDisplayMode(display)
     let result: [String: Any] = ["probe": "pacing", "pacing": linked ? "AppKit display link" : "60 Hz timer", "attempted": attempted, "completed": finish,
         "visibility_samples": states, "command_errors": failure, "outstanding": outstanding, "timer_skips": skipped,
+        "preflight_ready":preflightReady,"preflight_wait_ms":preflightMs,
         "display_width": mode?.width ?? 0, "display_height": mode?.height ?? 0, "display_refresh_hz": mode?.refreshRate ?? 0,
         "presented_callbacks": callbackCount, "positive_presented_times": shown.count,
         "presented_frame_ids": shown.map { $0.key }, "presented_times": shown.map { $0.value },

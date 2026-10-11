@@ -11,7 +11,7 @@ STATE_KEYS = ('window_visible', 'window_on_active_space', 'window_unoccluded',
 
 def evaluate(evidence, correlation):
     states = evidence.get('visibility_samples', [])
-    eligible = bool(states) and all(all(s.get(k) is True for k in STATE_KEYS)
+    eligible = evidence.get('preflight_ready') is True and bool(states) and all(all(s.get(k) is True for k in STATE_KEYS)
                                    and s.get('display_asleep') is False for s in states)
     attempted = evidence.get('attempted', 0)
     commands = ('FAIL' if evidence.get('command_errors', 0) > 0 or

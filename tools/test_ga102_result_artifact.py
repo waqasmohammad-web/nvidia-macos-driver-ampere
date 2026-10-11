@@ -16,6 +16,7 @@ class ResultArtifactTests(unittest.TestCase):
     def test_pacing_artifact_end_to_end_without_gui(self):
         state = {key: True for key in STATE_KEYS}; state['display_asleep'] = False
         evidence = dict(probe='pacing', attempted=120, completed=120, command_errors=0,
+                        preflight_ready=True,
                         outstanding=0, timer_skips=0, visibility_samples=[state] * 4,
                         display_width=3440, display_height=1440, display_refresh_hz=60,
                         presented_times=[1 + i / 60 for i in range(118)], presented_frame_ids=list(range(118)))

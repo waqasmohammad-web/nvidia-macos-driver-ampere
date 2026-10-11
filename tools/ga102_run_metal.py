@@ -223,6 +223,7 @@ def main():
                         evidence = json.loads(line[8:])
                         if evidence.get("probe") == "pacing":
                             keys = ("attempted", "completed", "command_errors", "outstanding", "timer_skips",
+                                    "preflight_ready", "preflight_wait_ms",
                                     "display_width", "display_height", "display_refresh_hz",
                                     "positive_presented_times", "presented_frame_ids", "presented_times",
                                     "visibility_samples", "presentation_intervals", "drawable_acquisition", "gpu",
