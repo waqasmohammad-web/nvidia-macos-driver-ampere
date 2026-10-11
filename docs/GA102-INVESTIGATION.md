@@ -2054,3 +2054,50 @@ Preparation is PASS. No candidate was copied to the USB, installed or loaded;
 no sudo, reboot, service restart, display change or system-permission change was
 performed. Live testing still requires separate approval and confirmed recovery
 access. The USB folder is ready; this authorization was preparation only.
+
+### Approved live-test handoff — 11 October 2026
+
+The user explicitly approved replacing only NVRMFB, privileged auxiliary
+collection preparation and a reboot, and asked not to repeat approval requests.
+The user's assurance that the existing USB boots Recovery is accepted. EFI,
+OpenCore, SIP, login security, display configuration and loaded graphics-service
+replacement remain outside the test scope. Actual Recovery Data-volume access
+and rollback boot remain untested risks, not additional approval requests.
+
+`sudo -n true` returned “a password is required.” No privileged mutation occurred.
+This is an administrator-authentication limitation of this tool session; no
+password is requested through chat and sudo policy is not changed.
+
+Prepared `tools/ga102_deploy_framebuffer.py` for one authenticated Terminal
+invocation. Read-only preflight verifies pinned candidate/plist hashes, original
+on-disk framebuffer, USB rollback/collection/manifests, unchanged dependency
+files and boot/system collections. Preflight PASS. Five bounded tests PASS: exact
+UUID/component matching, successful publication with both originals retained,
+and injected failures after original save, bundle publication and collection
+publication, all restoring original files in temporary directories. These test
+file transactions; they do not prove root execution, kernel linkage or boot.
+
+After authentication, the helper acquires the existing installer lock without
+bypassing/removing an existing lock; stages all installed kexts with only the
+framebuffer changed; uses the authentic installer's auxiliary-only build method;
+inspects the new collection and requires the UUIDs of all four staged NullMoth
+binaries. It rechecks the installed repository and baseline before publishing.
+The original framebuffer and collection are retained under
+`/Library/GA102-Framebuffer-Test`; publication failure preserves failed artifacts
+and restores originals. Status/logs remain local. Only after successful
+publication does `--reboot` schedule the approved restart one minute later.
+No driver load/unload, EFI/Preboot edit, security-setting change, display change
+or graphics-service restart is performed. The original installer's
+`--allow-missing-kdk` and `-z` flags are used solely for the approved offline
+auxiliary build against the existing kernel/boot/system collections; they do
+not modify system security policy or omit kernel linkage/UUID validation.
+
+**Current status:** deployment command is prepared, SOURCE VALIDATED for the
+stated preflight/publication tests only. Actual candidate collection build,
+installation, reboot and INSTALLED DRIVER validation are pending Terminal
+administrator authentication. The agent has not installed anything or rebooted.
+After restart, inspect the helper's local `status.json`, verify loaded framebuffer
+UUID against the pinned candidate and read actual completion counters before
+using the one agreed capture-disabled desktop workload. An installed file hash
+alone will not be called proof that the new framebuffer is loaded. No
+performance improvement is claimed from this instrumentation-only candidate.
