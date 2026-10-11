@@ -18,6 +18,9 @@ def evaluate(evidence, correlation):
     else:
         checks['own_window_capture'] = 'PASS'
     if evidence.get('continuous') is True:
+        # Continuous scope is 120 distinct GPU references, not a shortened
+        # held-reference run accompanied by unrelated pacing statistics.
+        if frames and (frames != 120 or evidence.get('gpu_correct_frames') != 120 or evidence.get('gpu_distinct_patterns') != 120):checks['gpu_frame_contents']='FAIL'
         stream=evidence.get('stream_analysis',{})
         content=stream.get('captured_reference_contents','NOT VERIFIED')
         checks['own_window_capture']=('FAIL' if content=='FAIL' else 'PASS' if
@@ -30,6 +33,12 @@ def evaluate(evidence, correlation):
         checks['reported_presentation_cadence']=('NOT VERIFIED' if pacing.get('samples',0)<100 or
             not isinstance(pacing.get('p95_ms'),(int,float)) or not isinstance(pacing.get('max_ms'),(int,float))
             else 'PASS' if pacing.get('p95_ms')<=20 and pacing.get('max_ms')<=25 and pacing.get('above_25ms')==0 else 'FAIL')
+    if evidence.get('runloop_trace_enabled'):
+        try:
+            from .ga102_runloop_analysis import analyze as analyze_runloop
+        except ImportError:
+            from ga102_runloop_analysis import analyze as analyze_runloop
+        checks['runloop_trace_collection']=analyze_runloop(evidence)['trace_collection']
     deltas = correlation.get('deltas', {})
     errors = ('debug.nvaccel_iop_async_drop', 'debug.nvaccel_iop_async_refused', 'debug.nvaccel_iop_fail')
     checks['system_display_activity'] = ('FAIL' if any(deltas.get(k, 0) > 0 for k in errors) else
@@ -52,6 +61,7 @@ def repeated_result(runs, requested_runs, source_sha256, negative_control=None, 
              'own_window_capture', 'system_display_activity')
     if check_names is None and any(r.get('metrics',{}).get('continuous') is True for r in runs):
         names=(*names,'reported_presentation_cadence')
+    if check_names is None and any(r.get('metrics',{}).get('runloop_trace_enabled') for r in runs):names=(*names,'runloop_trace_collection')
     complete = len(runs) == requested_runs and all(r.get('exit_code') == 0 for r in runs)
     for name in names:
         values = [r.get('verdict', {}).get('checks', {}).get(name, 'NOT VERIFIED') for r in runs]

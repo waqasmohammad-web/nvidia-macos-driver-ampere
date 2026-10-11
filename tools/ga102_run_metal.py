@@ -110,6 +110,7 @@ def main():
     parser.add_argument("--graphics-copy-queue", action="store_true", help="Attempt test-process-only NVRM_610_CECHAN=0; verify engine selection in logs (installed builds may differ)")
     parser.add_argument("--negative-control", choices=("static", "timestamps", "hidden"))
     parser.add_argument("--display-linked", action="store_true")
+    parser.add_argument("--runloop-trace", action="store_true", help="Bounded own-client run-loop and framework event timings; no input-event recording")
     parser.add_argument("--reference-only", action="store_true", help="CA comparison without extra animated layers")
     parser.add_argument("--first-frame-half-period", action="store_true", help="Timing-only startup phase control; shifts first client draw by 8.333 ms")
     parser.add_argument("--double-buffered", action="store_true", help="Use two drawables in this probe's CAMetalLayer only; no framebuffer/display changes")
@@ -134,6 +135,7 @@ def main():
         parser.error("--result-json requires a core correctness or presentation probe")
     if args.result_json and args.result_json.exists():
         parser.error("--result-json must name a new file; existing evidence is never overwritten")
+    if args.runloop_trace and (args.probe != 'ga102_visual_present' or not args.continuous):parser.error('--runloop-trace requires continuous Metal visual probe')
     if args.reference_only and args.probe != 'ga102_ca_visual':parser.error('--reference-only requires CA probe')
     if args.display_linked and not (args.probe == 'ga102_metal_present' or args.probe in ('ga102_visual_present','ga102_ca_visual') and args.continuous):
         parser.error('--display-linked requires a pacing probe or continuous visual probe')
@@ -204,6 +206,7 @@ def main():
                 if args.double_buffered:
                     command.append('--double-buffered')
                 if args.first_frame_half_period:command.append('--first-frame-half-period')
+                if args.runloop_trace:command.append('--runloop-trace')
                 if args.reference_only: command.append('--reference-only')
                 if args.continuous: command.append('--continuous')
                 if args.onscreen_every_frame: command.append('--onscreen-every-frame')
@@ -228,7 +231,7 @@ def main():
                         if line.startswith(('PASS','FAIL','NOT VERIFIED','device:')): print(line,flush=True)
                         continue
                     summary = json.loads(line[8:])
-                    for key in ('frame_trace', 'presented_times', 'presented_frame_ids','samples'):
+                    for key in ('frame_trace', 'presented_times', 'presented_frame_ids','samples','runloop_long_gaps','owned_window_event_spans','owned_application_event_spans'):
                         if key in summary: summary[key] = 'full data retained in private log/result artifact'
                     if 'stream_analysis' in summary:
                         summary['stream_analysis'].pop('captured_changes',None)
@@ -268,7 +271,7 @@ def main():
                                        and isinstance(value, (int, float, bool))}
                             metrics.update({key:evidence[key] for key in ('continuous','stream_started','stream_analysis',
                                 'full_visibility_samples','steady_reported_presentation','display_linked',
-                                'missed_display_ticks','frame_trace','pipeline_initialization_ms') if key in evidence})
+                                'missed_display_ticks','frame_trace','pipeline_initialization_ms','runloop_trace_enabled','runloop_long_gaps','runloop_event_count','runloop_overflow','owned_window_event_count','owned_window_event_spans','owned_window_event_overflow','owned_application_event_spans','owned_application_event_count','owned_application_event_overflow','application_dispatcher_instrumented') if key in evidence})
                             if 'capture_disabled_control' in evidence:metrics['capture_disabled_control']=evidence['capture_disabled_control']
                             verdict = evaluate_visual(evidence, correlation)
                             print("result: " + json.dumps(verdict, sort_keys=True), flush=True)

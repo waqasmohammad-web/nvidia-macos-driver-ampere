@@ -1580,3 +1580,81 @@ identifying an actual WindowServer render-to-flip bottleneck still needs
 per-phase fence/flip instrumentation unavailable in the installed driver.
 No speculative performance change, wait removal or deployment is justified
 by the current evidence.
+
+## Own-client run-loop and AppKit event attribution (2026-10-11)
+
+This continuation made new runtime progress. The ordinary desktop bottleneck
+is still NOT VERIFIED; installed graphics components remain unchanged.
+
+The opt-in `ga102_visual_present.swift --runloop-trace` brackets the probe's
+main run-loop observers at early/late orders. An early before-wait notification
+alone does not prove the thread has slept: other observers may still execute.
+The initial all-notification buffer filled at 8192 entries in every run and
+is retained as **NOT VERIFIED** for complete tracing. The implementation now
+counts every notification but retains only consecutive gaps >=0.25 ms, capped
+at 2048. Subsequent three-run capture-on/off controls have no trace overflow.
+Event timings retain framework-defined events only, never keys, mouse input,
+text, coordinates, event window IDs or other applications' contents.
+
+**Measured location of the isolated queue stall:** approximately 18 ms overlaps
+an interval between a run-loop exit and its next entry. It does not overlap the
+bracketed before-wait observers. These are wall-time phases, not evidence of
+continuous CPU execution or proof of descheduling. Normal frame rendering and
+drawable acquisition remain separately instrumented.
+
+A bounded unprivileged `/usr/bin/sample` of only the owned probe (one second,
+1 ms interval; three capture-on and three capture-disabled runs) succeeds.
+Private reports are not published. The public artifact retains only counts for
+an explicit allowlist of public/framework symbol names, with no addresses,
+thread IDs, paths or binary-image metadata. All capture-on samples include the
+path `NSApplication sendEvent -> NSWindow _windowMoved -> NSCGSDisplayConfiguration
+displaysWillChange -> SLSIsDisplayChangedSeedValid -> mach_msg2_trap`, with
+15/16/15 sampled observations at the display-seed query. They also show the
+known drawable semaphore wait. Aggregate sampling cannot by itself identify
+the stack for an exact frame/instant. No private graphics API is called by the
+test; these names are observations from its own stacks.
+
+The probe's NSWindow subclass did not capture the late event (only one fast
+initial framework event per run), so attributing it directly to that window
+would be unsupported. A source-only NSApplication subclass now times its
+normal `super.sendEvent` routing, preserving dispatch. In three further
+capture-on runs, it processes two framework events, including an additional
+**window-moved subtype 4** event lasting 18.348–18.469 ms. That event overlaps
+18.129–18.252 ms of the corresponding 18.354–18.480 ms main-queue delivery stall.
+The capture-disabled controls process one framework event and have no slow
+dispatch span. The event's window-number comparison does not identify it as
+the probe window; its precise target is therefore **NOT VERIFIED**, and no
+window identifier is exported. A framework method called `displaysWillChange`
+is not evidence that the display mode changed. No display-setting API was used.
+
+**Confirmed narrow explanation:** the isolated observed main-queue delay is
+largely spent in this application's framework event dispatch. Combined stack
+samples support a synchronous display-seed IPC wait inside that path; they do
+not identify why the server delays the reply. This is distinct from GPU
+execution and from the sustained drawable wait. It is not a demonstrated
+ordinary WindowServer defect and does not justify suppressing events, caching
+private display state, skipping GPU waits, or replacing active components.
+The capture-on steady cadence remains FAIL; capture-disabled cadence remains
+PASS with full captured-content validation NOT VERIFIED. GPU pixels and
+visibility remain correct with clean framebuffer error/drop deltas.
+
+The optional runner exports scoped phase/event analysis and includes trace
+completeness in aggregation: overflow cannot produce a full or repeated PASS.
+A further validation defect was corrected: continuous Metal validation must
+actually contain all 120 distinct GPU reference frames, rather than accepting
+a shortened held-reference run carrying unrelated pacing statistics. This is
+a stricter diagnostic gate, not a driver-performance change. Existing live
+120-frame evidence meets the count requirement; historical cadence failures
+are preserved. Swift compilation of the current probe is successful; 53 Python
+regression tests PASS, including overflow, reversed/overlapping clocks,
+non-probe event attribution and shortened-run rejection.
+
+Evidence: [`evidence/ga102-runloop-event-attribution.json`](evidence/ga102-runloop-event-attribution.json)
+contains exact source hashes, initial partial tracing, subsequent controls,
+allowlisted sample counts, event durations and per-frame overlaps. No screenshots
+or raw process samples are committed. Next discriminating experiment: measure
+public read-only WindowServer query roundtrips under matched capture-on/off
+conditions, separating server IPC response latency from local GPU work and
+capture pixel sampling. This could establish whether capture perturbs more
+than drawable recycling, but still cannot substitute for unavailable
+per-phase WindowServer/NVKMS fence/flip instrumentation.

@@ -23,7 +23,8 @@ class VisualValidationTests(unittest.TestCase):
     def test_no_gpu_evidence(self):
         self.assertEqual(evaluate({}, {})["automated_visual_validation"], "NOT VERIFIED")
     def test_stream_coverage_and_cadence_are_separate(self):
-        e=self.evidence();e.update(continuous=True,stream_started=True,full_visibility_samples=[True]*5,
+        e=self.evidence();e.update(frames=120,gpu_correct_frames=120,gpu_distinct_patterns=120,visible_frames=120,positive_timestamps=118,distinct_timestamps=118,
+            continuous=True,stream_started=True,full_visibility_samples=[True]*5,
             steady_reported_presentation=dict(samples=109,p95_ms=17,max_ms=18,above_25ms=0),
             stream_analysis=dict(captured_reference_contents='PASS',capture_id_coverage='NOT VERIFIED'))
         self.assertEqual(evaluate(e,self.correlation())['automated_visual_validation'],'NOT VERIFIED')
@@ -34,6 +35,20 @@ class VisualValidationTests(unittest.TestCase):
         self.assertEqual(v['checks']['reported_presentation_cadence'],'FAIL')
         r=repeated_result([dict(exit_code=0,metrics={'continuous':True},verdict=v)],1,'synthetic')
         self.assertEqual(r['automated_visual_validation'],'FAIL')
+    def test_shortened_continuous_scope_cannot_pass(self):
+        e=self.evidence();e.update(continuous=True,stream_started=True,full_visibility_samples=[True]*5,
+            steady_reported_presentation=dict(samples=109,p95_ms=17,max_ms=18,above_25ms=0),
+            stream_analysis=dict(captured_reference_contents='PASS',capture_id_coverage='PASS'))
+        self.assertEqual(evaluate(e,self.correlation())['checks']['gpu_frame_contents'],'FAIL')
+
+    def test_trace_overflow_prevents_full_and_repeated_pass(self):
+        e=self.evidence();e.update(runloop_trace_enabled=True,runloop_event_count=20,runloop_long_gaps=[],runloop_overflow=True)
+        v=evaluate(e,self.correlation())
+        self.assertEqual(v['automated_visual_validation'],'NOT VERIFIED')
+        r=repeated_result([dict(exit_code=0,metrics=e,verdict=v)]*3,3,'synthetic')
+        self.assertEqual(r['checks']['runloop_trace_collection'],'NOT VERIFIED')
+        self.assertEqual(r['automated_visual_validation'],'NOT VERIFIED')
+
     def test_drop(self):
         c=self.correlation();c['deltas']['debug.nvaccel_iop_async_drop']=1
         self.assertEqual(evaluate(self.evidence(),c)['automated_visual_validation'],'FAIL')

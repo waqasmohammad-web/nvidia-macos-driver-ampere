@@ -9,6 +9,7 @@ import Dispatch
 let negative=CommandLine.arguments.dropFirst().first(where:{!$0.hasPrefix("--")}) ?? "none"
 let continuous=CommandLine.arguments.contains("--continuous")
 let linked=CommandLine.arguments.contains("--display-linked")
+let traceRunLoop=CommandLine.arguments.contains("--runloop-trace")
 let captureDisabled=CommandLine.arguments.contains("--capture-disabled")
 @MainActor class VisualPulse:NSObject {
     var pending:CheckedContinuation<Bool,Never>?,generation=0
@@ -27,9 +28,36 @@ let captureDisabled=CommandLine.arguments.contains("--capture-disabled")
 }
 func fail(_ s:String)->Never {fputs("FAIL: \(s)\n",stderr);exit(1)}
 guard let device=MTLCopyAllDevices().first(where:{$0.name.contains("3080 Ti")}),let queue=device.makeCommandQueue() else {fail("target device")}
-let app=NSApplication.shared;app.setActivationPolicy(.accessory)
+var ownedProbeWindowNumber=0
+var ownApplicationEventSpans=[[String:Double]](),ownApplicationEventCount=0,ownApplicationEventOverflow=false
+class ProbeApplication:NSApplication {
+    override func sendEvent(_ event:NSEvent) {
+        guard traceRunLoop && event.type == .appKitDefined else {super.sendEvent(event);return}
+        let start=CACurrentMediaTime();super.sendEvent(event);let end=CACurrentMediaTime()
+        ownApplicationEventCount+=1
+        if end-start>=0.00025 {
+            if ownApplicationEventSpans.count<256 {ownApplicationEventSpans.append(["subtype":Double(event.subtype.rawValue),"target_is_probe":event.windowNumber==ownedProbeWindowNumber ? 1:0,"start_seconds":start,"end_seconds":end])}
+            else {ownApplicationEventOverflow=true}
+        }
+    }
+}
+let app=ProbeApplication.shared;app.setActivationPolicy(.accessory)
 let width=640,height=360,frames=continuous ? 120:12
-let window=NSWindow(contentRect:NSRect(x:0,y:0,width:width,height:height),styleMask:.borderless,backing:.buffered,defer:false)
+var ownWindowEventSpans=[[String:Double]](),ownWindowEventCount=0,ownWindowEventOverflow=false
+class ProbeWindow:NSWindow {
+    override func sendEvent(_ event:NSEvent) {
+        // Only framework-defined events in this owned window. Do not record
+        // keyboard, mouse, locations, text, or events from other applications.
+        guard traceRunLoop && event.type == .appKitDefined else {super.sendEvent(event);return}
+        let start=CACurrentMediaTime();super.sendEvent(event);let end=CACurrentMediaTime()
+        ownWindowEventCount+=1
+        if end-start>=0.00025 {
+            if ownWindowEventSpans.count<256 {ownWindowEventSpans.append(["subtype":Double(event.subtype.rawValue),"start_seconds":start,"end_seconds":end])}
+            else {ownWindowEventOverflow=true}
+        }
+    }
+}
+let window=ProbeWindow(contentRect:NSRect(x:0,y:0,width:width,height:height),styleMask:.borderless,backing:.buffered,defer:false)
 window.isReleasedWhenClosed=false
 let view=NSView(frame:NSRect(x:0,y:0,width:width,height:height));view.wantsLayer=true
 let layer=CAMetalLayer();layer.device=device;layer.pixelFormat = .bgra8Unorm;layer.framebufferOnly=false
@@ -38,6 +66,7 @@ layer.colorspace=CGColorSpace(name:CGColorSpace.sRGB)
 layer.drawableSize=CGSize(width:width,height:height);layer.displaySyncEnabled=true;layer.allowsNextDrawableTimeout=true
 view.layer=layer;window.contentView=view;window.center()
 if negative != "hidden" {window.orderFront(nil)}
+ownedProbeWindowNumber=window.windowNumber
 let source="""
 #include <metal_stdlib>
 using namespace metal;
@@ -76,6 +105,7 @@ func visible(_ full:Bool=true)->Bool {
     return window.isVisible && window.isOnActiveSpace && window.occlusionState.contains(.visible) && CGDisplayIsAsleep(display)==0 && CGDisplayIsActive(display) != 0 && (session?[kCGSessionOnConsoleKey as String] as? Bool)==true
 }
 let lock=NSLock();var times=[Int:Double](),commandCallbacks=[Int:[String:Double]]()
+func commandSnapshot()->[Int:[String:Double]] {lock.lock();defer{lock.unlock()};return commandCallbacks}
 func timeSnapshot()->[Int:Double] {lock.lock();defer{lock.unlock()};return times}
 func complete(_ commands:MTLCommandBuffer,_ id:Int) async {
     await withCheckedContinuation { (continuation:CheckedContinuation<Void,Never>) in
@@ -103,7 +133,26 @@ var captureState=captureAllowed ? "available":"NOT VERIFIED: screen-capture perm
 var captureBrokerStopped=false
 var fullVisibility=[Bool](),streamStarted=false
 var frameTrace=[[String:Double]](),missedTicks=0
-func streamOperation(_ operation:String) async -> [String:Any]? {
+// Two observers bracket framework observers; an early beforeWaiting notice
+// alone does not mean the thread has slept (CA can flush later in that phase).
+var loopEvents=[[String:Double]](),loopOverflow=false,loopObservers=[CFRunLoopObserver](),loopEventCount=0
+var lastLoopPoint:(lane:Double,activity:Double,time:Double)?
+if traceRunLoop {
+    for (lane,order) in [(0,Int.min),(1,Int.max)] {
+        let observer=CFRunLoopObserverCreateWithHandler(kCFAllocatorDefault,CFRunLoopActivity.allActivities.rawValue,true,order) {_,activity in
+            let now=CACurrentMediaTime(),a=Double(activity.rawValue)
+            loopEventCount+=1
+            if let previous=lastLoopPoint,now-previous.time>=0.00025 {
+                if loopEvents.count<2048 {loopEvents.append(["from_lane":previous.lane,"from_activity":previous.activity,
+                    "to_lane":Double(lane),"to_activity":a,"start_seconds":previous.time,"end_seconds":now])}
+                else {loopOverflow=true}
+            }
+            lastLoopPoint=(Double(lane),a,now)
+        }!
+        loopObservers.append(observer);CFRunLoopAddObserver(CFRunLoopGetMain(),observer,.commonModes)
+    }
+}
+@MainActor func streamOperation(_ operation:String) async -> [String:Any]? {
     guard let directory=captureIPC else{return nil}
     do {
         let request:[String:Any]=["operation":operation,"pid":getpid(),"window_id":window.windowNumber]
@@ -228,9 +277,21 @@ Task { @MainActor in
         streamAnalysis=response?["analysis"] as? [String:Any] ?? streamAnalysis
     }
     fullVisibility.append(visible())
+    for observer in loopObservers {CFRunLoopRemoveObserver(CFRunLoopGetMain(),observer,.commonModes)}
     let observed=timeSnapshot()
-    lock.lock();let callbackSnapshot=commandCallbacks;lock.unlock()
+    let callbackSnapshot=commandSnapshot()
     if let origin=frameTrace.first?["draw_start_seconds"] {
+        for index in ownApplicationEventSpans.indices {
+            for stage in ["start","end"] {let t=ownApplicationEventSpans[index].removeValue(forKey:stage+"_seconds")!;ownApplicationEventSpans[index][stage+"_ms"]=(t-origin)*1000}
+        }
+        for index in ownWindowEventSpans.indices {
+            for stage in ["start","end"] {let t=ownWindowEventSpans[index].removeValue(forKey:stage+"_seconds")!;ownWindowEventSpans[index][stage+"_ms"]=(t-origin)*1000}
+        }
+        for index in loopEvents.indices {
+            for stage in ["start","end"] {
+                let t=loopEvents[index].removeValue(forKey:stage+"_seconds")!;loopEvents[index][stage+"_ms"]=(t-origin)*1000
+            }
+        }
         for index in frameTrace.indices {
             let started=frameTrace[index].removeValue(forKey:"draw_start_seconds")!
             frameTrace[index]["draw_start_ms"]=(started-origin)*1000
@@ -262,6 +323,9 @@ Task { @MainActor in
                             "p99_ms":intervals.isEmpty ? NSNull() as Any:intervals[min(intervals.count-1,Int(ceil(Double(intervals.count)*0.99))-1)],"p95_ms":intervals.isEmpty ? NSNull() as Any:intervals[min(intervals.count-1,Int(ceil(Double(intervals.count)*0.95))-1)],
                             "max_ms":intervals.last.map{$0 as Any} ?? NSNull(),"above_25ms":intervals.filter{$0>25}.count]
     let result:[String:Any]=["probe":"visual","frames":frames,"negative_control":negative,"gpu_correct_frames":gpuCorrect,"gpu_distinct_patterns":distinct.count,
+        "owned_application_event_spans":ownApplicationEventSpans,"owned_application_event_count":ownApplicationEventCount,"owned_application_event_overflow":ownApplicationEventOverflow,"application_dispatcher_instrumented":app is ProbeApplication,
+        "owned_window_event_spans":ownWindowEventSpans,"owned_window_event_count":ownWindowEventCount,"owned_window_event_overflow":ownWindowEventOverflow,
+        "runloop_trace_enabled":traceRunLoop,"runloop_long_gaps":loopEvents,"runloop_event_count":loopEventCount,"runloop_overflow":loopOverflow,
         "pipeline_initialization_ms":pipelineInitializationMS,
         "continuous":continuous,"stream_started":streamStarted,"stream_analysis":streamAnalysis,
         "display_linked":linked,"missed_display_ticks":missedTicks,"frame_trace":frameTrace,
