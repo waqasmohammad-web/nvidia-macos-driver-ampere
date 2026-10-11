@@ -2101,3 +2101,32 @@ UUID against the pinned candidate and read actual completion counters before
 using the one agreed capture-disabled desktop workload. An installed file hash
 alone will not be called proof that the new framebuffer is loaded. No
 performance improvement is claimed from this instrumentation-only candidate.
+
+### Live boot failure and rollback handoff — 11 October 2026
+
+**FAIL: boot/stability acceptance.** The user ran the approved deployment helper;
+its saved status and on-disk hashes confirm candidate publication. The user then
+reported a stuck boot and recovered access to macOS using the existing OpenCore
+USB. This does not identify whether the framebuffer binary, auxiliary collection
+or boot configuration caused the failure. No performance improvement is claimed.
+Do not repeat deployment or start performance workloads in this recovery state.
+
+Read-only checks after recovery found the candidate framebuffer still installed
+on disk, both original backups matching their pinned hashes, no NullMoth kexts
+listed by `kmutil showloaded`, and the new completion counter unavailable. The
+current session therefore cannot validate candidate acceleration. No EFI,
+OpenCore or security changes were made by the agent to recover the boot.
+
+`tools/ga102_rollback_framebuffer.py` restores only the original NVRMFB bundle
+and saved auxiliary collection, preserving both pre-test backups and failed
+candidate files. It checks pinned hashes and unchanged system/driver dependencies,
+uses the existing tested transactional publication routine, and schedules no
+reboot or kext loading. Read-only rollback preflight PASS; the five publication
+regression tests PASS. This is not proof of successful rollback boot.
+
+Administrator authentication is unavailable to the tool session (`sudo -n`
+requires a password). Actual restoration therefore awaits one Terminal command;
+no additional permission request is necessary. Original internal-disk boot remains
+NOT VERIFIED until restoration and a later user-directed restart. Root-cause
+analysis is deferred until the known working installation is restored; neither
+successful linking nor static collection inspection established boot compatibility.
