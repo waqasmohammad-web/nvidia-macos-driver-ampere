@@ -2016,3 +2016,9 @@ scanout dominates, retain the waits; a large wait alone is not wasted work.
 This measurement gates any later supported fence/polling optimization and its
 baseline/candidate comparison. No source performance benefit, live fix or safe
 boot guarantee is claimed. No installed component or system setting changed.
+
+Candidate retention update: copied all five candidate/rollback/proof files to
+`~/Developer/ga102-release-artifacts/daa4210-framebuffer` outside temporary storage
+and verified every copied SHA-256 against the prepared artifacts. This is durable
+local retention, not tested external recovery media. No installation occurred;
+live approval and recovery-access verification remain outstanding.
