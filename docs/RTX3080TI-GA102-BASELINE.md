@@ -127,6 +127,20 @@ The fork's diagnostic branch now contains a proposed change in `plugin/nvmtl_vk.
 
 **Status:** source-level experimental patch, **not built or installed**, and **not validated** for WindowServer or GPU performance. Disappearance of the warning doesn't prove a measurable performance improvement; other Vulkan/NVRM diagnostics are independent.
 
+## Shader cache writes confirmed
+
+After setting `MESA_SHADER_CACHE_DIR="$HOME/Library/Caches/nvmtl-mesa"` for one render test, the user checked the directory:
+
+```text
+du -sh "$HOME/Library/Caches/nvmtl-mesa"
+2.0M    /Users/<user>/Library/Caches/nvmtl-mesa
+
+find "$HOME/Library/Caches/nvmtl-mesa" -type f | wc -l
+9
+```
+
+This confirms that the alternate cache directory is being populated with files and the renderer still passes. It **does not** verify the patch is built/installed, benchmark disk-cache benefits, or demonstrate that WindowServer uses this directory. Next issue to characterize: subjective sluggishness in desktop compositing and frame pacing at 3440x1440/60Hz.
+
 ## First diagnostic goal
 
 1. Record installed driver release and exact macOS build.
