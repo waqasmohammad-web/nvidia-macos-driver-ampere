@@ -1,0 +1,913 @@
+{
+  "capture_helper_source_sha256": "6539b988e134f5f0d4131de50226b5b1a91c40ffe5152ccbed12f14cd3c78a74",
+  "conditions": "three capture-on/off clients; separate unprivileged child takes 12 public session queries with 125 ms pauses; active application captures only its own reference window",
+  "desktop_causality": "NOT VERIFIED",
+  "groups": {
+    "metal-capture": {
+      "pooled_subsequent_invocations": {
+        "max_ms": 8.435235,
+        "p50_ms": 1.990524,
+        "p95_ms": 7.236559,
+        "p99_ms": 8.435235,
+        "samples": 33
+      },
+      "runs": [
+        {
+          "all_queries": [
+            {
+              "available": true,
+              "index": 0,
+              "latency_ms": 8.527778,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 1,
+              "latency_ms": 0.915696,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 2,
+              "latency_ms": 2.081557,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 3,
+              "latency_ms": 2.743764,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 4,
+              "latency_ms": 0.401432,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 5,
+              "latency_ms": 0.446902,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 6,
+              "latency_ms": 2.150468,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 7,
+              "latency_ms": 2.008527,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 8,
+              "latency_ms": 2.213731,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 9,
+              "latency_ms": 0.390656,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 10,
+              "latency_ms": 1.111898,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 11,
+              "latency_ms": 0.340867,
+              "on_console": true
+            }
+          ],
+          "captured_distinct_ids": 120,
+          "correct_gpu_frames": 120,
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 182,
+              "debug.nvaccel_iop_ok": 181,
+              "debug.nvrmfb_flip_n": 182,
+              "debug.nvrmfb_flip_us_sum": 1938077
+            },
+            "mean_flip_call_us": 10648.774725274725,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "full_visibility_samples": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "positive_timestamps": 119,
+          "query_measurement": {
+            "all_invocations": {
+              "max_ms": 8.527778,
+              "p50_ms": 1.111898,
+              "p95_ms": 8.527778,
+              "p99_ms": 8.527778,
+              "samples": 12
+            },
+            "desktop_causality": "NOT VERIFIED",
+            "first_invocation_ms": 8.527778,
+            "note": "API roundtrip wall time includes initialization/IPC/scheduling; first call retained separately; sparse p99 is near maximum",
+            "physical_scanout": "NOT VERIFIED",
+            "samples": 12,
+            "session_query_measurements": "PASS",
+            "subsequent_invocations": {
+              "max_ms": 2.743764,
+              "p50_ms": 1.111898,
+              "p95_ms": 2.743764,
+              "p99_ms": 2.743764,
+              "samples": 11
+            }
+          },
+          "query_process_exit_code": 0,
+          "reported_steady_cadence": {
+            "above_25ms": 109,
+            "max_ms": 34.58016899821814,
+            "p50_ms": 33.34437199373497,
+            "p95_ms": 34.449927996320184,
+            "p99_ms": 34.47089999826858,
+            "samples": 109
+          },
+          "visual_verdict": {
+            "automated_visual_validation": "FAIL",
+            "checks": {
+              "gpu_frame_contents": "PASS",
+              "own_window_capture": "PASS",
+              "presentation_timestamps": "PASS",
+              "reported_presentation_cadence": "FAIL",
+              "runloop_trace_collection": "PASS",
+              "system_display_activity": "PASS",
+              "visible_window_state": "PASS"
+            },
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        },
+        {
+          "all_queries": [
+            {
+              "available": true,
+              "index": 0,
+              "latency_ms": 1.650114,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 1,
+              "latency_ms": 0.329921,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 2,
+              "latency_ms": 8.435235,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 3,
+              "latency_ms": 1.146605,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 4,
+              "latency_ms": 2.196486,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 5,
+              "latency_ms": 1.990524,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 6,
+              "latency_ms": 0.832298,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 7,
+              "latency_ms": 2.092662,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 8,
+              "latency_ms": 0.238736,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 9,
+              "latency_ms": 1.208112,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 10,
+              "latency_ms": 1.088648,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 11,
+              "latency_ms": 0.830936,
+              "on_console": true
+            }
+          ],
+          "captured_distinct_ids": 118,
+          "correct_gpu_frames": 120,
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 180,
+              "debug.nvaccel_iop_ok": 180,
+              "debug.nvrmfb_flip_n": 180,
+              "debug.nvrmfb_flip_us_sum": 1961251
+            },
+            "mean_flip_call_us": 10895.83888888889,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "full_visibility_samples": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "positive_timestamps": 120,
+          "query_measurement": {
+            "all_invocations": {
+              "max_ms": 8.435235,
+              "p50_ms": 1.146605,
+              "p95_ms": 8.435235,
+              "p99_ms": 8.435235,
+              "samples": 12
+            },
+            "desktop_causality": "NOT VERIFIED",
+            "first_invocation_ms": 1.650114,
+            "note": "API roundtrip wall time includes initialization/IPC/scheduling; first call retained separately; sparse p99 is near maximum",
+            "physical_scanout": "NOT VERIFIED",
+            "samples": 12,
+            "session_query_measurements": "PASS",
+            "subsequent_invocations": {
+              "max_ms": 8.435235,
+              "p50_ms": 1.146605,
+              "p95_ms": 8.435235,
+              "p99_ms": 8.435235,
+              "samples": 11
+            }
+          },
+          "query_process_exit_code": 0,
+          "reported_steady_cadence": {
+            "above_25ms": 102,
+            "max_ms": 34.57396600424545,
+            "p50_ms": 33.33136699802708,
+            "p95_ms": 34.402574005071074,
+            "p99_ms": 34.559962994535454,
+            "samples": 109
+          },
+          "visual_verdict": {
+            "automated_visual_validation": "FAIL",
+            "checks": {
+              "gpu_frame_contents": "PASS",
+              "own_window_capture": "NOT VERIFIED",
+              "presentation_timestamps": "PASS",
+              "reported_presentation_cadence": "FAIL",
+              "runloop_trace_collection": "PASS",
+              "system_display_activity": "PASS",
+              "visible_window_state": "PASS"
+            },
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        },
+        {
+          "all_queries": [
+            {
+              "available": true,
+              "index": 0,
+              "latency_ms": 18.283584,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 1,
+              "latency_ms": 1.239781,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 2,
+              "latency_ms": 7.236559,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 3,
+              "latency_ms": 2.245112,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 4,
+              "latency_ms": 0.229133,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 5,
+              "latency_ms": 5.237884,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 6,
+              "latency_ms": 2.026582,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 7,
+              "latency_ms": 0.929077,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 8,
+              "latency_ms": 2.310148,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 9,
+              "latency_ms": 2.253449,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 10,
+              "latency_ms": 2.22338,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 11,
+              "latency_ms": 2.168947,
+              "on_console": true
+            }
+          ],
+          "captured_distinct_ids": 119,
+          "correct_gpu_frames": 120,
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 174,
+              "debug.nvaccel_iop_ok": 173,
+              "debug.nvrmfb_flip_n": 174,
+              "debug.nvrmfb_flip_us_sum": 1892297
+            },
+            "mean_flip_call_us": 10875.270114942528,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "full_visibility_samples": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "positive_timestamps": 119,
+          "query_measurement": {
+            "all_invocations": {
+              "max_ms": 18.283584,
+              "p50_ms": 2.22338,
+              "p95_ms": 18.283584,
+              "p99_ms": 18.283584,
+              "samples": 12
+            },
+            "desktop_causality": "NOT VERIFIED",
+            "first_invocation_ms": 18.283584,
+            "note": "API roundtrip wall time includes initialization/IPC/scheduling; first call retained separately; sparse p99 is near maximum",
+            "physical_scanout": "NOT VERIFIED",
+            "samples": 12,
+            "session_query_measurements": "PASS",
+            "subsequent_invocations": {
+              "max_ms": 7.236559,
+              "p50_ms": 2.22338,
+              "p95_ms": 7.236559,
+              "p99_ms": 7.236559,
+              "samples": 11
+            }
+          },
+          "query_process_exit_code": 0,
+          "reported_steady_cadence": {
+            "above_25ms": 109,
+            "max_ms": 34.55804999975953,
+            "p50_ms": 33.350692996464204,
+            "p95_ms": 34.47842000605306,
+            "p99_ms": 34.53353400254855,
+            "samples": 109
+          },
+          "visual_verdict": {
+            "automated_visual_validation": "FAIL",
+            "checks": {
+              "gpu_frame_contents": "PASS",
+              "own_window_capture": "NOT VERIFIED",
+              "presentation_timestamps": "PASS",
+              "reported_presentation_cadence": "FAIL",
+              "runloop_trace_collection": "PASS",
+              "system_display_activity": "PASS",
+              "visible_window_state": "PASS"
+            },
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        }
+      ]
+    },
+    "metal-no-capture": {
+      "pooled_subsequent_invocations": {
+        "max_ms": 5.371276,
+        "p50_ms": 0.291851,
+        "p95_ms": 5.235652,
+        "p99_ms": 5.371276,
+        "samples": 33
+      },
+      "runs": [
+        {
+          "all_queries": [
+            {
+              "available": true,
+              "index": 0,
+              "latency_ms": 1.778736,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 1,
+              "latency_ms": 0.356105,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 2,
+              "latency_ms": 0.285656,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 3,
+              "latency_ms": 0.332888,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 4,
+              "latency_ms": 0.332797,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 5,
+              "latency_ms": 0.320541,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 6,
+              "latency_ms": 0.274848,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 7,
+              "latency_ms": 0.251252,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 8,
+              "latency_ms": 0.296716,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 9,
+              "latency_ms": 0.289109,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 10,
+              "latency_ms": 0.275657,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 11,
+              "latency_ms": 0.275933,
+              "on_console": true
+            }
+          ],
+          "captured_distinct_ids": null,
+          "correct_gpu_frames": 120,
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 170,
+              "debug.nvaccel_iop_ok": 170,
+              "debug.nvrmfb_flip_n": 170,
+              "debug.nvrmfb_flip_us_sum": 2173329
+            },
+            "mean_flip_call_us": 12784.288235294118,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "full_visibility_samples": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "positive_timestamps": 119,
+          "query_measurement": {
+            "all_invocations": {
+              "max_ms": 1.778736,
+              "p50_ms": 0.289109,
+              "p95_ms": 1.778736,
+              "p99_ms": 1.778736,
+              "samples": 12
+            },
+            "desktop_causality": "NOT VERIFIED",
+            "first_invocation_ms": 1.778736,
+            "note": "API roundtrip wall time includes initialization/IPC/scheduling; first call retained separately; sparse p99 is near maximum",
+            "physical_scanout": "NOT VERIFIED",
+            "samples": 12,
+            "session_query_measurements": "PASS",
+            "subsequent_invocations": {
+              "max_ms": 0.356105,
+              "p50_ms": 0.289109,
+              "p95_ms": 0.356105,
+              "p99_ms": 0.356105,
+              "samples": 11
+            }
+          },
+          "query_process_exit_code": 0,
+          "reported_steady_cadence": {
+            "above_25ms": 0,
+            "max_ms": 17.785673000616953,
+            "p50_ms": 16.670630997396074,
+            "p95_ms": 17.465705001086462,
+            "p99_ms": 17.6936139978352,
+            "samples": 109
+          },
+          "visual_verdict": {
+            "automated_visual_validation": "NOT VERIFIED",
+            "checks": {
+              "gpu_frame_contents": "PASS",
+              "own_window_capture": "NOT VERIFIED",
+              "presentation_timestamps": "PASS",
+              "reported_presentation_cadence": "PASS",
+              "runloop_trace_collection": "PASS",
+              "system_display_activity": "PASS",
+              "visible_window_state": "PASS"
+            },
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        },
+        {
+          "all_queries": [
+            {
+              "available": true,
+              "index": 0,
+              "latency_ms": 1.680985,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 1,
+              "latency_ms": 0.273208,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 2,
+              "latency_ms": 0.288725,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 3,
+              "latency_ms": 0.217512,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 4,
+              "latency_ms": 5.371276,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 5,
+              "latency_ms": 0.199006,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 6,
+              "latency_ms": 2.758405,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 7,
+              "latency_ms": 5.155878,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 8,
+              "latency_ms": 5.235652,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 9,
+              "latency_ms": 1.11513,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 10,
+              "latency_ms": 0.955411,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 11,
+              "latency_ms": 5.219441,
+              "on_console": true
+            }
+          ],
+          "captured_distinct_ids": null,
+          "correct_gpu_frames": 120,
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 162,
+              "debug.nvaccel_iop_ok": 162,
+              "debug.nvrmfb_flip_n": 162,
+              "debug.nvrmfb_flip_us_sum": 2028403
+            },
+            "mean_flip_call_us": 12521.006172839507,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "full_visibility_samples": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "positive_timestamps": 118,
+          "query_measurement": {
+            "all_invocations": {
+              "max_ms": 5.371276,
+              "p50_ms": 1.11513,
+              "p95_ms": 5.371276,
+              "p99_ms": 5.371276,
+              "samples": 12
+            },
+            "desktop_causality": "NOT VERIFIED",
+            "first_invocation_ms": 1.680985,
+            "note": "API roundtrip wall time includes initialization/IPC/scheduling; first call retained separately; sparse p99 is near maximum",
+            "physical_scanout": "NOT VERIFIED",
+            "samples": 12,
+            "session_query_measurements": "PASS",
+            "subsequent_invocations": {
+              "max_ms": 5.371276,
+              "p50_ms": 1.11513,
+              "p95_ms": 5.371276,
+              "p99_ms": 5.371276,
+              "samples": 11
+            }
+          },
+          "query_process_exit_code": 0,
+          "reported_steady_cadence": {
+            "above_25ms": 0,
+            "max_ms": 17.72014299785951,
+            "p50_ms": 16.663107002386823,
+            "p95_ms": 17.372244998114184,
+            "p99_ms": 17.61008900211891,
+            "samples": 109
+          },
+          "visual_verdict": {
+            "automated_visual_validation": "NOT VERIFIED",
+            "checks": {
+              "gpu_frame_contents": "PASS",
+              "own_window_capture": "NOT VERIFIED",
+              "presentation_timestamps": "PASS",
+              "reported_presentation_cadence": "PASS",
+              "runloop_trace_collection": "PASS",
+              "system_display_activity": "PASS",
+              "visible_window_state": "PASS"
+            },
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        },
+        {
+          "all_queries": [
+            {
+              "available": true,
+              "index": 0,
+              "latency_ms": 1.822945,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 1,
+              "latency_ms": 0.338752,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 2,
+              "latency_ms": 0.317336,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 3,
+              "latency_ms": 0.289631,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 4,
+              "latency_ms": 0.219905,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 5,
+              "latency_ms": 0.324231,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 6,
+              "latency_ms": 0.245813,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 7,
+              "latency_ms": 0.220911,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 8,
+              "latency_ms": 0.334832,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 9,
+              "latency_ms": 0.214587,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 10,
+              "latency_ms": 0.291851,
+              "on_console": true
+            },
+            {
+              "available": true,
+              "index": 11,
+              "latency_ms": 0.217289,
+              "on_console": true
+            }
+          ],
+          "captured_distinct_ids": null,
+          "correct_gpu_frames": 120,
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 147,
+              "debug.nvaccel_iop_ok": 146,
+              "debug.nvrmfb_flip_n": 147,
+              "debug.nvrmfb_flip_us_sum": 1798851
+            },
+            "mean_flip_call_us": 12237.081632653062,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "full_visibility_samples": [
+            true,
+            true,
+            true,
+            true,
+            true
+          ],
+          "positive_timestamps": 119,
+          "query_measurement": {
+            "all_invocations": {
+              "max_ms": 1.822945,
+              "p50_ms": 0.289631,
+              "p95_ms": 1.822945,
+              "p99_ms": 1.822945,
+              "samples": 12
+            },
+            "desktop_causality": "NOT VERIFIED",
+            "first_invocation_ms": 1.822945,
+            "note": "API roundtrip wall time includes initialization/IPC/scheduling; first call retained separately; sparse p99 is near maximum",
+            "physical_scanout": "NOT VERIFIED",
+            "samples": 12,
+            "session_query_measurements": "PASS",
+            "subsequent_invocations": {
+              "max_ms": 0.338752,
+              "p50_ms": 0.289631,
+              "p95_ms": 0.338752,
+              "p99_ms": 0.338752,
+              "samples": 11
+            }
+          },
+          "query_process_exit_code": 0,
+          "reported_steady_cadence": {
+            "above_25ms": 0,
+            "max_ms": 17.77491300163092,
+            "p50_ms": 16.675689999829046,
+            "p95_ms": 17.285257003095467,
+            "p99_ms": 17.675431998213753,
+            "samples": 109
+          },
+          "visual_verdict": {
+            "automated_visual_validation": "NOT VERIFIED",
+            "checks": {
+              "gpu_frame_contents": "PASS",
+              "own_window_capture": "NOT VERIFIED",
+              "presentation_timestamps": "PASS",
+              "reported_presentation_cadence": "PASS",
+              "runloop_trace_collection": "PASS",
+              "system_display_activity": "PASS",
+              "visible_window_state": "PASS"
+            },
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        }
+      ]
+    }
+  },
+  "installed_driver_fixed": false,
+  "physical_scanout": "NOT VERIFIED",
+  "query_analysis_source_sha256": "33c812060d11144f4bbd715553a53b1cae5bbf3397a37383c3b5490fc270e4be",
+  "query_source_sha256": "19105eb787edf6d08ad444cc11b3fa438e349f67d07cf61b8c73c85881141f7b",
+  "schema_version": 1,
+  "source_hashes": {
+    "metal": "99af2dbcf3b32904f3a22c396ffa989fd4e5abcb6bca559edac529c446e64ccc"
+  }
+}

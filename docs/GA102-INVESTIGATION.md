@@ -1658,3 +1658,47 @@ conditions, separating server IPC response latency from local GPU work and
 capture pixel sampling. This could establish whether capture perturbs more
 than drawable recycling, but still cannot substitute for unavailable
 per-phase WindowServer/NVKMS fence/flip instrumentation.
+
+### Follow-up: independent public session-query roundtrips
+
+A separate bounded, unprivileged query child calls the public
+`CGSessionCopyCurrentDictionary` 12 times with 125 ms pauses. It exports only
+index, elapsed time, dictionary availability and on-console boolean; the
+returned dictionary's private values are never printed. Three capture-on and
+three capture-disabled probe runs accompany it. The executable compiled with
+warnings-as-errors, exits successfully, and all 72 queries have available,
+on-console results. Deadlines apply only to owned children. No WindowServer
+sampling, capture permission request or system write is involved.
+
+The first call is retained separately because it may include connection/API
+initialization. Pooling the remaining 11 calls per run gives 33 measurements
+per condition:
+
+| Condition | Subsequent query p50 / p95 / p99 / max (ms) |
+| --- | --- |
+| Capture on | 1.991 / 7.237 / 8.435 / 8.435 |
+| Capture disabled | 0.292 / 5.236 / 5.371 / 5.371 |
+
+First-call latencies are 8.528/1.650/18.284 ms with capture and
+1.779/1.681/1.823 ms without it. These sparse p99 estimates are near the maximum,
+not robust population estimates. One capture-disabled repetition has several
+~5 ms responses, unlike the other two; global activity and request phase are
+uncontrolled. The measurements suggest capture-associated IPC latency, but
+**do not establish a universal 18 ms delay on WindowServer queries**, explain
+the specific private display-seed query, or establish ordinary desktop causality.
+This distinction prevents overgeneralizing the event-dispatch stall.
+
+All probe GPU readbacks remain correct and visibility eligible, with clean
+error/drop counters. Capture-on cadence remains FAIL (~33.3 ms median), and
+capture-disabled cadence passes (~16.7 ms median), while absent capture remains
+NOT VERIFIED. Query measurement PASS covers valid API measurements only; it is
+not a responsiveness or graphics-acceleration PASS. Evidence:
+[`evidence/ga102-session-query-comparison.json`](evidence/ga102-session-query-comparison.json).
+Sources: `tools/ga102_session_roundtrip.m`, `ga102_query_analysis.py`;
+56 Python regression tests PASS, including missing/inactive query data, invalid
+clocks and process failure. Source diagnostic validation is distinct from
+installed-driver performance validation. A useful remaining client-level
+control is drawable-paced submission versus explicitly waiting for each display
+link tick, to determine whether the probe's scheduling combines with drawable
+backpressure to create the sustained 33 ms cadence. Any such control must keep
+real GPU completion/readback ordering and full frame/presentation gates intact.
