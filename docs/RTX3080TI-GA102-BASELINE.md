@@ -35,6 +35,25 @@ The 22 MB value is the display information reported by macOS in the unaccelerate
 - NVIDIA driver removal / clean OS reinstall was used to recover.
 - **Metal device availability, actual acceleration, driver release, requested mode and kernel logs were not captured for that attempt.** Do not presume a particular cause or claim the driver previously worked.
 
+## Successful driver startup: 1.11.0 (macOS 15.8.1)
+
+After reinstalling the NVIDIA driver via 1401 1.11.0, the user reports a functioning graphical desktop with the following state:
+
+- 1401 Mac app: **NullMoth driver running**
+- Reported renderer: `NVIDIA GeForce RTX 3080 Ti (NVMTL over NVIDIA GeForce RTX 3080 Ti (NVK GA102-A))`
+- System Report: **12 GB VRAM** recognised, PCI `10de:2208`, revision `00a1`, PCIe x16
+- System Report: **Metal Support: Metal 3**
+- One DisplayPort-connected ultrawide at **3440 × 1440, 60.00 Hz**, 24-bit framebuffer
+- OpenCore: `DBG-108-2026-09-27`
+- 1401 installer preflight: package SHA-256 checked; test kernel collection accepted all four kexts; internal EFI identified and backed up
+- GPU kext `kmutil` listing **not yet captured after installation**
+- Real Metal GPU workload **not yet independently tested**
+- Other modes / refresh rates **not tested** on 1.11.0
+
+**Interpretation:** This is confirmed startup/driver detection and Metal 3 advertisement on previously unvalidated GA102 hardware, not yet a verified rendering/compute benchmark or proof that display switching is fixed. Preserve 3440 × 1440 @ 60 Hz for a stable baseline and collect minimally invasive kext/Metal tests before attempting mode changes.
+
+Private monitor serial number, Mac serial numbers and machine-specific identifiers are intentionally excluded from this public log.
+
 ## First diagnostic goal
 
 1. Record installed driver release and exact macOS build.
