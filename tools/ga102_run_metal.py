@@ -3,8 +3,8 @@
 
 No driver settings, display APIs, sudo, installation, or production-cache deletion.
 Optional --isolated-cache uses test-owned Mesa/AIR caches; repeat uses the same
-scratch directories to compare cold/warm processes. Logs stay in supplied output
-directory (default: a new /tmp directory), never auto-committed.
+scratch directories to compare process starts (other compiler caches remain).
+Logs stay in a new private temporary directory, never auto-committed.
 """
 import argparse
 import os
@@ -14,7 +14,8 @@ import subprocess
 import tempfile
 
 ROOT = Path(__file__).resolve().parent.parent
-PROBES = ("ga102_metal_smoketest", "ga102_metal_render_smoketest", "ga102_metal_benchmark")
+PROBES = ("ga102_metal_smoketest", "ga102_metal_render_smoketest", "ga102_metal_benchmark",
+          "ga102_metal_memory", "ga102_metal_present", "ga102_metal_composite")
 
 
 def run_owned(command, log, timeout, env=None):
@@ -47,6 +48,7 @@ def main():
     parser.add_argument("--repeat", type=int, choices=range(1, 4), default=1)
     parser.add_argument("--isolated-cache", action="store_true")
     parser.add_argument("--surface-comparison", action="store_true", help="Benchmark matching BGRA8 targets at 3440x1440 only")
+    parser.add_argument("--graphics-copy-queue", action="store_true", help="Attempt test-process-only NVRM_610_CECHAN=0; verify engine selection in logs (installed builds may differ)")
     args = parser.parse_args()
     if args.surface_comparison and args.probe != "ga102_metal_benchmark":
         parser.error("--surface-comparison requires ga102_metal_benchmark")
@@ -54,6 +56,8 @@ def main():
     print(f"Local diagnostic scratch: {scratch}", flush=True)
     executable = scratch / args.probe
     env = os.environ.copy()
+    if args.graphics_copy_queue:
+        env["NVRM_610_CECHAN"] = "0"
     if args.isolated_cache:
         for key, name in [("MESA_SHADER_CACHE_DIR", "mesa"), ("NVMTL_AIRCACHE", "air")]:
             folder = scratch / name

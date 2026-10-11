@@ -1,6 +1,7 @@
 # GA102 desktop acceleration investigation
 
-Status: architecture audited; bounded runtime testing and source fixes in progress, 2026-10-11.
+Status: initial architecture audit and bounded investigation completed; validated
+cache source fix published; desktop root cause unresolved, 2026-10-11.
 Branch: `dev/ga102-3080ti-diagnostics`. Starting revision: `c52e088`.
 
 ## Scope and operating constraints
@@ -314,3 +315,174 @@ environment choices remain untouched, unsuitable directories are rejected,
 No claim of improved WindowServer cache hits or desktop frame pacing is made:
 the installed binary remains unchanged. Rollback is a normal revert of this
 source commit, with no system rollback necessary.
+
+## Milestone 4 — rendering, memory and presentation separated
+
+### Matching-format IOSurface comparison
+
+`tools/ga102_metal_benchmark.swift --surface-comparison` compares native-size
+BGRA8 private and IOSurface targets. Two processes passed all changing-frame
+pixel checks and supplied 24 valid GPU samples per case:
+
+| Target | GPU p50 / p95, run 1 (ms) | GPU p50 / p95, run 2 (ms) | Completion p95, runs 1 / 2 (ms) |
+|---|---:|---:|---:|
+| BGRA8 private | 0.0584 / 0.0625 | 0.0594 / 0.0604 | 0.1668 / 0.7010 |
+| BGRA8 IOSurface | 0.5714 / 0.5734 | 0.5714 / 0.5744 | 0.9138 / 0.9038 |
+
+The roughly 9.6× GPU-duration difference survives pixel-format matching.
+**Hypothesis:** linear imported-surface layout versus ordinary tiled VRAM is a
+contributor; residency and cache behavior require profiling to establish cause.
+Do not generalize this simple draw ratio to all compositing workloads.
+Fresh process-owned AIR/Mesa directories did not restore the initial 99 ms
+library cost: later new directories yielded approximately 0.7 ms. Apple compiler
+services or other caches remain outside this isolation; these are not globally
+cold compiler measurements.
+
+### Memory placement workload
+
+Added `tools/ga102_metal_memory.swift`: 4 MiB buffers, eight sequential compute
+passes per storage mode, separate transfers, and all 1,048,576 output elements
+checked per mode. Shared, managed and private all **PASS**.
+
+| Buffer | Reported GPU duration per pass (ms) | Final readback (ms) |
+|---|---:|---:|
+| shared | 0.229–0.268 | 0.952 |
+| managed | 0.011–0.014 | 0.214 |
+| private | 0.011–0.012 | 0.223 |
+
+This is an observed approximately 20× shared-buffer penalty in a bandwidth-heavy
+compute workload, consistent with source allocation paths. It is not a measured
+WindowServer penalty or justification to relocate CPU-accessible shared memory
+blindly. Managed upload can be deferred until command execution; the CPU initial
+upload times are not equivalent end-to-end DMA measurements. Full-buffer checks
+also exercise producer-to-compute-to-readback ordering.
+
+### Sampled alpha compositing
+
+Added `tools/ga102_metal_composite.swift`: BGRA8 3440 × 1440 targets, 16/32
+full-screen layers, three sampled premultiplied-alpha source textures, changing
+source order per frame, blending, separate blit readback, and 16 distributed
+pixel checks. Two warmups and eight measured frames per case; all four cases
+**PASS**, with eight valid GPU samples each.
+
+| Layers / target | GPU p50 / p95 (ms) | Encode-to-completion p95 (ms) |
+|---|---:|---:|
+| 16 / private | 0.799 / 0.807 | 0.995 |
+| 16 / IOSurface | 1.312 / 1.347 | 1.521 |
+| 32 / private | 1.571 / 1.617 | 1.804 |
+| 32 / IOSurface | 2.087 / 2.101 | 2.451 |
+
+The IOSurface penalty is much smaller as a ratio in this layered workload.
+These samples remain below a 60 Hz frame budget. This exercises sampled texture
+bindings and alpha blending, but does not reproduce blur, masks, sRGB conversion,
+video surfaces, Core Animation's actual shader mix, or cross-process ownership.
+Eight samples make p95 close to the maximum; this is a screening result, not a
+statistically established optimization or comparison against another driver.
+
+### Windowed presentation and visibility limitations
+
+Added `tools/ga102_metal_present.swift`: a six-second ordinary 640 × 360
+CAMetalLayer window, 120 submissions at a 60 Hz timer cadence, maximum three
+outstanding commands, existing display mode, and automatic window closure.
+No display-setting API is called. External runner deadline remains 45 seconds.
+
+Three runs completed all 120 command buffers without errors, backlog or timer
+skips. The first run returned 120 presented callbacks, 118 positive timestamps,
+and 107 post-warmup intervals: p50 **16.667 ms**, p95 **17.646 ms**, max
+**17.820 ms**, none above 25 ms. The two subsequent runs returned 120 callbacks
+but **zero positive presentation timestamps**. The final run's framebuffer flip
+count stayed **115285 → 115285** throughout the window lifetime. Consequently,
+those runs provide GPU-completion evidence but no visible-presentation evidence.
+Visibility/session/display activity was not forced or changed to investigate it.
+The two initially zero timestamps and later missing timing remain unexplained.
+
+[Apple documents `presentedTime`](https://developer.apple.com/documentation/metal/mtldrawable/presentedtime)
+as presentation timing; this probe does not independently verify physical scanout
+or input-to-photon latency. A successful callback alone cannot establish a visible
+frame. The one usable run is insufficient to claim consistently smooth desktop
+pacing. The test reports timing **UNAVAILABLE** separately from submission PASS.
+
+Later passive counters were: transactions 115286, flips 115285, refusals/failures/
+async drops/non-VRAM/stale flip counters all zero. This supports successful
+zero-copy display operation during the investigation; unchanged counters during
+an individual test must be retained as a visibility caveat.
+
+### NVK warnings and control/provenance limitations
+
+A process-only `NVRM_610_CECHAN=0` comparison was attempted using the runner's
+`--graphics-copy-queue` option. The checked-out `nvrm610_on` honors this setting,
+but the installed binary still emitted the dedicated-copy failure/fallback
+warning. Therefore the run is **not a verified queue A/B experiment**. Correct
+pixels and durations similar to the default run do not prove the dedicated-copy
+fallback is cheap or costly. Identify installed-binary/source correspondence and
+log the exact failed RM allocation/control plus chosen engine before making
+changes. No production configuration was modified.
+
+The fallback creates a copy queue on a graphics channel; it does not establish
+CPU copies or shader-emulated copies. Existing optional sector-promotion status
+0x56 is `NV_ERR_NOT_SUPPORTED`, not a fatal initialization failure. BAR1 remains
+8 GiB for 12 GiB VRAM; forcing mapped-local VRAM would violate the current
+source's full-aperture requirement. No such override was attempted.
+
+### Other source findings and deferred changes
+
+- `NVMTLCommandBuffer::commitAndWaitUntilSubmitted` and
+  `NVMTLEventSync::nvmtlFinishExecution` serialize scanout preparation with GPU
+  completion. This remains a plausible pacing/latency bottleneck; the wait is
+  presently required for correct render-to-scanout ordering. Removing it without
+  a fence bridge is not a justified low-risk fix.
+- Active `NVRMFB::submitConfig` completion polling uses 1 ms sleeps. Existing
+  legacy latch counters have no update sites. Instrument this actual completion
+  loop before optimizing polling or declaring timeout counts clean.
+- NVK `nvmtl_cfg_getenv`, duplicated `nvmtl_conf_getenv`, and `nvrm610_on` in
+  `nvk/nvk-macos.patch` use first-match `strstr` followed by a line-start check.
+  **Source defect:** a comment such as `# CECHAN=0` before `CECHAN=1` can hide the
+  valid assignment. Static initialization/value buffers are also unsynchronized;
+  concurrent use is a potential race, not reproduced in these workloads. No
+  evidence makes either the current desktop cause. Defer parser consolidation
+  until a complete Mesa build and production-parser regression tests are available.
+- Main graphics/compute pipeline creation passes `VK_NULL_HANDLE` for Vulkan
+  pipeline cache; Mesa's internal shader cache still exists. Metal binary archive
+  membership serialization is not a persisted compiled-pipeline cache. Measure
+  actual cold/warm service behavior before choosing a persistence implementation.
+- Current grant counters do not indicate pressure. Residency/pager wait budgets
+  in source are potential stalls under pressure, not observed failures here.
+
+### Prioritized next work and acceptance
+
+1. **Visible-session frame trace:** repeat the presentation probe while its
+   window is verifiably visible; correlate WindowServer CPU/GPU timing, actual
+   display counter deltas and intervals. Require three usable runs, no errors,
+   report frames above 25 ms and explicit timestamp availability. Capture complex
+   effects and input latency separately; do not manipulate display modes.
+2. **Cross-process IOSurface correctness:** synchronized producer/consumer GPU
+   writes and reads, repeated updates, then mixed textures/blur/masks. Existing
+   same-process tests do not establish cross-process coherence or lifetime safety.
+3. **Fence-to-display bridge and observability:** add actual NVK fence/completion
+   and NVKMS polling measurements in source, build the paired display stack in
+   isolation, design a scanout ordering replacement before relaxing waits.
+4. **NVK provenance/copy queue:** reproduce the failed RM operation with a
+   known matching build, then compare copy/graphics overlap and transfer sizes.
+   Acceptance requires verified engine selection, correct data and repeatable
+   improvement; silencing a warning is not an optimization.
+5. **Cache deployment evaluation:** the source-only correction passes its local
+   acceptance tests. With future explicit installation approval, verify writable
+   cache paths and hit rates for the actual WindowServer identity and compare
+   first library/pipeline latency. Current tests do not prove service cache hits.
+
+## Consolidated outcome
+
+GA102 firmware/startup, GPU compute, render targets, sampled alpha blending,
+managed/private transfers and observed zero-copy display flips work in the tested
+paths. Metal 3 reporting alone never served as acceptance evidence. Proven issues
+include the recorded default-cache failure, two corrected source path-selection
+bugs, misleading inactive latch counters, and the source parser edge case.
+Observed costs include first-pipeline creation near one frame, shared-buffer
+bandwidth and imported-surface rendering overhead. None yet establishes the
+root cause of subjective desktop sluggishness.
+
+The only driver implementation change made is the regression-tested cache policy
+correction (`f3ebd0c`); it was built but not installed or loaded. Test additions
+and this report are independently reviewable. No system/graphics configuration,
+installed driver, EFI, SIP, system permissions, display mode or refresh rate was changed;
+no sudo, reboot, service interruption or production-cache deletion occurred.
