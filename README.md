@@ -133,6 +133,22 @@ build/build263.sh          # NVK: apply nvk/nvk-macos.patch to Mesa 17ca6174 fir
 build/accel_build.sh <src> <out>  # kexts
 ```
 
+For isolated macOS 15 display-component builds from this checkout, use:
+
+```bash
+python3 build/build_display.py --vendor /path/to/open-gpu-kernel-modules --output /new/output/directory
+# Optional: --vulkan-headers /path/to/Vulkan-Headers/include builds the release Metal binary too.
+```
+
+This pins NVIDIA `610.57.04`, uses its checked-in `kernel-open/nvidia-modeset/nvkms.h`,
+and builds NVRMFB, NVAccel and NVRMAGDC without installing anything. It does **not**
+build a complete driver release: NVRM requires the matching Darwin vendor archives
+and build recipe; NVK, the translator and packaging must also be built and verified.
+The older scripts above reference external author build trees, and
+`accel_build.sh` builds NVAccel alone. See
+[build remediation](docs/GA102-INVESTIGATION.md#build-remediation--11-october-2026)
+for the verified component status and remaining dependencies.
+
 ## License
 
 Free of charge, source code included. Nobody may sell it or use it to make money.
