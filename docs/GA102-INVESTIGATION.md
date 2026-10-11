@@ -2178,3 +2178,89 @@ retrying restoration. No authenticated-root change is justified. Restoring SIP
 after successful recovery is a separate recovery step; OpenCore boot policy may
 affect effective SIP state, so the command alone cannot prove the next boot's
 security state. Normal original-driver boot remains NOT VERIFIED.
+
+### Recovery confirmed; failed candidate retired — 11 October 2026
+
+**Original stack restoration PASS. Experimental boot/stability FAIL. No further
+live deployment authorized.** The user reports successful normal SSD OpenCore
+boot after restoring the saved original framebuffer and auxiliary collection.
+USB OpenCore had permitted OS access without the NVIDIA stack (generic 22 MB
+graphics), so that session was not evidence of candidate acceleration or a
+working NVIDIA boot. The following read-only checks now independently confirm
+the restored desktop's driver identity:
+
+- All four NullMoth kexts loaded: NVRM, NVAccel, NVRMAGDC and NVRMFB.
+- Loaded NVRMFB UUID `CC151F75-1305-3928-AA0F-B8BC96EF30A3`, the original;
+  candidate UUID `9E00EE15-E50D-3106-A8C1-8B6D053962E9` is not loaded.
+- Installed framebuffer SHA256
+  `a2a3cf961df1aae872d500142b8c146ecd660a369f364d843f42c3fb4bd21e71`;
+  installed auxiliary collection SHA256
+  `362eb218919f7783440035cf19f02fb05b73a749836fa942e8a9b90f1d973526`.
+  Both equal the pre-test baseline. Original framebuffer, unchanged driver
+  components and base-system manifests all PASS.
+- System profiler recognises RTX 3080 Ti, device `0x2208`, PCIe x16,
+  12 GB VRAM and Metal 3.
+- One existing bounded compute test PASS (2, 4, 6, 8); one existing offscreen
+  render test PASS (RGBA8 64, 127, 191, 255). Both explicitly identify
+  NVMTL over NVK GA102-A. These establish restored scoped GPU correctness,
+  not physical scanout verification or smoothness/performance improvement.
+
+**Actual recovery:** user entered USB Recovery, ran `csrutil disable`, still
+encountered a rejected live restoration, then returned to USB Recovery and ran
+`GO.sh`. Inspection of the saved script shows it copied the original collection,
+restored the original framebuffer archive and ownership before its final `cmp`
+checks. Recovery lacked `cmp`, so those final checks did not run. The successful
+SSD boot and current full-file hashes now provide the missing verification.
+The prepared shell helper also depended on `shasum`, which was unavailable in
+the user's Recovery environment. Desktop utility availability is insufficient
+to qualify a recovery plan. Its required utilities are now explicitly checked
+before any mutation; Recovery execution remains unqualified if a dependency is
+missing. No new Recovery deployment framework is being developed.
+
+**Effective security:** current `csrutil status` reports a custom configuration:
+kext-signing, filesystem and NVRAM protections disabled; debugging, DTrace and
+BaseSystem verification enabled. This is neither fully enabled nor a blanket
+disabled result. Current `csr-active-config` decodes to `0x0a43`. The earlier
+fully enabled observation came from USB OpenCore and cannot establish the prior
+SSD configuration. The original effective SSD security mask was not recorded
+before deployment. SSD OpenCore policy affecting effective SIP is a hypothesis;
+no SSD EFI configuration was mounted or changed. Do not blindly run
+`csrutil enable`: the original unsigned driver stack's required policy must be
+established from the SSD OpenCore configuration and a trustworthy pre-test
+backup before proposing a change. Current policy remains unchanged by the agent.
+
+**Offline failure evidence:** inspection of original and failed collections
+finds the same six kext identifiers; all UUIDs except NVRMFB match (the collection
+UUID also changes). Build log contains only release-variant notices, no captured
+link/build error. No panic report is available in the system diagnostic-report
+directory. Returning the original bundle and collection restored normal SSD
+boot, implicating the experimental package, but does not isolate rebuilt
+collection/runtime linkage from replacement framebuffer behavior. Both changed
+together. Matching source inputs, UUIDs, compile success and collection inspection
+did not establish binary ABI, initialization or boot compatibility. Neither SIP
+nor OpenCore is proven to have caused the initial hang; SIP protection is proven
+to have blocked live rollback. Runtime initialization/sysctl instrumentation,
+compiler/SDK compatibility and collection construction remain hypotheses,
+not diagnosed defects. A boot transcript/panic or an independently qualified
+unchanged-baseline build is needed before assigning a specific cause.
+
+Preserved `/Library/GA102-Framebuffer-Test`, original backups and failed binaries;
+made an additional local copy at
+`~/Developer/ga102-release-artifacts/failed-live-20261011`, verified every copied
+deployment file's hash and saved the actual USB `GO.sh`. Raw logs, private paths,
+configuration and binaries stay local. Original backups and USB evidence were
+not overwritten. The failed deployment helper now refuses non-check execution
+before root operations; candidate is retired. Existing five publication tests
+PASS and Recovery-helper shell syntax PASS. Those checks still do not qualify
+boot/recovery behavior.
+
+**Next safe engineering work:** review the replacement binary's initialization
+and ABI differences against the authentic framebuffer and qualify an isolated,
+unchanged-baseline build/collection before considering instrumentation changes.
+Resolve Recovery utility availability and protected-file rollback on the exact
+target environment before any future deployment proposal. Preserve the mandatory
+render-to-scanout waits. The existing shader-cache correctness patch remains
+source-only; user-space correctness/build work is the safer optimization route
+while kernel boot compatibility remains unresolved. No new performance fix,
+installed collection build, security change, reboot or live experiment is approved
+or performed. Desktop performance improvement remains NOT VERIFIED.

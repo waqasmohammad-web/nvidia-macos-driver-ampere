@@ -3,6 +3,11 @@
 # Never disables security, changes EFI, loads a kext, or reboots automatically.
 set -eu
 fail() { echo "STOP: $*" >&2; exit 1; }
+# Recovery omits utilities available on the desktop. Detect every dependency
+# before backing up or changing files; command presence is not boot validation.
+for utility in id dirname stat diskutil plutil shasum cut tar mktemp ditto cp chown chmod; do
+    command -v "$utility" >/dev/null 2>&1 || fail "Required Recovery utility missing: $utility. No files changed."
+done
 [ "$#" -eq 2 ] || fail 'Usage: sh RESTORE-ORIGINAL.sh /Volumes/SYSTEM /Volumes/DATA'
 SYSTEM=$1
 DATA=$2
@@ -17,7 +22,6 @@ DATA_GROUP=$(diskutil info -plist "$DATA" | plutil -extract APFSVolumeGroupID ra
 [ -d "$DATA/Library/Extensions/NVRMFB.kext" ] || fail 'Target framebuffer missing.'
 # Refuse the current live Library even when reached through an alternate mount.
 [ "$(stat -f '%d:%i' "$DATA/Library")" != "$(stat -f '%d:%i' /Library)" ] || fail 'Refusing the active OS. Boot USB Recovery first.'
-command -v shasum >/dev/null || fail 'shasum unavailable in this Recovery environment.'
 (cd "$USB" && shasum -a 256 -c SHA256SUMS) || fail 'USB backup verification failed.'
 (cd "$SYSTEM" && shasum -a 256 -c "$USB/BASE-SYSTEM-SHA256SUMS") || fail 'Wrong System volume or changed OS.'
 (cd "$DATA" && shasum -a 256 -c "$USB/UNCHANGED-DRIVER-SHA256SUMS") || fail 'Wrong Data volume or changed driver dependencies.'

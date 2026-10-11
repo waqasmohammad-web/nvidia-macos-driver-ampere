@@ -135,6 +135,8 @@ def main():
     print('PASS: pinned candidate, installed baseline and critical recovery hashes', flush=True)
     if a.check:
         return
+    require(False, 'This candidate failed the live boot test. Deployment is retired; '
+                   'a reviewed replacement and renewed approval are required.')
     require(os.geteuid() == 0, 'Run in Terminal with sudo; do not send a password to the agent')
     LOCK.mkdir()  # Existing installer locks are never removed or bypassed.
     try:
