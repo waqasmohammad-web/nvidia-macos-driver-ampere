@@ -1747,3 +1747,98 @@ captured layer's cadence, separating per-layer recycling/capture behavior from
 an entire compositor scheduling limit. Real desktop root attribution remains
 unresolved, with installed fence/flip phase instrumentation unavailable under
 the current no-deployment restrictions.
+
+### Engineering decision: stop diagnostic expansion; gate a synchronization fix
+
+The user's direction supersedes the preceding suggested capture experiments.
+No further ScreenCaptureKit, run-loop, AppKit or synthetic presentation runs
+were started for this decision. Two local diagnostic files from the preceding
+sequence remain parked, uncommitted; they are not a driver performance patch.
+
+**Selected candidate:** serialization of WindowServer rendering and framebuffer
+flip completion. `plugin/NVMTLObjects.m::commitAndWaitUntilSubmitted` waits for
+GPU completion in WindowServer because NVAccel cannot currently order its swap
+after an NVK fence. `plugin/NVMTLEventSync.m::nvmtlFinishExecution` includes
+presentation actions before publishing completion.
+`kexts/NVRMFB/fb/nvrm-fb.cpp::submitConfig` checks prior primary completion,
+applies the request, and waits for submitted completion with 1 ms polling.
+This is the release framebuffer source; the nested `kexts/NVRM/fb` duplicate
+must not be patched by assumption. These mechanisms establish potential
+serialization, **not proven redundant waits**.
+
+**Existing supporting evidence, not a new benchmark:** three already completed
+capture-disabled runs paired the Metal client with a separate uncaptured Core
+Animation client. All produced 120 correct, different Metal GPU frames, 119
+positive presentation timestamps and 240 companion client submissions, with
+zero new flip errors/drops. Excluding startup, Metal reported intervals were:
+
+| Run | p50 ms | p95 ms | p99 ms | Intervals >25 ms |
+| --- | ---: | ---: | ---: | ---: |
+| 1 | 16.701 | 17.303 | 17.541 | 0 |
+| 2 | 16.671 | 17.398 | 33.701 | 3 |
+| 3 | 16.762 | 33.088 | 33.659 | 8 |
+
+At those late adjacent frames, client commit intervals were approximately
+16.3–18.1 ms, acquisition at most 2.36 ms, GPU execution approximately 0.062 ms
+and completion callbacks approximately 0.20–0.31 ms after commit. This supports
+late delivery after prompt client GPU completion in a multi-client workload
+without capture. It does not identify WindowServer's own GPU execution/wait,
+NVKMS polling, refresh scheduling or callback reporting as the cause. Companion
+submissions do not prove companion presentation. Software cannot establish
+physical scanout here. Shared flip-call means were 11.05–12.08 ms; these global
+durations include legitimate completion/refresh synchronization and cannot be
+assigned to individual late frames. Missing capture frames are excluded from
+this argument. Existing sanitized measurements are preserved in
+[`evidence/ga102-engineering-decision.json`](evidence/ga102-engineering-decision.json).
+
+**Correction decision:** no performance implementation change is justified yet.
+In particular, changing WindowServer to wait only for submission, reducing
+completion deadlines, or retiring a surface before verified completion can
+expose unfinished pixels or freed memory. IOSurface copy costs have not been
+shown to dominate this real path, so a copy or placement optimization is not
+selected. Shader-cache correctness work remains source-only and does not prove
+an improvement to this presentation symptom.
+
+**One missing experiment:** in an approved maintenance window, use an
+instrumented driver build retaining every synchronization and lifetime rule to
+correlate WindowServer GPU-wait duration with prior-flip wait, NVKMS apply time
+and submitted-flip wait during one fixed everyday desktop animation/scroll
+workload, with capture disabled at 3440×1440/60 Hz. Existing source-only
+`debug.nvrmfb_completion_*` counters at commit `b6b9505` supply aggregate
+prior/submitted wait accounting; they do not yet supply per-frame WindowServer
+correlation or prove a wasted wait. The exact missing measurement is how much
+of a late frame's critical path is required GPU execution, actual pending
+scanout, poll detection latency, or compositor scheduling. No new general
+diagnostic framework is proposed and this experiment was not run.
+
+If redundant serial waiting is demonstrated, the correction should transfer
+the render-completion dependency to the display submission using a supported
+fence, retaining surfaces until actual flip completion. Availability and
+correctness of that fence bridge are **NOT VERIFIED**; this is a conditional
+design, not a patch ready for deployment. Expected benefit cannot honestly be
+quantified until the critical-path measurement exists. A subsequent controlled
+baseline/candidate comparison must use the same everyday workload and measure
+steady frame-interval p95/p99, counts above 25 ms and input-to-presentation
+latency where available. Target: delivery near the 16.67 ms refresh interval,
+fewer 33 ms intervals, no correctness or lifetime regressions. Faster synthetic
+GPU execution alone would not meet the target.
+
+**Risk, rollback and blocker:** changing this dependency can cause corruption,
+tearing, hangs or a black desktop. Source rollback is an ordinary revert;
+live rollback must restore the exact retained working 1.11.0 component set
+through a prearranged recovery path. That procedure is technically necessary
+but has not been tested, and cannot be guaranteed without an approved restart
+and recovery window. Existing poll-helper tests passed 39 ASan/UBSan assertions
+and SDK accounting checks, but the full framebuffer build remains blocked on
+generated `nvkms.h`; no deployable artifact is asserted. No code was installed,
+no mandatory wait changed, and no system/display setting changed.
+
+**Status:** measured software delivery excursions **FAIL** the existing pacing
+target in two of three runs; actual desktop root cause and physical scanout
+remain **NOT VERIFIED**. Selecting and validating a driver performance fix is
+**BLOCKED** by missing live critical-path evidence and the current prohibition
+on replacing active graphics components/restarting the session. A performance
+A/B test is necessary once a supported fix exists; an instrumentation-only
+live run must precede it. No installation approval is requested for an
+unbuilt/unvalidated candidate. This cycle ends at that decision rather than
+starting another client-side diagnostic sequence.

@@ -1,0 +1,214 @@
+{
+  "scope": "Previously completed capture-disabled two-client experiment; no new experiments for this decision.",
+  "physical_scanout": "NOT VERIFIED",
+  "ca_presented_contents": "NOT VERIFIED: companion uncaptured",
+  "source_hashes": {
+    "metal": "8ad6c47a648cdc23355a5708d8ddc9364b70b82763811c15020747d7cfbc67d7",
+    "ca": "f6d3b3752c35b2e272eea70415e4974e2a80476dc4c2984800bb87d75732cb08"
+  },
+  "runs": [
+    {
+      "exit_code": 0,
+      "capture_disabled": true,
+      "gpu_correct_frames": 120,
+      "gpu_distinct_patterns": 120,
+      "positive_timestamps": 119,
+      "steady_reported_presentation": {
+        "above_25ms": 0,
+        "max_ms": 17.624271000386216,
+        "p50_ms": 16.701117994671222,
+        "p95_ms": 17.303458997048438,
+        "p99_ms": 17.54059000086272,
+        "samples": 109
+      },
+      "late_adjacent_frames": [],
+      "display_correlation": {
+        "deltas": {
+          "debug.nvaccel_iop_ok": 224,
+          "debug.nvaccel_iop_flips": 224,
+          "debug.nvaccel_iop_async_refused": 0,
+          "debug.nvaccel_iop_async_drop": 0,
+          "debug.nvaccel_iop_fail": 0,
+          "debug.nvrmfb_flip_n": 224,
+          "debug.nvrmfb_flip_us_sum": 2705909
+        },
+        "available_counters": 7,
+        "mean_flip_call_us": 12079.950892857143,
+        "visible_presentation": "candidate",
+        "note": "system-wide counters, not exclusively this window; flip duration includes completion wait"
+      },
+      "companion_exit_code": 0,
+      "companion_submitted_frames": 240,
+      "companion_missed_display_ticks": 0
+    },
+    {
+      "exit_code": 0,
+      "capture_disabled": true,
+      "gpu_correct_frames": 120,
+      "gpu_distinct_patterns": 120,
+      "positive_timestamps": 119,
+      "steady_reported_presentation": {
+        "above_25ms": 3,
+        "max_ms": 33.71627799788257,
+        "p50_ms": 16.670545002853032,
+        "p95_ms": 17.397911004081834,
+        "p99_ms": 33.70069900120143,
+        "samples": 109
+      },
+      "late_adjacent_frames": [
+        {
+          "frame": 16,
+          "reported_interval_ms": 33.71627799788257,
+          "commit_interval_ms": 16.690458003722597,
+          "acquisition_ms": 0.013388002116698772,
+          "gpu_ms": 0.06246400153031573,
+          "commit_to_completion_callback_ms": 0.2674859933904372,
+          "completion_callback_to_actor_ms": 0.028479000320658088
+        },
+        {
+          "frame": 95,
+          "reported_interval_ms": 33.70069900120143,
+          "commit_interval_ms": 16.33402400329942,
+          "acquisition_ms": 0.8239020025939681,
+          "gpu_ms": 0.06143999780761078,
+          "commit_to_completion_callback_ms": 0.26159899425692856,
+          "completion_callback_to_actor_ms": 0.01876600435934961
+        },
+        {
+          "frame": 101,
+          "reported_interval_ms": 32.656249997671694,
+          "commit_interval_ms": 17.009050003252923,
+          "acquisition_ms": 1.533395996375475,
+          "gpu_ms": 0.06143999780761078,
+          "commit_to_completion_callback_ms": 0.2815939951688051,
+          "completion_callback_to_actor_ms": 0.026638001145329326
+        }
+      ],
+      "display_correlation": {
+        "deltas": {
+          "debug.nvaccel_iop_ok": 226,
+          "debug.nvaccel_iop_flips": 227,
+          "debug.nvaccel_iop_async_refused": 0,
+          "debug.nvaccel_iop_async_drop": 0,
+          "debug.nvaccel_iop_fail": 0,
+          "debug.nvrmfb_flip_n": 227,
+          "debug.nvrmfb_flip_us_sum": 2508338
+        },
+        "available_counters": 7,
+        "mean_flip_call_us": 11049.947136563876,
+        "visible_presentation": "candidate",
+        "note": "system-wide counters, not exclusively this window; flip duration includes completion wait"
+      },
+      "companion_exit_code": 0,
+      "companion_submitted_frames": 240,
+      "companion_missed_display_ticks": 0
+    },
+    {
+      "exit_code": 0,
+      "capture_disabled": true,
+      "gpu_correct_frames": 120,
+      "gpu_distinct_patterns": 120,
+      "positive_timestamps": 119,
+      "steady_reported_presentation": {
+        "above_25ms": 8,
+        "max_ms": 34.20609299791977,
+        "p50_ms": 16.761572995164897,
+        "p95_ms": 33.08841399848461,
+        "p99_ms": 33.65851999842562,
+        "samples": 109
+      },
+      "late_adjacent_frames": [
+        {
+          "frame": 41,
+          "reported_interval_ms": 33.01104200363625,
+          "commit_interval_ms": 16.660573994158767,
+          "acquisition_ms": 0.015081997844390571,
+          "gpu_ms": 0.061440005083568394,
+          "commit_to_completion_callback_ms": 0.28964400553377345,
+          "completion_callback_to_actor_ms": 0.018608996469993144
+        },
+        {
+          "frame": 43,
+          "reported_interval_ms": 33.08841399848461,
+          "commit_interval_ms": 17.515343002742156,
+          "acquisition_ms": 0.788254001236055,
+          "gpu_ms": 0.06137600576039404,
+          "commit_to_completion_callback_ms": 0.20374399900902063,
+          "completion_callback_to_actor_ms": 0.025615001504775137
+        },
+        {
+          "frame": 47,
+          "reported_interval_ms": 32.977638002194,
+          "commit_interval_ms": 18.10274199669948,
+          "acquisition_ms": 2.3512369953095913,
+          "gpu_ms": 0.06143999780761078,
+          "commit_to_completion_callback_ms": 0.2779749993351288,
+          "completion_callback_to_actor_ms": 0.026332003471907228
+        },
+        {
+          "frame": 54,
+          "reported_interval_ms": 34.20609299791977,
+          "commit_interval_ms": 16.624356001557317,
+          "acquisition_ms": 0.5387210039771162,
+          "gpu_ms": 0.06143999780761078,
+          "commit_to_completion_callback_ms": 0.27752599999075755,
+          "completion_callback_to_actor_ms": 0.01827700180001557
+        },
+        {
+          "frame": 77,
+          "reported_interval_ms": 33.347221004078165,
+          "commit_interval_ms": 16.59717100119451,
+          "acquisition_ms": 1.7637319979257882,
+          "gpu_ms": 0.06246400153031573,
+          "commit_to_completion_callback_ms": 0.3089300007559359,
+          "completion_callback_to_actor_ms": 0.02413799666101113
+        },
+        {
+          "frame": 97,
+          "reported_interval_ms": 33.119038002041634,
+          "commit_interval_ms": 16.554656998778228,
+          "acquisition_ms": 0.532893005583901,
+          "gpu_ms": 0.06143999780761078,
+          "commit_to_completion_callback_ms": 0.27526699705049396,
+          "completion_callback_to_actor_ms": 0.02103600127156824
+        },
+        {
+          "frame": 111,
+          "reported_interval_ms": 33.1976319939713,
+          "commit_interval_ms": 16.569381004956085,
+          "acquisition_ms": 0.9699519941932522,
+          "gpu_ms": 0.06143999780761078,
+          "commit_to_completion_callback_ms": 0.27318399952491745,
+          "completion_callback_to_actor_ms": 0.014454999472945929
+        },
+        {
+          "frame": 119,
+          "reported_interval_ms": 33.65851999842562,
+          "commit_interval_ms": 16.76334500371013,
+          "acquisition_ms": 1.014784000290092,
+          "gpu_ms": 0.06143999780761078,
+          "commit_to_completion_callback_ms": 0.2820429945131764,
+          "completion_callback_to_actor_ms": 0.01763700129231438
+        }
+      ],
+      "display_correlation": {
+        "deltas": {
+          "debug.nvaccel_iop_ok": 218,
+          "debug.nvaccel_iop_flips": 218,
+          "debug.nvaccel_iop_async_refused": 0,
+          "debug.nvaccel_iop_async_drop": 0,
+          "debug.nvaccel_iop_fail": 0,
+          "debug.nvrmfb_flip_n": 218,
+          "debug.nvrmfb_flip_us_sum": 2504622
+        },
+        "available_counters": 7,
+        "mean_flip_call_us": 11489.091743119267,
+        "visible_presentation": "candidate",
+        "note": "system-wide counters, not exclusively this window; flip duration includes completion wait"
+      },
+      "companion_exit_code": 0,
+      "companion_submitted_frames": 240,
+      "companion_missed_display_ticks": 0
+    }
+  ]
+}
