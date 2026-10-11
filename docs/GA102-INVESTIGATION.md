@@ -2220,7 +2220,10 @@ missing. No new Recovery deployment framework is being developed.
 **Effective security:** current `csrutil status` reports a custom configuration:
 kext-signing, filesystem and NVRAM protections disabled; debugging, DTrace and
 BaseSystem verification enabled. This is neither fully enabled nor a blanket
-disabled result. Current `csr-active-config` decodes to `0x0a43`. The earlier
+disabled result. Separate `csrutil authenticated-root status` reports disabled;
+this is distinct from the BaseSystem-verification line. Its pre-test state is
+not established, and no agent change was made. Current `csr-active-config`
+decodes to `0x0a43`. The earlier
 fully enabled observation came from USB OpenCore and cannot establish the prior
 SSD configuration. The original effective SSD security mask was not recorded
 before deployment. SSD OpenCore policy affecting effective SIP is a hypothesis;
