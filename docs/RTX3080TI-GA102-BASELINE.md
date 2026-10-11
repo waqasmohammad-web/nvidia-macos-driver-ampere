@@ -67,6 +67,24 @@ com.nullmoth.NVAccel (0.1)      loaded
 
 This confirms extension loading, not that compute or rendering workloads are correct. The routine `No variant specified, falling back to release` message from `kmutil` is not a driver load failure.
 
+## Metal device creation — warnings to investigate
+
+A Swift Metal device-discovery test on Sequoia 15.8.1 with NullMoth 1.11.0 printed the following:
+
+```text
+nvrm: b81 PERF_BOOST flags 0x12 INFINITE rc 0x0
+nvrm: b72 host-pointer import ON (probe NV_STATUS 0)
+Failed to create /var/folders/zz/zyxvpxvq6csfxvn_n0000000000000/C/nvmtl-mesa for shader cache (Permission denied)---disabling.
+nvrm: b80 LOCAL+mapped memory -> system RAM (b79 placement) (BAR1 8192 MB, VRAM 12288 MB, default)
+MESA: warning: ../src/nouveau/vulkan/nvkmd/nvrm/nvkmd_nvrm_ctx.c:758: VK_ERROR_UNKNOWN
+nvrm: copy-engine queue could not be built on this GPU (VkResult -13) - copy queue on a graphics channel
+nvrm: b81 SET_LG_SECTOR_PROMOTION 64B rc 0x56
+nvrm: b81 SET_LG_SECTOR_PROMOTION 64B rc 0x56
+Metal GPU: NVIDIA GeForce RTX 3080 Ti (NVMTL over NVIDIA GeForce RTX 3080 Ti (NVK GA102-A))
+```
+
+**Result:** `MTLCreateSystemDefaultDevice()` returned a GPU device. This **does not** prove Metal command-buffer completion, accelerated WindowServer compositing, or correct shader output. The diagnostic errors are recorded without assigning causal responsibility for perceived desktop sluggishness. Shader-cache creation was denied; the copy-engine queue creation failed and the driver printed a graphics-queue fallback. Avoid changing display modes until actual GPU execution is tested.
+
 ## First diagnostic goal
 
 1. Record installed driver release and exact macOS build.
