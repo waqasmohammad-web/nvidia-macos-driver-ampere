@@ -2481,3 +2481,41 @@ python3 tools/air_cache_tests/cache_ab.py --bitcode "$CACHE_AB_DIR/owned-shader.
 The focused A/B is complete. The induced-fault benefit must not be generalized
 to everyday desktop performance; that needs representative actual cache/compiler
 behavior and, for candidate integration, separately authorized live validation.
+
+### Installed-driver Mesa pipeline reuse comparison
+
+Continued safe development rather than stopping at the AIR milestone. New
+`tools/air_cache_tests/mesa_pipeline_probe.swift` creates eight owned compute
+kernels and independently checks all four outputs after bounded GPU completion.
+`mesa_pipeline_ab.py` runs three processes per arm: normal Mesa policy, empty
+owned cache, then fresh-process reuse of that owned cache. Inherited Mesa/XDG
+cache overrides are removed only in children; the owned arm supplies its own
+`MESA_SHADER_CACHE_DIR`. Release initialization preserves this variable. No
+installed graphics component, system configuration or display is changed.
+
+72/72 dispatches produced correct results. Each owned cold run created 35 files,
+2,112,820 bytes; reuse retained that count/size. Across 24 pipeline creations per
+arm, p50/p95 were: default 0.358/16.718 ms; owned cold 1.182/18.575 ms; owned reuse
+0.348/17.526 ms. Aggregate pipeline time was 65.43/81.13/61.82 ms respectively.
+These percentiles combine eight distinct kernels, not 24 identical samples.
+Front-end/AIR caches were retained, so this is not globally cold compilation.
+First baseline library creation took 97.88 ms; subsequent samples were roughly
+0.8–1.2 ms. It would be misleading to attribute that first-library warmup to
+Mesa pipeline persistence. Evidence: `docs/evidence/ga102-mesa-pipeline-ab.json`.
+
+**PASS: correct compute and owned cache persistence. NOT VERIFIED: explicit
+Mesa hit counts or a default-policy performance improvement.** The earlier
+permission-denied warning was not reproduced in these controlled processes.
+Owned reuse is faster than intentionally empty owned cache, but matches the
+current default median. This rules out claiming that merely supplying a cache
+path improves this current baseline. It does not establish WindowServer cache
+health or the cause of desktop sluggishness. No further cache-path timing repeats
+are justified by these results.
+
+Next justified source objective: reduce repeated AIR text disk reads in
+`NVMTLLibraryLoad.m::nvmtl_air_to_text`. Existing code hashes the immutable AIR
+and reads the same persisted IR on every call. The prior healthy-cache A/B
+measured about 20 microseconds per hit. A bounded process-local text cache can
+avoid those reads without touching GPU ordering, pipeline lifetimes or shader
+translation. Validate exact IR equality, key separation, bounded retention and
+thread safety before claiming any measured benefit.
