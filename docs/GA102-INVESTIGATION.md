@@ -1489,3 +1489,50 @@ versus validation-exit reporting. Source-only diagnostics are not a deployed
 performance fix. Any future deployment needs separate evidence, expected
 benefit, risks, rollback procedure and explicit approval; no deployment is
 proposed by these findings.
+
+### Follow-up: completion-handler invocation versus client resumption
+
+The next diagnostic was completed rather than stopping at the capture
+milestone. `ga102_visual_present.swift::complete` now timestamps commit return,
+scheduled-handler invocation and completed-handler invocation on their actual
+callback threads, before resuming the awaiting MainActor. The existing real
+GPU completion wait, readback ordering and presentation action are preserved.
+All clocks are relative; no process identities or pixel buffers are exported.
+
+Three capture-on and three same-binary capture-disabled runs reproduced the
+cadence difference. All 720 GPU frame readbacks were correct, all full
+visibility samples eligible, and framebuffer error/drop deltas zero. Capture-on
+runs each captured all 120 IDs and returned 120/119/118 positive timestamps;
+their cadence gate remains **FAIL**. Capture-disabled runs returned 119 each,
+passed cadence and remain overall **NOT VERIFIED** for deliberately absent
+capture. Per-ID callback traces are complete and CPU ordering consistent.
+
+**Confirmed client scheduling stall:** each capture-on run has one long
+frame-16 commit-to-client-resumption interval. Completed-handler invocation is
+only 0.289–0.369 ms after commit; subsequent MainActor resumption takes
+18.141–18.331 ms. GPU execution is 0.061–0.062 ms. Across steady frames,
+completion-handler p95 is 0.358–0.368 ms and p99 0.382–0.386 ms; resumption p95
+is 0.029–0.042 ms, p99 0.373–0.389 ms, with the isolated >18 ms maximum retained.
+Commit-return p95 is 0.038–0.042 ms; scheduled-handler p95 0.075–0.104 ms.
+The three capture-disabled controls have no >5 ms client completion intervals;
+resumption maxima are 0.042–0.079 ms. This directly distinguishes the observed
+long client wait from a long GPU completion-handler wait. It does not identify
+which AppKit/run-loop task or scheduling mechanism blocked the MainActor.
+
+This isolated resumption stall also does **not** explain the sustained
+17.5 ms drawable-acquisition wait/33 ms capture-on cadence; those remain separate
+observations. SCK interaction with compositor/surface recycling is the leading
+capture-specific hypothesis, but no kernel fence or NVKMS fault is demonstrated.
+Existing source `nvmtlFinishExecution` still orders presentation before completed
+callbacks; measuring a callback is not measuring the raw GPU fence instant.
+No mandatory synchronization was changed and no performance fix was deployed.
+
+Evidence: [`evidence/ga102-command-callback-stages.json`](evidence/ga102-command-callback-stages.json).
+The independent analysis rejects reversed CPU callback/resumption clocks and
+separates callback latency from actor latency; 45 regression tests PASS.
+The meaningful next diagnostic is own-client main-queue/run-loop timing around
+this repeatable stall, paired with capture metadata timestamps. For the actual
+ordinary desktop bottleneck, per-phase WindowServer/NVAccel/NVKMS fence and
+flip observations remain unavailable in the installed build; synthetic client
+results cannot substitute for them. Source-only counters remain awaiting live
+validation, under the unchanged prohibition on replacing active components.

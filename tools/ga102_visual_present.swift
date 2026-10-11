@@ -75,11 +75,19 @@ func visible(_ full:Bool=true)->Bool {
     let session=CGSessionCopyCurrentDictionary() as? [String:Any]
     return window.isVisible && window.isOnActiveSpace && window.occlusionState.contains(.visible) && CGDisplayIsAsleep(display)==0 && CGDisplayIsActive(display) != 0 && (session?[kCGSessionOnConsoleKey as String] as? Bool)==true
 }
-let lock=NSLock();var times=[Int:Double]()
+let lock=NSLock();var times=[Int:Double](),commandCallbacks=[Int:[String:Double]]()
 func timeSnapshot()->[Int:Double] {lock.lock();defer{lock.unlock()};return times}
-func complete(_ commands:MTLCommandBuffer) async {
+func complete(_ commands:MTLCommandBuffer,_ id:Int) async {
     await withCheckedContinuation { (continuation:CheckedContinuation<Void,Never>) in
-        commands.addCompletedHandler {_ in continuation.resume()};commands.commit()
+        commands.addScheduledHandler {_ in
+            let t=CACurrentMediaTime();lock.lock();commandCallbacks[id,default:[:]]["scheduled_callback_seconds"]=t;lock.unlock()
+        }
+        commands.addCompletedHandler {_ in
+            let t=CACurrentMediaTime();lock.lock();commandCallbacks[id,default:[:]]["completed_callback_seconds"]=t;lock.unlock()
+            continuation.resume()
+        }
+        commands.commit()
+        let t=CACurrentMediaTime();lock.lock();commandCallbacks[id,default:[:]]["commit_return_seconds"]=t;lock.unlock()
     }
 }
 var gpuCorrect=0,captureCorrect=0,captureAttempted=0,captureReceived=0,visibleFrames=0
@@ -126,7 +134,7 @@ Task { @MainActor in
         guard let b=commands.makeBlitCommandEncoder() else{fail("blit")}
         b.copy(from:drawable.texture,sourceSlice:0,sourceLevel:0,sourceOrigin:MTLOrigin(x:0,y:0,z:0),sourceSize:MTLSize(width:width,height:height,depth:1),to:readback,destinationOffset:0,destinationBytesPerRow:width*4,destinationBytesPerImage:width*height*4);b.endEncoding()
         drawable.addPresentedHandler {d in lock.lock();times[id]=negative=="timestamps" ? 0:d.presentedTime;lock.unlock()}
-        commands.present(drawable);let commitAt=CACurrentMediaTime();await complete(commands)
+        commands.present(drawable);let commitAt=CACurrentMediaTime();await complete(commands,id)
         let completionAt=CACurrentMediaTime()
         guard commands.status == .completed else{fail("GPU completion")}
         let bytes=readback.contents().assumingMemoryBound(to:UInt8.self)
@@ -216,6 +224,7 @@ Task { @MainActor in
     }
     fullVisibility.append(visible())
     let observed=timeSnapshot()
+    lock.lock();let callbackSnapshot=commandCallbacks;lock.unlock()
     if let origin=frameTrace.first?["draw_start_seconds"] {
         for index in frameTrace.indices {
             let started=frameTrace[index].removeValue(forKey:"draw_start_seconds")!
@@ -223,7 +232,18 @@ Task { @MainActor in
             for stage in ["commit","completed"] {
                 if let t=frameTrace[index].removeValue(forKey:stage+"_seconds") {frameTrace[index][stage+"_ms"]=(t-origin)*1000}
             }
+            if let callbacks=callbackSnapshot[index] {
+                for (name,t) in callbacks {frameTrace[index][name.replacingOccurrences(of:"_seconds",with:"_ms")]=(t-origin)*1000}
+            }
             if let t=observed[index],t>0 {frameTrace[index]["reported_presented_ms"]=(t-origin)*1000}
+        }
+    }
+    for index in frameTrace.indices {
+        if let r=frameTrace[index]["commit_return_ms"],let c=frameTrace[index]["commit_ms"] {frameTrace[index]["commit_call_ms"]=r-c}
+        if let s=frameTrace[index]["scheduled_callback_ms"],let c=frameTrace[index]["commit_ms"] {frameTrace[index]["commit_to_scheduled_callback_ms"]=s-c}
+        if let f=frameTrace[index]["completed_callback_ms"],let c=frameTrace[index]["commit_ms"],let a=frameTrace[index]["completed_ms"] {
+            frameTrace[index]["commit_to_completion_callback_ms"]=f-c
+            frameTrace[index]["completion_callback_to_actor_ms"]=a-f
         }
     }
     let positive=observed.values.filter{$0>0}.count;let zeroIDs=observed.filter{$0.value<=0}.keys.sorted()
