@@ -2130,3 +2130,29 @@ no additional permission request is necessary. Original internal-disk boot remai
 NOT VERIFIED until restoration and a later user-directed restart. Root-cause
 analysis is deferred until the known working installation is restored; neither
 successful linking nor static collection inspection established boot compatibility.
+
+### Rollback rejected by SIP — 11 October 2026
+
+The user executed the rollback helper with administrator authentication. Collection
+replacement failed with EPERM. Read-only inspection confirms SIP enabled and
+`restricted` flags on the auxiliary collection and its parent directory. Root
+authentication does not establish permission to publish into this protected path.
+No security policy or file flags were changed to bypass this restriction.
+
+Post-failure hashes confirm the transactional failure handler restored the
+pre-rollback candidate bundle and candidate collection. Both pre-test originals
+remain intact at their pinned hashes in `/Library/GA102-Framebuffer-Test` and
+the USB backup remains available. The helper's `Rollback/FailedCandidate.kext`
+actually contains the attempted original bundle in this reverse transaction;
+that generic filename is not evidence of its binary identity. Hashes establish
+identity. Live rollback has NOT succeeded; normal internal boot is NOT VERIFIED.
+
+The live rollback helper now rejects Darwin SF_RESTRICTED on either collection
+or parent before moving a bundle. No retry, kext load, reboot or further
+performance experiment is appropriate in the current session. Restoration must
+use the existing USB Recovery checklist with verified Sequoia System/Data paths,
+original framebuffer and original saved auxiliary collection. If Recovery also
+rejects writes, stop rather than disabling SIP, clearing flags or improvising
+security changes. Recovery restoration and successful original boot remain
+BLOCKED on execution outside the running OS. The prior preparation was insufficient
+to guarantee live rollback under the USB-booted session's security policy.

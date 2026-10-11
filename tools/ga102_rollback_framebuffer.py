@@ -13,6 +13,12 @@ CANDIDATE_KC = 'e1b211830911b6cef21f2aec310a46a61d3bcdce69149ef1f1caf8f2909aed6d
 
 
 def preflight():
+    # Darwin SF_RESTRICTED. Check both the directory and collection before any
+    # bundle move; root authentication alone cannot bypass SIP protection.
+    for path in (deploy.KC.parent, deploy.KC):
+        deploy.require(not (getattr(path.stat(), 'st_flags', 0) & 0x00080000),
+                       'Kernel collection is SIP-restricted; use USB Recovery rollback. '
+                       'Do not disable SIP or retry this live helper.')
     deploy.bundle(deploy.JOB / 'OriginalNVRMFB.kext', deploy.ORIGINAL_HASH)
     deploy.require(deploy.sha(deploy.JOB / 'OriginalAuxiliaryKernelExtensions.kc')
                    == ORIGINAL_KC, 'Original collection hash mismatch')
