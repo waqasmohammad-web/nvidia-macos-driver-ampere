@@ -2950,13 +2950,82 @@ pinned vendor headers linked. Isolated Meson setup and bindgen bootstrap are
 in progress. This pursues NVK source-build readiness independently of the
 still-missing Darwin NVRM archive recipe; a successful NVK build is not yet claimed.
 
+### Translator ordering guard and real candidate compiler execution
+
+The restored source translator now builds with a lockfile-pinned Rust toolchain.
+The first wrapper run found five false test failures: scalar-load census counted
+only four-byte alignment, ignoring unmerged 32-bit loads retaining valid eight-
+byte alignment. Census now checks scalar result type; expected load counts and
+positive/negative merge expectations are unchanged. These five results were a
+test-accounting defect, not five demonstrated shader defects.
+
+New valid SPIR-V controls show the optimizer merging ordinary adjacent word
+loads across an intervening volatile or Vulkan visibility-bearing load (eleven
+prior controls pass, both new no-crossing controls fail before correction).
+The fusion scan now classifies the complete instruction and stops at loads with
+semantics beyond ordinary/Aligned access. This conservative guard preserves
+flagged-operation ordering; it does not remove synchronization or alter ordinary
+wide-load fusion. Input/output modules validate against Vulkan 1.2, and all
+thirty available self-contained wrapper tests now pass. Two ignored corpus
+tests and two unavailable private-fixture tests are not counted as validated.
+The [Khronos memory-operand specification](https://registry.khronos.org/SPIR-V/specs/unified1/SPIRV.html)
+distinguishes visibility/inter-thread and volatile semantics from alignment.
+This is a compiler ordering safeguard, not proof of the reported wake cause or
+an observed ordinary desktop pixel failure.
+
+**Release build and isolated GPU integration PASS:** rebuilt CPU translator
+SHA256 `0fe056bed48259a6ad9901e3b5e33906caac6a92aa5651a0bd4604eb2a6558d0`,
+with the same exported `nvmtl_*` ABI set as the installed release. Its private
+namespace plugin SHA256
+`839d6d34abd412546f83b1e66603e2a6689024d78cb788c43f4767e468ba3601`
+passed all five GPU correctness probes in three processes each. Installed
+RM/NVK/kernel/WindowServer components remain unchanged.
+
+The private builder accepts `--translator`, hashes that explicit CPU dependency,
+exports a selected-function image probe and wraps the primary translation call
+with a relaxed atomic counter in the copied source only. The harness checks
+actual function image and unchanged file hash. An initial smoke process executed
+one real call in the rebuilt translator. Subsequent first render/composite
+processes executed two calls each; repeated processes can hit persisted SPIR-V
+and report zero calls. Event/copy-only probes did not load the translator.
+Thus library loading, primary compiler execution and correct GPU results remain
+separate evidence. A broader source-library integration PASS does not mean
+every probe exercised the new flagged-load control. Eight focused isolation
+tests and seventy total GA102 Python tests pass. Evidence:
+[`evidence/ga102-wide-load-ordering.json`](evidence/ga102-wide-load-ordering.json).
+
+### Native test/build infrastructure limits
+
+Three native unit tests referenced unshipped external fixtures via unconditional
+`include_str!`, blocking every native test from compiling. They now require the
+explicit `external-validation-fixtures` feature; README states exact required
+files and the coverage exclusion. No substitute fixtures are fabricated. The
+native Cargo.lock was stale for its current manifest; synchronized it by removing
+149 unused packages, with no changed version/checksum among the sixteen retained
+packages and no additions. This is test/build readiness, not production shader
+behavior. The source translator release wrapper's separate lock remained pinned.
+
+The newly compiling default native suite recorded 1659 PASS / 496 FAIL / one
+ignored. Sampled failures require an absent `spirv-val` executable; these are
+retained as failures, not reclassified en masse without rerunning. The official
+SPIRV-Tools source and pinned required headers are being built into private CLI
+tools. The first attempted reuse of Cargo's vendored subset failed because it
+lacks upstream CMake metadata; no stub validator was introduced. Native tests
+will be rerun only after real validator/assembler tools are available.
+
+Pinned Mesa setup now recognizes Rust, bindgen, cbindgen and a source-built
+Khronos glslang 16.6.0; it stops at missing **mesa_clc**. NVK source build is
+BLOCKED on the real OpenCL-to-SPIR-V compiler and its LLVM/Clang/SPIR-V dependencies,
+not the previously missing basic tools. No fake compiler, skipped kernel
+generation or deployable NVK binary is claimed.
+
 ### NEXT-STEPS
 
-1. Complete the active isolated translator build; verify its exports/dependencies
-   and run meaningful existing CPU translation tests before candidate integration.
-2. Finish pinned Mesa source/patch preparation and attempt isolated Meson setup;
-   resolve actual dependencies without inventing stubs or altering live drivers.
-3. Once NVK source builds are available, reproduce the documented config-parser
-   comment/race defects against production code, then test a focused correction.
-4. Maintain the PM candidate as offline only; coordinated RM/NVKMS lifecycle and
-   supervised boot/recovery/wake qualification remain outstanding.
+1. Finish the active official SPIRV-Tools CLI build, then rerun native translator
+   tests with `--locked --lib -- --test-threads=2` and the private CLI directory
+   on PATH. Retain failures and investigate actual semantic defects if any.
+2. Extend isolated execution counters to the source address-lowering entry points
+   when distinguishing frontend cache hits from the specific fusion guard path.
+3. Evaluate a real isolated mesa_clc dependency build; otherwise pursue validated
+   translator/plugin defects independently of the blocked full NVK build.
+4. Preserve the staged PM protocol candidate for supervised boot/wake work only.

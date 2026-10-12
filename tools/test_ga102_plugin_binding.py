@@ -43,20 +43,27 @@ class PluginBindingTests(unittest.TestCase):
                 with self.assertRaises(SystemExit): runner.main()
                 child.assert_not_called()
 
-    def run_probe(self, marker=True, mutate=False, namespace=False, namespace_marker=True):
+    def run_probe(self, marker=True, mutate=False, namespace=False, namespace_marker=True,
+                  translator=False, translator_marker=True, mutate_translator=False):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); scratch=root/'scratch'; scratch.mkdir()
             plugin=root/'NVMTLDriver'; plugin.write_bytes(b'owned fixture')
             if namespace:
                 import hashlib
-                (root/'isolation-proof.json').write_text(json.dumps({'class_prefix':'NVMTLGA102_',
-                    'binary_sha256':hashlib.sha256(plugin.read_bytes()).hexdigest(),'c_symbols_hidden':True}))
+                proof={'class_prefix':'NVMTLGA102_', 'binary_sha256':hashlib.sha256(plugin.read_bytes()).hexdigest(),'c_symbols_hidden':True}
+                if translator:
+                    translation=root/'libnvmtl_translate.dylib';translation.write_bytes(b'owned CPU translator fixture')
+                    proof.update(translator_image_probe=True,translator_sha256=hashlib.sha256(translation.read_bytes()).hexdigest())
+                (root/'isolation-proof.json').write_text(json.dumps(proof))
             result=root/'result.json'
             def child(command, log, *args):
                 if command[0] != 'xcrun':
                     log.write('result: '+json.dumps({'probe':'compute', 'values':[2,4,6,8], 'checked_elements':4})+'\n')
                     if marker: log.write('binding_verified: true\n')
                     if namespace and namespace_marker:log.write('binding_namespace_verified: true\n')
+                    if translator and translator_marker:
+                        log.write('binding_translator_verified: true\nbinding_translator_calls: 2\n')
+                    if mutate_translator:translation.write_bytes(b'changed CPU translator fixture')
                     if mutate: plugin.write_bytes(b'changed fixture')
                 return 0
             with patch.object(runner.tempfile, 'mkdtemp', return_value=str(scratch)), \
@@ -92,3 +99,13 @@ class PluginBindingTests(unittest.TestCase):
         code,report=self.run_probe(namespace=True)
         self.assertEqual(code,0)
         self.assertEqual(report['runtime']['class_namespace'],'NVMTLGA102_')
+
+    def test_cpu_translator_binding_and_execution_are_separate_evidence(self):
+        code,report=self.run_probe(namespace=True,translator=True)
+        self.assertEqual(code,0)
+        self.assertEqual(report['runs'][0]['translator_execution']['primary_translation_calls'],2)
+        self.assertEqual(len(report['runtime']['translator_sha256']),64)
+        for options in ({'translator_marker':False},{'mutate_translator':True}):
+            code,report=self.run_probe(namespace=True,translator=True,**options)
+            self.assertEqual(code,1)
+            self.assertEqual(report['automated_core_validation'],'FAIL')

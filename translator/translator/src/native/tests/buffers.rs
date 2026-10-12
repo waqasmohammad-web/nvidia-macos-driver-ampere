@@ -12027,6 +12027,7 @@ merge:
 }
 
 #[test]
+#[cfg(feature = "external-validation-fixtures")]
 fn native_raw_pointer_phi_admits_a_null_arm() {
     let ll = include_str!("../../../validation/fixtures/public/kernel_nullable_branch_cursor.ll");
     let tmp = std::env::temp_dir().join(format!(
@@ -12104,6 +12105,7 @@ fn native_raw_pointer_phi_admits_a_null_arm() {
 }
 
 #[test]
+#[cfg(feature = "external-validation-fixtures")]
 fn native_nested_loop_raw_induction_cycle_stays_raw() {
     let ll = include_str!(
         "../../../validation/fixtures/public/kernel_nested_loop_constant_weight_walk.ll"

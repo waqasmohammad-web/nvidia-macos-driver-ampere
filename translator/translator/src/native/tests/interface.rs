@@ -199,6 +199,7 @@ entry:
 }
 
 #[test]
+#[cfg(feature = "external-validation-fixtures")]
 fn native_vertex_narrow_integer_attributes_use_32_bit_fetch_interface() {
     let ll = include_str!("../../../validation/fixtures/public/vertex_narrow_attributes.ll");
     let tmp = std::env::temp_dir().join(format!(

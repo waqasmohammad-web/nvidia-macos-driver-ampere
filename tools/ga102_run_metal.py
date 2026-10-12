@@ -191,6 +191,7 @@ def main():
     original_source_hash = hashlib.sha256(source_bytes).hexdigest()
     plugin_hash = None
     binding_hash = None
+    translator_hash = None
     if args.plugin:
         plugin_hash = hashlib.sha256(args.plugin.read_bytes()).hexdigest()
         env['GA102_PLUGIN_IMAGE'] = str(args.plugin.resolve())
@@ -201,6 +202,12 @@ def main():
             if proof.get('binary_sha256')!=plugin_hash or proof.get('class_prefix')!='NVMTLGA102_' or not proof.get('c_symbols_hidden'):
                 parser.error('namespaced plugin requires matching isolation build proof')
             env['GA102_PLUGIN_NAMESPACE']='NVMTLGA102_'
+            env.pop('GA102_PLUGIN_TRANSLATOR', None)
+            if proof.get('translator_image_probe'):
+                translator=args.plugin.parent/'libnvmtl_translate.dylib'
+                translator_hash=hashlib.sha256(translator.read_bytes()).hexdigest()
+                if translator_hash!=proof.get('translator_sha256'):parser.error('translator differs from isolation build proof')
+                env['GA102_PLUGIN_TRANSLATOR']=str(translator.resolve())
         source_bytes = isolated_source(source_bytes)
     compile_input = scratch / f'{args.probe}.swift'
     compile_input.write_bytes(source_bytes)
@@ -278,8 +285,12 @@ def main():
             # Avoid copying paths, addresses and process identities from driver logs
             # into public reports; print only probe-owned result lines here.
             lines = output.read_text(errors="replace").splitlines()
+            translation_calls=[line.split(': ',1)[1] for line in lines if line.startswith('binding_translator_calls: ')]
             if args.plugin and (lines.count('binding_verified: true') != 1 or
                                 args.namespaced_plugin and lines.count('binding_namespace_verified: true') != 1 or
+                                translator_hash and (sum(line in ('binding_translator_verified: true','binding_translator_verified: unused') for line in lines)!=1 or
+                                                     len(translation_calls)!=1 or not translation_calls[0].isdigit() or
+                                                     hashlib.sha256((args.plugin.parent/'libnvmtl_translate.dylib').read_bytes()).hexdigest()!=translator_hash) or
                                 hashlib.sha256(args.plugin.read_bytes()).hexdigest() != plugin_hash):
                 print('FAIL: explicit plugin provenance missing or binary changed', flush=True)
                 code = probe_exit_code = 1
@@ -369,6 +380,9 @@ def main():
                                 code = 1
                 runs.append({"exit_code": probe_exit_code, "validation_exit_code": code, "metrics": metrics, "verdict": verdict or {},
                              "display_correlation": correlation})
+            if runs and translator_hash:
+                runs[-1]['translator_execution']={'image_verified':'binding_translator_verified: true' in lines,
+                    'primary_translation_calls':int(translation_calls[0]) if len(translation_calls)==1 and translation_calls[0].isdigit() else None}
             if code:
                 print(f"Failure details remain in {output}", flush=True)
                 return code
@@ -388,8 +402,9 @@ def main():
                     'plugin_sha256': plugin_hash, 'binding_helper_source_sha256': binding_hash,
                     'original_probe_source_sha256': original_source_hash,
                     'class_namespace': 'NVMTLGA102_' if args.namespaced_plugin else 'single driver image',
+                    'translator_sha256': translator_hash,
                     'installed_driver_changed': False,
-                    'limits': 'installed kernel/NVK/translator retained; offscreen coverage only'}
+                    'limits': 'installed kernel/NVK retained; CPU translator identified separately; offscreen coverage only'}
             if args.probe in ('ga102_visual_present', 'ga102_ca_visual'):
                 report['capture_method'] = 'ScreenCaptureKit owned-window broker' if args.capture_bridge else 'ScreenCaptureKit in probe'
                 report['capture_mode'] = 'bounded SCStream' if args.continuous else 'held screenshot references'

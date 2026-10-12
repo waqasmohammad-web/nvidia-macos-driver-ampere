@@ -93,6 +93,19 @@ static void verifyAtExit(void) { @autoreleasepool {
         id buffer=[boundDevice newBufferWithLength:16 options:MTLResourceStorageModeShared];
         if (!buffer || [buffer class]!=bufferClass || [buffer device]!=boundDevice)
             fail("candidate resource device identity changed");
+        const char *expectedTranslator=getenv("GA102_PLUGIN_TRANSLATOR");
+        if (expectedTranslator) {
+            void *image=dlopen(boundImage.fileSystemRepresentation,RTLD_NOW|RTLD_NOLOAD);
+            const char *(*translationImage)(void)=image ? dlsym(image,"ga102_isolated_translator_image"):NULL;
+            if (!translationImage) fail("candidate translation image probe unavailable");
+            const char *actual=translationImage();
+            if (actual && ![canonical(actual) isEqual:canonical(expectedTranslator)])
+                fail("candidate used another CPU translator image");
+            puts(actual ? "binding_translator_verified: true":"binding_translator_verified: unused");
+            unsigned long (*translationCalls)(void)=dlsym(image,"ga102_isolated_translation_calls");
+            if (!translationCalls) fail("translation call counter unavailable");
+            printf("binding_translator_calls: %lu\n",translationCalls());
+        }
         puts("binding_namespace_verified: true");
     }
     puts("binding_verified: true"); fflush(stdout);

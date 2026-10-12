@@ -71,12 +71,21 @@ impl Defs<'_> {
     }
 }
 
-fn is_pure(op: Op) -> bool {
-    matches!(op, Op::IAdd | Op::ISub | Op::IMul | Op::UDiv | Op::SDiv | Op::UMod | Op::SMod | Op::SRem | Op::SNegate | Op::Not
+fn is_pure(i: &Instruction) -> bool {
+    if i.class.opcode == Op::Load {
+        // Visibility and volatile accesses are not ordinary reads. Do not move
+        // a later word load ahead of an operation carrying those semantics.
+        return match i.operands.as_slice() {
+            [_] => true,
+            [_, Operand::MemoryAccess(flags), Operand::LiteralBit32(_)] => *flags == MemoryAccess::ALIGNED,
+            _ => false,
+        };
+    }
+    matches!(i.class.opcode, Op::IAdd | Op::ISub | Op::IMul | Op::UDiv | Op::SDiv | Op::UMod | Op::SMod | Op::SRem | Op::SNegate | Op::Not
         | Op::ShiftLeftLogical | Op::ShiftRightLogical | Op::ShiftRightArithmetic | Op::BitwiseAnd | Op::BitwiseOr | Op::BitwiseXor
         | Op::UConvert | Op::SConvert | Op::FConvert | Op::ConvertUToF | Op::ConvertSToF | Op::ConvertFToU | Op::ConvertFToS | Op::Bitcast
         | Op::ConvertPtrToU | Op::ConvertUToPtr | Op::CompositeExtract | Op::CompositeConstruct | Op::CompositeInsert | Op::VectorShuffle
-        | Op::AccessChain | Op::InBoundsAccessChain | Op::PtrAccessChain | Op::Load | Op::Select | Op::CopyObject
+        | Op::AccessChain | Op::InBoundsAccessChain | Op::PtrAccessChain | Op::Select | Op::CopyObject
         | Op::IEqual | Op::INotEqual | Op::ULessThan | Op::ULessThanEqual | Op::UGreaterThan | Op::UGreaterThanEqual
         | Op::SLessThan | Op::SLessThanEqual | Op::SGreaterThan | Op::SGreaterThanEqual | Op::LogicalAnd | Op::LogicalOr | Op::LogicalNot
         | Op::FAdd | Op::FSub | Op::FMul | Op::FDiv | Op::FNegate)
@@ -111,7 +120,7 @@ pub fn fuse(m: &mut Module, next: &mut u32, uint: u32, ulong: u32, hints: &HashM
                 let Some(p0) = w0.operands.first().and_then(id) else { continue };
                 let Some((root, member, x0)) = d.word_ptr(p0) else { continue };
                 for (j, w1) in body.iter().enumerate().skip(i + 1).take(64) {
-                    if !is_pure(w1.class.opcode) { break; }
+                    if !is_pure(w1) { break; }
                     if w1.class.opcode != Op::Load || w1.result_type != Some(uint) || taken.contains(&j) { continue; }
                     match w1.operands.as_slice() {
                         [_] => {}
@@ -254,7 +263,8 @@ OpFunctionEnd
             .filter(|i| i.class.opcode == Op::Load).collect();
         let wide = loads.iter().filter(|i| vector(i.result_type) && i.operands.get(1) == Some(&Operand::MemoryAccess(MemoryAccess::ALIGNED)))
             .filter_map(|i| match i.operands.get(2) { Some(Operand::LiteralBit32(a)) => Some(*a), _ => None }).filter(|a| *a >= 8).collect();
-        let words = loads.iter().filter(|i| i.operands.get(2) == Some(&Operand::LiteralBit32(4))).count();
+        let words = loads.iter().filter(|i| i.result_type.and_then(|t| types.get(&t))
+            .is_some_and(|t| t.class.opcode == Op::TypeInt && t.operands.first() == Some(&Operand::LiteralBit32(32)))).count();
         (wide, words)
     }
     #[test] fn a_hinted_pair_whose_offsets_differ_by_four_is_one_aligned_8_load() {
@@ -293,6 +303,22 @@ OpFunctionEnd
     }
     #[test] fn a_volatile_first_word_is_never_merged() {
         assert_eq!(census(&PAIR.replace("%p0 Aligned 8", "%p0 Volatile|Aligned 8")), (vec![], 2));
+    }
+    #[test] fn an_intervening_volatile_load_blocks_the_merge() {
+        let t = PAIR.replace("%c1 = OpUConvert %uint %gl",
+            "%observed = OpLoad %uint %p0 Volatile\n%c1 = OpUConvert %uint %gl");
+        assert_eq!(census(&t), (vec![], 3));
+    }
+    #[test] fn an_intervening_visibility_load_blocks_the_merge() {
+        let t = PAIR.replace("OpCapability Int64", "OpCapability Int64\nOpCapability VulkanMemoryModel")
+            .replace("OpMemoryModel Logical GLSL450", "OpExtension \"SPV_KHR_vulkan_memory_model\"\nOpMemoryModel Logical Vulkan")
+            .replace("\"main\" %buf %out %gid", "\"main\" %buf %out %gid %visible_buf")
+            .replace("OpDecorate %out Binding 1", "OpDecorate %out Binding 1\nOpDecorate %visible_buf DescriptorSet 0\nOpDecorate %visible_buf Binding 2\nOpDecorate %visible_block Block\nOpMemberDecorate %visible_block 0 Offset 0")
+            .replace("%eight = OpConstant %uint 8", "%eight = OpConstant %uint 8\n%scope = OpConstant %uint 2")
+            .replace("%fn = OpTypeFunction %void", "%visible_block = OpTypeStruct %uint\n%visible_ptr = OpTypePointer Uniform %visible_block\n%visible_word_ptr = OpTypePointer Uniform %uint\n%visible_buf = OpVariable %visible_ptr Uniform\n%fn = OpTypeFunction %void")
+            .replace("%c1 = OpUConvert %uint %gl",
+                "%visible_word = OpAccessChain %visible_word_ptr %visible_buf %zero\n%observed = OpLoad %uint %visible_word MakePointerVisible|NonPrivatePointer %scope\n%c1 = OpUConvert %uint %gl");
+        assert_eq!(census(&t), (vec![], 3));
     }
     #[test] fn the_affine_prover_is_exact_mod_2_32_for_wrapping_offsets() {
         let t = PAIR.replace("%b0 = OpIAdd %uint %zero %m0", "%b0 = OpISub %uint %m0 %four")

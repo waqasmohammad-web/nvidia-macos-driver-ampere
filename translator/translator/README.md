@@ -32,6 +32,13 @@ Tool paths are found through the usual search path. Override an individual tool 
 
 ## Install
 
+The self-contained native unit tests run with `cargo test --lib`. Three additional
+tests require the external validation workspace's `vertex_narrow_attributes.ll`,
+`kernel_nullable_branch_cursor.ll`, and `kernel_nested_loop_constant_weight_walk.ll`
+under `validation/fixtures/public/`. Enable those tests explicitly with
+`--features external-validation-fixtures` after providing the original fixtures.
+They are excluded from the default suite; passing it does not validate those cases.
+
 ```sh
 # CLI without reflection JSON
 cargo install metal2vulkan
