@@ -192,6 +192,7 @@ def main():
     plugin_hash = None
     binding_hash = None
     translator_hash = None
+    lowering_probe = False
     if args.plugin:
         plugin_hash = hashlib.sha256(args.plugin.read_bytes()).hexdigest()
         env['GA102_PLUGIN_IMAGE'] = str(args.plugin.resolve())
@@ -203,11 +204,14 @@ def main():
                 parser.error('namespaced plugin requires matching isolation build proof')
             env['GA102_PLUGIN_NAMESPACE']='NVMTLGA102_'
             env.pop('GA102_PLUGIN_TRANSLATOR', None)
+            env.pop('GA102_PLUGIN_LOWER_PROBE', None)
             if proof.get('translator_image_probe'):
                 translator=args.plugin.parent/'libnvmtl_translate.dylib'
                 translator_hash=hashlib.sha256(translator.read_bytes()).hexdigest()
                 if translator_hash!=proof.get('translator_sha256'):parser.error('translator differs from isolation build proof')
                 env['GA102_PLUGIN_TRANSLATOR']=str(translator.resolve())
+                lowering_probe=bool(proof.get('lowering_call_counter'))
+                if lowering_probe:env['GA102_PLUGIN_LOWER_PROBE']='1'
         source_bytes = isolated_source(source_bytes)
     compile_input = scratch / f'{args.probe}.swift'
     compile_input.write_bytes(source_bytes)
@@ -286,11 +290,14 @@ def main():
             # into public reports; print only probe-owned result lines here.
             lines = output.read_text(errors="replace").splitlines()
             translation_calls=[line.split(': ',1)[1] for line in lines if line.startswith('binding_translator_calls: ')]
+            lowering_calls=[line.split(': ',1)[1] for line in lines if line.startswith('binding_lowering_calls: ')]
             if args.plugin and (lines.count('binding_verified: true') != 1 or
                                 args.namespaced_plugin and lines.count('binding_namespace_verified: true') != 1 or
                                 translator_hash and (sum(line in ('binding_translator_verified: true','binding_translator_verified: unused') for line in lines)!=1 or
                                                      len(translation_calls)!=1 or not translation_calls[0].isdigit() or
                                                      hashlib.sha256((args.plugin.parent/'libnvmtl_translate.dylib').read_bytes()).hexdigest()!=translator_hash) or
+                                lowering_probe and (sum(line in ('binding_lowering_verified: true','binding_lowering_verified: unused') for line in lines)!=1 or
+                                                    len(lowering_calls)!=1 or not lowering_calls[0].isdigit()) or
                                 hashlib.sha256(args.plugin.read_bytes()).hexdigest() != plugin_hash):
                 print('FAIL: explicit plugin provenance missing or binary changed', flush=True)
                 code = probe_exit_code = 1
@@ -383,6 +390,9 @@ def main():
             if runs and translator_hash:
                 runs[-1]['translator_execution']={'image_verified':'binding_translator_verified: true' in lines,
                     'primary_translation_calls':int(translation_calls[0]) if len(translation_calls)==1 and translation_calls[0].isdigit() else None}
+                if lowering_probe:runs[-1]['translator_execution'].update(
+                    lowering_image_verified='binding_lowering_verified: true' in lines,
+                    address_lowering_calls=int(lowering_calls[0]) if len(lowering_calls)==1 and lowering_calls[0].isdigit() else None)
             if code:
                 print(f"Failure details remain in {output}", flush=True)
                 return code

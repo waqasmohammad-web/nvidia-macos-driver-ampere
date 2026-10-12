@@ -64,6 +64,32 @@ static int ga102_counted_translate(const char *ll, const char *stage, uint8_t **
 }
 ''')
     library=library.replace(assignment,'gGA102TranslateImplementation = (nvmtl_translate_fn)dlsym(h, "nvmtl_translate");\n        xlate = gGA102TranslateImplementation ? ga102_counted_translate : NULL;')
+    lower_decl='static nvmtl_lower_fn xlate_lower;'
+    lower_ex_decl='static nvmtl_lower_ex_fn xlate_lower_ex;'
+    lower_assign='xlate_lower = (nvmtl_lower_fn)dlsym(h, "nvmtl_lower_buffer_addresses");'
+    lower_ex_assign='xlate_lower_ex = (nvmtl_lower_ex_fn)dlsym(h, "nvmtl_lower_buffer_addresses_ex");'
+    if any(library.count(site)!=1 for site in [lower_decl,lower_ex_decl,lower_assign,lower_ex_assign]):
+        raise ValueError('address-lowering instrumentation site changed')
+    library=library.replace(lower_decl,lower_decl+'''
+static nvmtl_lower_fn gGA102LowerImplementation;
+static _Atomic unsigned long gGA102LowerCalls;
+static int ga102_counted_lower(const uint8_t *data, size_t size, uint8_t **out,
+                              size_t *length, char *err, size_t capacity) {
+    atomic_fetch_add_explicit(&gGA102LowerCalls, 1, memory_order_relaxed);
+    return gGA102LowerImplementation(data, size, out, length, err, capacity);
+}
+''')
+    library=library.replace(lower_ex_decl,lower_ex_decl+'''
+static nvmtl_lower_ex_fn gGA102LowerExImplementation;
+static int ga102_counted_lower_ex(const uint8_t *data, size_t size, uint32_t flags,
+                                 uint8_t **out, size_t *length, uint32_t *info,
+                                 char *err, size_t capacity) {
+    atomic_fetch_add_explicit(&gGA102LowerCalls, 1, memory_order_relaxed);
+    return gGA102LowerExImplementation(data, size, flags, out, length, info, err, capacity);
+}
+''')
+    library=library.replace(lower_assign,'gGA102LowerImplementation = (nvmtl_lower_fn)dlsym(h, "nvmtl_lower_buffer_addresses");\n        xlate_lower = gGA102LowerImplementation ? ga102_counted_lower : NULL;')
+    library=library.replace(lower_ex_assign,'gGA102LowerExImplementation = (nvmtl_lower_ex_fn)dlsym(h, "nvmtl_lower_buffer_addresses_ex");\n        xlate_lower_ex = gGA102LowerExImplementation ? ga102_counted_lower_ex : NULL;')
     library_source.write_text(library)
     with (source/'NVMTLDevice.m').open('a') as unit:
         unit.write('''\n__attribute__((visibility("default")))
@@ -74,6 +100,16 @@ const char *ga102_isolated_translator_image(void) {
 __attribute__((visibility("default")))
 unsigned long ga102_isolated_translation_calls(void) {
     return atomic_load_explicit(&gGA102TranslateCalls, memory_order_relaxed);
+}
+__attribute__((visibility("default")))
+const char *ga102_isolated_lowering_image(void) {
+    Dl_info info = {0};
+    const void *implementation = gGA102LowerExImplementation ? (const void *)gGA102LowerExImplementation : (const void *)gGA102LowerImplementation;
+    return implementation && dladdr(implementation, &info) ? info.dli_fname : NULL;
+}
+__attribute__((visibility("default")))
+unsigned long ga102_isolated_lowering_calls(void) {
+    return atomic_load_explicit(&gGA102LowerCalls, memory_order_relaxed);
 }
 ''')
     binary=args.output/'NVMTLDriver'
@@ -92,6 +128,7 @@ unsigned long ga102_isolated_translation_calls(void) {
            'installed':False,'runtime_executed':False,'c_symbols_hidden':True,
            'translator_image_probe':True,
            'translator_call_counter':True,
+           'lowering_call_counter':True,
            'translator_sha256':hashlib.sha256((args.output/'libnvmtl_translate.dylib').read_bytes()).hexdigest(),
            'limits':'experimental namespace build; GPU correctness/provenance require separate execution'}
     (args.output/'isolation-proof.json').write_text(json.dumps(proof,indent=2)+'\n')

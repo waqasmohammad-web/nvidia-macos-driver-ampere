@@ -44,7 +44,8 @@ class PluginBindingTests(unittest.TestCase):
                 child.assert_not_called()
 
     def run_probe(self, marker=True, mutate=False, namespace=False, namespace_marker=True,
-                  translator=False, translator_marker=True, mutate_translator=False):
+                  translator=False, translator_marker=True, mutate_translator=False,
+                  lowering=False, lowering_marker=True):
         with tempfile.TemporaryDirectory() as directory:
             root = Path(directory); scratch=root/'scratch'; scratch.mkdir()
             plugin=root/'NVMTLDriver'; plugin.write_bytes(b'owned fixture')
@@ -54,6 +55,7 @@ class PluginBindingTests(unittest.TestCase):
                 if translator:
                     translation=root/'libnvmtl_translate.dylib';translation.write_bytes(b'owned CPU translator fixture')
                     proof.update(translator_image_probe=True,translator_sha256=hashlib.sha256(translation.read_bytes()).hexdigest())
+                    if lowering:proof['lowering_call_counter']=True
                 (root/'isolation-proof.json').write_text(json.dumps(proof))
             result=root/'result.json'
             def child(command, log, *args):
@@ -63,6 +65,8 @@ class PluginBindingTests(unittest.TestCase):
                     if namespace and namespace_marker:log.write('binding_namespace_verified: true\n')
                     if translator and translator_marker:
                         log.write('binding_translator_verified: true\nbinding_translator_calls: 2\n')
+                    if lowering and lowering_marker:
+                        log.write('binding_lowering_verified: true\nbinding_lowering_calls: 3\n')
                     if mutate_translator:translation.write_bytes(b'changed CPU translator fixture')
                     if mutate: plugin.write_bytes(b'changed fixture')
                 return 0
@@ -109,3 +113,11 @@ class PluginBindingTests(unittest.TestCase):
             code,report=self.run_probe(namespace=True,translator=True,**options)
             self.assertEqual(code,1)
             self.assertEqual(report['automated_core_validation'],'FAIL')
+
+    def test_address_lowering_provenance_and_calls_are_required(self):
+        code,report=self.run_probe(namespace=True,translator=True,lowering=True)
+        self.assertEqual(code,0)
+        self.assertEqual(report['runs'][0]['translator_execution']['address_lowering_calls'],3)
+        code,report=self.run_probe(namespace=True,translator=True,lowering=True,lowering_marker=False)
+        self.assertEqual(code,1)
+        self.assertEqual(report['automated_core_validation'],'FAIL')

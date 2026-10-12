@@ -1,0 +1,33 @@
+{
+  "schema_version": 1,
+  "scope": "isolated user-space candidate; installed driver unchanged",
+  "candidate_sha256": "d45317358516d585b832cf984b725e2861aa83736cc4c082926b115fecc072f1",
+  "translator_sha256": "0fe056bed48259a6ad9901e3b5e33906caac6a92aa5651a0bd4604eb2a6558d0",
+  "composite_validation": "PASS",
+  "execution": [
+    {
+      "address_lowering_calls": 2,
+      "image_verified": true,
+      "lowering_image_verified": true,
+      "primary_translation_calls": 0
+    }
+  ],
+  "memory_validation": "shared, managed and private; 1048576 checked elements each; PASS",
+  "python_tests": {
+    "passed": 71
+  },
+  "native_suite_before_parser_fix": {
+    "passed": 2137,
+    "failed": 18,
+    "ignored": 1
+  },
+  "focused_parser_tests_after_fix": {
+    "passed": 15,
+    "failed": 0
+  },
+  "limitations": [
+    "Address-lowering execution does not prove the flagged-load branch was exercised.",
+    "Remaining native failures require individual semantic assessment.",
+    "No installed driver change or sleep/wake validation."
+  ]
+}

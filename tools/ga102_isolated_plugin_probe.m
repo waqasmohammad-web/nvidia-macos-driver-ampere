@@ -105,6 +105,16 @@ static void verifyAtExit(void) { @autoreleasepool {
             unsigned long (*translationCalls)(void)=dlsym(image,"ga102_isolated_translation_calls");
             if (!translationCalls) fail("translation call counter unavailable");
             printf("binding_translator_calls: %lu\n",translationCalls());
+            if (getenv("GA102_PLUGIN_LOWER_PROBE")) {
+                const char *(*lowerImage)(void)=dlsym(image,"ga102_isolated_lowering_image");
+                unsigned long (*lowerCalls)(void)=dlsym(image,"ga102_isolated_lowering_calls");
+                if (!lowerImage || !lowerCalls) fail("address-lowering provenance probe unavailable");
+                const char *actualLower=lowerImage();
+                if (actualLower && ![canonical(actualLower) isEqual:canonical(expectedTranslator)])
+                    fail("candidate used another address-lowering image");
+                puts(actualLower ? "binding_lowering_verified: true":"binding_lowering_verified: unused");
+                printf("binding_lowering_calls: %lu\n",lowerCalls());
+            }
         }
         puts("binding_namespace_verified: true");
     }

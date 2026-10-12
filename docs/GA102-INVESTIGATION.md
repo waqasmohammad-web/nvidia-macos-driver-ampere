@@ -3029,3 +3029,40 @@ generation or deployable NVK binary is claimed.
 3. Evaluate a real isolated mesa_clc dependency build; otherwise pursue validated
    translator/plugin defects independently of the blocked full NVK build.
 4. Preserve the staged PM protocol candidate for supervised boot/wake work only.
+
+## Address-lowering execution and native parser follow-up
+
+The private plugin now wraps both address-lowering entry points with relaxed
+atomic call counters and reports the actual implementation image. A correct GPU
+record without the required lowering marker fails validation. Seventy-one GA102
+Python tests pass, including a negative missing-marker control. The isolated
+composite candidate passed, with zero primary translation calls and **two real
+address-lowering calls** in the rebuilt CPU library. Shared, managed and private
+buffer checks also passed. This distinguishes frontend cache reuse from lowering
+execution; it does not establish execution of the flagged-load branch. Evidence:
+[`evidence/ga102-lowering-execution.json`](evidence/ga102-lowering-execution.json).
+
+With real official SPIRV-Tools validator and assembler on PATH, the native suite
+recorded **2137 PASS / 18 FAIL / one ignored**. This replaces the earlier
+missing-validator result. Three failures additionally need the real disassembler;
+that target is being built. Two suspect discarded-store failures actually retain
+the stores through guarded-load helpers; their direct-ID assertions do not follow
+helper return values. No emitter behavior was changed on that evidence.
+
+A real parser defect accepted `i32 addrspace(x)*` as address space zero. Explicit
+malformed trailing address-space annotations now return an error instead of
+falling through the function-pointer allowance. Tests include empty, negative,
+signed, mixed and overflowing annotations; all fifteen parser tests pass. Valid
+typed pointers and function-pointer spellings remain covered. This is input
+validation correctness, with no measured desktop performance claim.
+
+### NEXT-STEPS
+
+1. Finish `cmake --build <private SPIRV-Tools build> --target spirv-dis -j 2`;
+   rerun the three native reloop tests with the real CLI directory on PATH.
+2. Inspect emitted SPIR-V for `native_helper_alloca_keeps_parameter_pointer_chain_real`;
+   distinguish shared guarded-load helper bodies from lost buffer reads, then
+   repair regression assertions only when they preserve semantic coverage.
+3. Rerun the native suite after validated fixes; keep remaining failures visible.
+4. Continue independent source improvements while mesa_clc/full NVRM builds remain
+   blocked. Keep the staged PM candidate for supervised boot/wake validation.
