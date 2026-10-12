@@ -3733,3 +3733,36 @@ unchanged. No reboot, service restart or sleep/wake was attempted.
    regression with independent process/filter controls before further optimization.
 4. Obtain representative desktop evidence before claiming responsiveness gains or
    proposing installation. All system-component and recovery boundaries remain.
+
+
+### Null-Moth upstream audit and selected correctness backports
+
+Direct fetch verifies upstream main `1baebac`; the latest published release is
+v1.14.7 at `eb1acea`, with three later runtime commits on main. Our common ancestor
+is 1.11.0 (`e404ab3`), so broad synchronization is needed rather than assuming the
+latest maintenance fixes are already present. See `GA102-UPSTREAM-AUDIT.md` and
+`evidence/ga102-upstream-audit.json` for classifications, exact pins and coverage.
+
+Source `e29e0df` selectively backports NullMoth Systems' completion-monitor fix
+(`4f48b3d`) and Vulkan depth guard (`3a5abdb`), preserving licensing, local caches,
+translator work and pool sizing. Complete tree matches locally tested `a4471b1`.
+Actual-source CPU controls reproduce baseline failure and candidate success;
+83 GA102 tests pass. Rebuilt isolated binaries pass eight normal qualification
+processes / 48 draws, plus four processes / 24 exact-pixel draws with caller-held
+queue/command-buffer monitors and, in the second pair, out-of-range/NaN depths.
+Real shader validation and all ownership/cache/dependency gates pass; measured
+Vulkan error counters remain zero. The first supplemental Swift compilation
+failed on a scope error and was repaired before GPU execution; logs are retained.
+No Unity/Live Text application or desktop/wake qualification is claimed.
+
+### NEXT-STEPS
+
+1. Exact next command: `python3 tools/ga102_completion_lock_test.py`.
+2. Prioritize queued IOSurface publication/alias correctness and safe staging
+   lifetime, porting the coordinated NVK detach fix into an isolated source ICD.
+   Do not import the upstream display/kernel/installer changes blindly.
+3. Qualify physical descriptor-pool growth and larger workloads; measure the
+   remaining approximately 9 ms dummy-resource setup and real surface/frame stalls.
+4. Retain cold linear ABI regressions and order sensitivity. No global desktop
+   bottleneck or earlier-v1 causality is established by the owned gradient fixture.
+   Installed components and display/boot/security configuration remain unchanged.

@@ -1,0 +1,4308 @@
+{
+  "upstream_repository": "https://github.com/nullmoth/nvidia-macos-driver",
+  "upstream_main": "1baebac4db587114019e833351e2d438276359d3",
+  "latest_release": "v1.14.7",
+  "release_commit": "eb1acea2487bdd88b80d98045c4204a022439f48",
+  "release_published_utc": "2026-10-12T21:30:24Z",
+  "our_comparison_commit": "b1067daf928d77175aab47d81364fbb738dedf28",
+  "common_ancestor": "e404ab30b94d6588bdf63b3724d59f1e713ad963",
+  "scope": "Selected relevant runtime changes, plus all production-path file differences; no blind merge",
+  "patch_checks": [
+    {
+      "commit": "3a5abdba4978c3e83e22ba298abe8238c45140dd",
+      "subject": "Plugin: clamp viewport depth to 0..1 (NVK asserts on anything else; Live Text aborted); test fixture lists the WindowServer display trace",
+      "patch_check": "exact patch already present"
+    },
+    {
+      "commit": "4f48b3d94affdaeeb18f0a522d28ffa5243422f7",
+      "subject": "Plugin: never lock a command buffer or queue the app can lock (Unity hang)",
+      "patch_check": "exact patch already present"
+    },
+    {
+      "commit": "e4d8ca8e3255bac7a9b945859cf2c31dbf67e801",
+      "subject": "NVK: open the /dev/null placeholder fd read-only, so browser GPU sandboxes can open the device (WebGL)",
+      "patch_check": "missing, clean application possible"
+    },
+    {
+      "commit": "40e3a60e2da5dcd7224835080f1c0e3ddd798a50",
+      "subject": "Plugin: pixel-sampler variants re-translate the linked stages (#72)",
+      "patch_check": "missing, clean application possible"
+    },
+    {
+      "commit": "ceea01d00f589e02ebde7eec3eb9f08122645438",
+      "subject": "Translator: emit a raw-cursor helper after its callers (CoreImage Lanczos, System Settings glyphs)",
+      "patch_check": "missing, clean application possible"
+    },
+    {
+      "commit": "a98c54641f6054cd33bfac206c75feaf4e17d804",
+      "subject": "plugin: passes with sample positions draw at the standard positions when the GPU has no programmable-position path (Chess drew nothing); getDefaultSamplePositions always answers",
+      "patch_check": "missing, clean application possible"
+    },
+    {
+      "commit": "c9c93773c4881fba3c15742b22a47f61fa04a852",
+      "subject": "NVK: a stale sample count from an earlier MSAA pass no longer aborts the app in an internal copy draw (Chess crashed in glReadPixels); draw with the render's layout and warn once",
+      "patch_check": "missing, clean application possible"
+    },
+    {
+      "commit": "77e4c9839f5925a7087357d552790a7edcc978fa",
+      "subject": "Review of community plugin changes: surface uploads keep a per-thread staging buffer (bounded to 32 MB) but wait for the copy (an image freed right after upload was still being written); storage twin created under the texture's lock; swizzled textures are never re-homed (their view would outlive the image); AIR member names checked before slicing",
+      "patch_check": "missing/conflicting context; semantic review required"
+    },
+    {
+      "commit": "721b86f94c2849bf0d02928d043259f4f17bca4b",
+      "subject": "Plugin: honour MTLTextureDescriptor.swizzle for sampled reads (Icon Composer gray layers, #79)",
+      "patch_check": "missing/conflicting context; semantic review required"
+    },
+    {
+      "commit": "9634d91bf60c3927e56ab8fdea6b20b60b4cf1da",
+      "subject": "Driver and Mac app 1.14.6",
+      "patch_check": "missing/conflicting context; semantic review required"
+    },
+    {
+      "commit": "bee05d1e5d57fd448ad6bea9371d3a395b0eb385",
+      "subject": "Preserve queued surface contents and detach pooled clients",
+      "patch_check": "missing/conflicting context; semantic review required"
+    },
+    {
+      "commit": "79e1c2f7e8911291efcc0602106c12f19e2f8170",
+      "subject": "Reclaim pending surface slots and preserve display wake retries",
+      "patch_check": "missing/conflicting context; semantic review required"
+    },
+    {
+      "commit": "1baebac4db587114019e833351e2d438276359d3",
+      "subject": "Correct monitor flags, boot timings and surface upload copies",
+      "patch_check": "missing/conflicting context; semantic review required"
+    },
+    {
+      "commit": "7c7b2a467fde9e19087e9a9ab778f6561f37db14",
+      "subject": "NVRMFB: login window black on high-refresh monitors; screen dark in driver-off starts",
+      "patch_check": "missing, clean application possible"
+    },
+    {
+      "commit": "fb98e8d8e487abb5ceb78d6141ab08f7fa1cb329",
+      "subject": "NVRM: the GPU's ACPI _DSM/_DOD are evaluated only with nvrmacpibl=1 (1.14 called them for every GPU; PCs hung at GPU start right after the _DSM call)",
+      "patch_check": "missing/conflicting context; semantic review required"
+    },
+    {
+      "commit": "c2af33de973736bf2ca619c421fd939c2a32b786",
+      "subject": "NVAccel: a copied frame waits for the surface's newest pixels (or keeps the last frame, at most 4 in a row) - full-screen flicker on machines whose frames take the copy path",
+      "patch_check": "missing, clean application possible"
+    },
+    {
+      "commit": "732bd2af7cded7b73268c037a67ddf402737ed86",
+      "subject": "NVAccel: revert keeping the scanout across a page-off (fa48d91)",
+      "patch_check": "exact patch already present"
+    }
+  ],
+  "production_file_differences": [
+    "0\t30\tkexts/NMDRM/Info.plist",
+    "0\t19\tkexts/NMDRM/build.sh",
+    "0\t281\tkexts/NMDRM/nmdrm.cpp",
+    "0\t40\tkexts/NMHDA/Info.plist",
+    "0\t18\tkexts/NMHDA/build.sh",
+    "0\t208\tkexts/NMHDA/nmhda.cpp",
+    "0\t37\tkexts/NMIntelFB/Info-virtual.plist",
+    "0\t31\tkexts/NMIntelFB/Info.plist",
+    "0\t85\tkexts/NMIntelFB/display_ids.inc",
+    "0\t485\tkexts/NMIntelFB/intelfb.cpp",
+    "0\t28\tkexts/NMIntelFB/nvrm_vram_abi.h",
+    "10\t115\tkexts/NVRM/NVRM.cpp",
+    "0\t42\tkexts/NVRM/accel/nmx/Info.plist",
+    "0\t27\tkexts/NVRM/accel/nmx_accel_names.h",
+    "11\t224\tkexts/NVRM/accel/nvrm-accel.cpp",
+    "1\t1\tkexts/NVRM/fb/nvrm-fb.cpp",
+    "0\t2\tkexts/NVRM/nv-xnu.h",
+    "2\t33\tkexts/NVRM/os-nvkms-xnu.cpp",
+    "2\t37\tkexts/NVRM/os-xnu.cpp",
+    "2\t137\tkexts/NVRM/os-xnu2.cpp",
+    "0\t36\tkexts/NVRM/patches/610-fsp-timer-double-destroy.patch",
+    "0\t4\tkexts/NVRM/patches/README.md",
+    "0\t12\tkexts/NVRMFB/fb/Info.plist",
+    "85\t539\tkexts/NVRMFB/fb/nvrm-fb.cpp",
+    "23\t0\tkexts/NVRMFB/fb/nvrm-flip-wait.h",
+    "96\t178\tnvk/nvk-macos.patch",
+    "20\t68\tplugin/NVMTLDevice.m",
+    "5\t8\tplugin/NVMTLEmbedded.m",
+    "1\t55\tplugin/NVMTLEventSync.m",
+    "20\t188\tplugin/NVMTLLibraryLoad.m",
+    "2\t9\tplugin/NVMTLObjects.h",
+    "38\t206\tplugin/NVMTLObjects.m",
+    "31\t0\tplugin/nvmtl_air_text_cache.h",
+    "0\t32\tplugin/nvmtl_fd_token.h",
+    "75\t0\tplugin/nvmtl_mesa_cache.h",
+    "71\t329\tplugin/nvmtl_vk.c",
+    "0\t4\tplugin/nvmtl_vk.h",
+    "59\t1554\ttranslator/translator/Cargo.lock",
+    "1\t0\ttranslator/translator/Cargo.toml",
+    "7\t0\ttranslator/translator/README.md",
+    "1\t1\ttranslator/translator/docs/REFLECTION.md",
+    "108\t0\ttranslator/translator/examples/benchmark_saturation.rs",
+    "51\t6\ttranslator/translator/src/lib.rs",
+    "39\t1\ttranslator/translator/src/native/emitter/body/core_inst.rs",
+    "6\t2\ttranslator/translator/src/native/emitter/memory/device_addr.rs",
+    "4\t63\ttranslator/translator/src/native/emitter/mod.rs",
+    "4\t1\ttranslator/translator/src/native/owned_cfg.rs",
+    "4\t1\ttranslator/translator/src/native/parse.rs",
+    "359\t0\ttranslator/translator/src/native/tests/buffer_execution.rs",
+    "586\t202\ttranslator/translator/src/native/tests/buffers.rs",
+    "1\t0\ttranslator/translator/src/native/tests/interface.rs",
+    "188\t2\ttranslator/translator/src/native/tests/intrinsics.rs",
+    "8\t0\ttranslator/translator/src/native/tests/misc.rs",
+    "1\t0\ttranslator/translator/src/native/tests/mod.rs",
+    "262\t4\ttranslator/translator/src/native/tests/textures.rs",
+    "3\t0\ttranslator/translator/src/native/tir/lower.rs",
+    "5\t0\ttranslator/translator/src/native/tir/mod.rs",
+    "9\t23\ttranslator/translator/src/passes/air_calls/mod.rs",
+    "24\t21\ttranslator/wrapper/src/lib.rs",
+    "31\t5\ttranslator/wrapper/src/wide_loads.rs"
+  ],
+  "license_notice_identical": true,
+  "patch_check_context": "Selected-patch applicability checked after the two local user-space backports; common-ancestor/file diff counts use the original comparison commit.",
+  "selected_backports": [
+    "4f48b3d94affdaeeb18f0a522d28ffa5243422f7",
+    "3a5abdba4978c3e83e22ba298abe8238c45140dd"
+  ],
+  "selected_backport_validation": {
+    "standard_library_ga102": "83 PASS",
+    "completion_method": "actual baseline 0/200 progress; candidate 200/200 progress with exactly-once concurrent capacity release",
+    "viewport_function": "ASan/UBSan, real Vulkan headers: 64 pairs and reversed depth PASS; actual baseline fails same oracle",
+    "local_tested_commit": "a4471b12b7bf37b8f1266a3b19df770f68ce7a0c",
+    "published_source_commit": "e29e0dfc212e0515fef889feafb6f44fc4451bf9",
+    "identical_complete_tree": "265d0176d700e671624c29101cd2e68c8dffd003",
+    "gpu_qualification": {
+      "normal": {
+        "status": "PASS",
+        "source_commits": {
+          "baseline": "a4471b12b7bf37b8f1266a3b19df770f68ce7a0c",
+          "candidate": "a4471b12b7bf37b8f1266a3b19df770f68ce7a0c"
+        },
+        "dependency_hashes": {
+          "baseline": {
+            "plugin": "e15f306fd93bbb8dada20a82cb73e12eeb79042fcdb7d7533d364c57b6b42bf2",
+            "translator": "5394a397c404f9e2d09bcb26015ec5845d3e26d845308fbc711b5201226d9aff",
+            "icd": "372c257b551cc0c4591239003151f6ac3cb80a947765b5639acfdb5a80e74ebc",
+            "llvm": "2a6d807ce8f3a3ab772e8f861ff40cff63363b90ee1d80ca7e289147b39405aa"
+          },
+          "candidate": {
+            "plugin": "e15f306fd93bbb8dada20a82cb73e12eeb79042fcdb7d7533d364c57b6b42bf2",
+            "translator": "5394a397c404f9e2d09bcb26015ec5845d3e26d845308fbc711b5201226d9aff",
+            "icd": "372c257b551cc0c4591239003151f6ac3cb80a947765b5639acfdb5a80e74ebc",
+            "llvm": "2a6d807ce8f3a3ab772e8f861ff40cff63363b90ee1d80ca7e289147b39405aa"
+          }
+        },
+        "fixture_sha256": "667baea7ef488920993707e6ae84339b43faa3f01b8b1c62fd707348ebdf03c5",
+        "probe_sha256": "6cb8f32358383517ed5d8aa3ed16783907ddeb17058e203d1d5cffb3f3ce6e75",
+        "processes": 8,
+        "draws": 48,
+        "max_pixel_error": 0,
+        "vk_errors": 0,
+        "scope": "One source artifact in both arms; qualification only, no performance comparison."
+      },
+      "upstream-held-monitor-v2": {
+        "status": "PASS",
+        "scope": "Candidate render and readback completion while the app holds both command-buffer and queue Objective-C monitors",
+        "source_commit": "a4471b12b7bf37b8f1266a3b19df770f68ce7a0c",
+        "plugin_sha256": "e15f306fd93bbb8dada20a82cb73e12eeb79042fcdb7d7533d364c57b6b42bf2",
+        "translator_sha256": "5394a397c404f9e2d09bcb26015ec5845d3e26d845308fbc711b5201226d9aff",
+        "swift_source_sha256": "5298eb497c5a968675f8ac4b43a007a51c73991f263ed5e605d2c1b5c4058a9f",
+        "probe_sha256": "5d12438f385dee1e038fabe455eaa097ec20061216622c2993a466c0c018207d",
+        "binding_sha256": "6d852ebcf761c488eda83d698bada341c74e36a4d073c4e1494c7ef7c7401b1d",
+        "rows": [
+          {
+            "condition": "cold",
+            "correct_pixels": true,
+            "vk_errors": 0,
+            "differences": {
+              "library": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 37306000
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 3655000
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "pipeline-initial": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 273000
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 14803000
+                },
+                "reflect": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 200000
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2402000
+                }
+              },
+              "nearest-miss": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 184000
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2194000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2084000
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 6959000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1833000
+                }
+              },
+              "nearest-local-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1000
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 46000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "linear-miss": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1000
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 310000
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2482000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2375000
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 5426000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2010000
+                }
+              },
+              "linear-local-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1000
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 41000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "pipeline-equivalent": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 78000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 61000
+                }
+              },
+              "nearest-device-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 3000
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 442000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "linear-device-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 3000
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 303000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              }
+            },
+            "validated_modules": 8
+          },
+          {
+            "condition": "reuse",
+            "correct_pixels": true,
+            "vk_errors": 0,
+            "differences": {
+              "library": {
+                "air_disk_hit": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_hit": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "pipeline-initial": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 255000
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 12178000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 356000
+                }
+              },
+              "nearest-miss": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 180000
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 398000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2795000
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 5146000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 71000
+                }
+              },
+              "nearest-local-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2000
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 54000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "linear-miss": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1000
+                },
+                "device_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2000
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 265000
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 496000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2035000
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 3017000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 83000
+                }
+              },
+              "linear-local-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 37000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "pipeline-equivalent": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 50000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 36000
+                }
+              },
+              "nearest-device-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2000
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 281000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "linear-device-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2000
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 284000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              }
+            },
+            "validated_modules": 6
+          }
+        ],
+        "limits": [
+          "Two isolated processes, twelve pixel-checked draws; no Unity game or desktop workload.",
+          "Baseline monitor deadlock reproduced only in CPU extraction; no deliberately deadlocking GPU workload was submitted."
+        ]
+      },
+      "upstream-viewport-monitor": {
+        "status": "PASS",
+        "scope": "Candidate caller-held monitors plus out-of-range nearest depths and NaN linear depths",
+        "source_commit": "a4471b12b7bf37b8f1266a3b19df770f68ce7a0c",
+        "plugin_sha256": "e15f306fd93bbb8dada20a82cb73e12eeb79042fcdb7d7533d364c57b6b42bf2",
+        "translator_sha256": "5394a397c404f9e2d09bcb26015ec5845d3e26d845308fbc711b5201226d9aff",
+        "swift_source_sha256": "753abd44b5ce6e43145e7881d2725c0e23dbebd37feca67a3f29970454d4bae5",
+        "probe_sha256": "03f0edc84fbb9e8afee548e113c27c4daee24d668618f1b704a09533f39d455e",
+        "binding_sha256": "6d852ebcf761c488eda83d698bada341c74e36a4d073c4e1494c7ef7c7401b1d",
+        "rows": [
+          {
+            "condition": "cold",
+            "correct_pixels": true,
+            "vk_errors": 0,
+            "differences": {
+              "library": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 35515000
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 3378000
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "pipeline-initial": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 287000
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 14360000
+                },
+                "reflect": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 183000
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2391000
+                }
+              },
+              "nearest-miss": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1000
+                },
+                "device_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 228000
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2089000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1945000
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 6658000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1657000
+                }
+              },
+              "nearest-local-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2000
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 50000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "linear-miss": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1000
+                },
+                "device_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2000
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 279000
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2419000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2315000
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 5270000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1983000
+                }
+              },
+              "linear-local-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 41000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "pipeline-equivalent": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 77000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 58000
+                }
+              },
+              "nearest-device-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 3000
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 377000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "linear-device-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 3000
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1000
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 309000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              }
+            },
+            "validated_modules": 8
+          },
+          {
+            "condition": "reuse",
+            "correct_pixels": true,
+            "vk_errors": 0,
+            "differences": {
+              "library": {
+                "air_disk_hit": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_hit": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "pipeline-initial": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 2,
+                  "failures": 0,
+                  "ns": 293000
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 12637000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 332000
+                }
+              },
+              "nearest-miss": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1000
+                },
+                "device_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 185000
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 402000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2841000
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 5237000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 78000
+                }
+              },
+              "nearest-local-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2000
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 42000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "linear-miss": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1000
+                },
+                "device_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1000
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 304000
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 547000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2116000
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 3143000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 80000
+                }
+              },
+              "linear-local-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1000
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 36000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "pipeline-equivalent": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 54000
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 40000
+                }
+              },
+              "nearest-device-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2000
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 1000
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 296000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              },
+              "linear-device-hit": {
+                "air_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_extract": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_memory_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "air_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_hit": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "device_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 2000
+                },
+                "device_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "index_disk_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_lookup": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "local_miss": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "lower": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "pipeline_total": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "reflect": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "rust": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_abi": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "sampler_bind": {
+                  "count": 1,
+                  "failures": 0,
+                  "ns": 297000
+                },
+                "spv_hit": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "spv_miss": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "variant_build": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_error": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                },
+                "vk_pipeline": {
+                  "count": 0,
+                  "failures": 0,
+                  "ns": 0
+                }
+              }
+            },
+            "validated_modules": 6
+          }
+        ],
+        "limits": [
+          "Two isolated processes, twelve pixel-checked draws; no Unity game or desktop workload.",
+          "Baseline monitor deadlock reproduced only in CPU extraction; no deliberately deadlocking GPU workload was submitted."
+        ]
+      }
+    }
+  },
+  "preserved_failures": [
+    "Initial supplemental held-monitor Swift probe did not compile because queue was out of scope; retained log, corrected to command.commandQueue before any GPU launch.",
+    "Actual baseline capacity monitor and viewport depth negative controls reproduce the expected failures without submitting a known deadlocking GPU workload."
+  ],
+  "limits": [
+    "These selected backports do not integrate the remaining queued IOSurface/NVK/kernel changes.",
+    "No Unity game, Live Text application, WindowServer/frame-pacing, wake, scanout or installed-driver claim.",
+    "All installed graphics and security/boot configuration remained unchanged."
+  ]
+}
