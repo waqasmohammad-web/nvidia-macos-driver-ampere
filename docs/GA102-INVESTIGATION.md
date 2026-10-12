@@ -3599,3 +3599,84 @@ Cloud preparation command: `python3 build/build_isolated_plugin.py --prepare-onl
 Future Mac build-only source qualification needs a separate authorized session;
 do not request physical testing until the cold/reuse and sampler-path contract
 can be supported by actual qualification evidence.
+
+
+### Physical sampler qualification and prepared-AIR follow-up
+
+Starting source was verified before edits: fetched
+`origin/dev/ga102-3080ti-diagnostics` and fast-forwarded the clean development
+branch to `68f57d3bff2a7e9cc67735c5dd90904a2541b4ee`. The existing local `work`
+branch was preserved; no reset or main merge occurred.
+
+The owner supplied 24/24 successful isolated physical GA102 runs (Sequoia 15.8.1,
+RTX 3080 Ti FE), harness `68f57d3`, baseline `8fd5960`, candidate `acb7241`.
+Reused ABI paired medians improve +2.06% nearest / +2.26% linear, while cold
+nearest Vulkan creation is -4.92% (one of five pairs faster). Raw hardware logs
+are not present here. Qualification is retained; timing causality remains open.
+See `GA102-HARDWARE-RESULTS-ANALYSIS.md` for the complete supplied table and audit.
+
+The eliminated reflection is a small fraction of the miss path and is outside
+`vkCreateGraphicsPipelines`. The first specialized PSO is always nearest in the
+qualified probe. A filter-specific regression, first-use effects and cache/order
+variation cannot be distinguished from these five summary pairs. Application
+`VK_NULL_HANDLE` caching does not establish absence of Mesa shader caching.
+No speculative Vulkan cache, pipeline-sharing or installed-binary patch was made.
+
+Implemented `PreparedNativeAir`: call-scoped lowered AIR and stage metadata bound
+to one source/stage, with independent option validation for reflection and
+constructed translation. The actual sampler ABI uses it after function-constant
+specialization. Its unused-sampler path reuses reflection for formatless selection
+and preserves capability gating, threadgroup lengths, default fallback and errors.
+No global cache/options, GPU lifetime, locking or submission changes were added.
+
+Two Linux release ABI trials each alternate 20 paired batches of ten calls after
+five warmups, with no concurrent compilation. Each workload has 400 samples per
+arm across the trials. Compiler: Rust 1.87.0, opt-level 3, 16 codegen units,
+incremental disabled, one build job, offline locked builds. Real SPIRV-Tools
+v2026.4 validates Vulkan 1.2 output; baseline/candidate bytes match in all measured
+and capability cases. Positive function-constant and threadgroup-length controls
+also verify call independence and identical errors. Unsupported active samplers,
+ignored undeclared states, malformed AIR/constants and invalid SPIR-V remain
+negative controls. The full wrapper unit suite was not built; external ABI/real
+validator coverage does not claim its private-corpus coverage.
+
+| Owned workload | Paired median change %, trials 1 / 2 | Paired median saved us, trials 1 / 2 | Faster batches, trials 1 / 2 |
+| --- | ---: | ---: | ---: |
+| Fragment nearest/pixel | 2.17 / 2.14 | 22.97 / 22.20 | 17/20 / 20/20 |
+| Fragment linear/pixel | 0.53 / 1.09 | 8.32 / 16.87 | 17/20 / 20/20 |
+| Fragment linear/normalized | 1.57 / 1.83 | 12.28 / 14.19 | 16/20 / 20/20 |
+| Vertex, unused sampler | 4.16 / 4.50 | 28.24 / 30.03 | 20/20 / 20/20 |
+| Storage write, unused sampler | 10.40 / 11.33 | 88.24 / 95.47 | 19/20 / 20/20 |
+
+Nearest/linear p95 worsens in trial 1 despite better medians; no universal tail
+benefit is claimed. These fixtures are not captured WindowServer shaders. Native
+suite: **2160 PASS / zero FAIL / zero ignored**, real validator available. New
+checks preserve nearest/linear fetch counts, independent runtime storage options,
+capability refusal and specialized function-constant output. Portable Python:
+**81 PASS**, including actual C ASan+UBSan cache/metrics/capture controls. Raw
+samples, build commands/settings, source/library hashes and limits are in
+`evidence/ga102-prepared-air.json`. No full LLVM/Mesa build or GPU APIs executed.
+
+The isolated profile is now v2: inclusive `pipeline_total` plus unchanged actual
+`vk_pipeline` timing, `--sampler-first nearest|linear`, process-paired statistics
+with qualification excluded and absolute saved nanoseconds. New acceptance tests
+reject wrong filter order, missing/inconsistent inclusive spans, failed pixels,
+failed events and missing/duplicate comparison arms. Old v1 records remain
+accepted for offline validation; live launches require new v2/source/hash proofs.
+Production plugin sources and the source-pinning/isolation gates stay unchanged.
+Darwin compilation, new instrumentation accuracy and candidate rendering still
+NEED MACOS VALIDATION; prior physical passes belong to the earlier artifacts.
+
+### NEXT-STEPS
+
+1. Exact next portable command:
+   `python3 -S -m unittest discover -s tools -p 'test_ga102_*.py'`.
+2. In a later Mac build-only session, pin this candidate's commit and use the same
+   new v2 harness for baseline `acb7241` and candidate. Build only in owned paths
+   using `GA102-HARDWARE-VALIDATION-RUNBOOK.md`; retain identical ICD/LLVM closure.
+3. GPU execution needs separate authorization. When authorized, qualify new
+   binaries first, then compare matched nearest-first and linear-first sessions,
+   keeping cold/reuse, initial/specialized and absolute/tail costs separate.
+4. Profile real variant miss frequency and encoding stalls before attempting
+   persistence, concurrent-miss coalescing or Vulkan object/cache sharing.
+   Installed macOS drivers/EFI/OpenCore/kexts/kernel collections stay untouched.

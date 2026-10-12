@@ -168,6 +168,39 @@ struct StageMeta {
     entry_name: Option<String>,
 }
 
+/// Call-scoped AIR text and stage metadata shared by reflection and translation.
+///
+/// Specialize function constants before constructing this object. It binds the
+/// source and stage together, but deliberately stores no runtime options or
+/// compiled modules; each operation validates its own options as usual.
+pub struct PreparedNativeAir<'a> {
+    lowered: Cow<'a, str>,
+    stage: passes::Stage,
+    stage_meta: StageMeta,
+}
+
+impl<'a> PreparedNativeAir<'a> {
+    pub fn new(san_ll: &'a str, stage: passes::Stage) -> Self {
+        let lowered = lower_air_text_if_enabled(san_ll);
+        let stage_meta = parse_stage_meta(&lowered, stage);
+        Self { lowered, stage, stage_meta }
+    }
+
+    pub fn reflect(
+        &self,
+        options: passes::TransformOptions,
+    ) -> Result<reflect::ShaderReflection, String> {
+        reflect_prepared_air(&self.lowered, self.stage, &self.stage_meta, options)
+    }
+
+    pub fn translate_constructed(
+        &self,
+        options: passes::TransformOptions,
+    ) -> Result<Vec<u8>, String> {
+        translate_prepared_air_constructed(&self.lowered, self.stage, &self.stage_meta, options)
+    }
+}
+
 fn parse_stage_meta(san_ll: &str, stage: passes::Stage) -> StageMeta {
     match stage {
         passes::Stage::Fragment => {
@@ -653,9 +686,15 @@ pub fn reflect_sanitized(
     stage: passes::Stage,
     options: passes::TransformOptions,
 ) -> Result<reflect::ShaderReflection, String> {
-    let lowered = lower_air_text_if_enabled(san_ll);
-    let san_ll = lowered.as_ref();
-    let stage_meta = parse_stage_meta(san_ll, stage);
+    PreparedNativeAir::new(san_ll, stage).reflect(options)
+}
+
+fn reflect_prepared_air(
+    san_ll: &str,
+    stage: passes::Stage,
+    stage_meta: &StageMeta,
+    options: passes::TransformOptions,
+) -> Result<reflect::ShaderReflection, String> {
     let options = options_for_air(san_ll, options)?;
     let mut reflection = build_reflection(
         stage,
@@ -801,10 +840,16 @@ pub fn translate_native_no_retry_constructed_with_options(
     stage: passes::Stage,
     options: passes::TransformOptions,
 ) -> Result<Vec<u8>, String> {
-    let lowered = lower_air_text_if_enabled(san_ll);
-    let san_ll = lowered.as_ref();
+    PreparedNativeAir::new(san_ll, stage).translate_constructed(options)
+}
+
+fn translate_prepared_air_constructed(
+    san_ll: &str,
+    stage: passes::Stage,
+    stage_meta: &StageMeta,
+    options: passes::TransformOptions,
+) -> Result<Vec<u8>, String> {
     reject_unsupported_metal_linked_functions(san_ll)?;
-    let stage_meta = parse_stage_meta(san_ll, stage);
     passes::validate_kernel_dispatch_options(stage, options)?;
     let air_data_layout = crate::layout::AirDataLayout::from_ir(san_ll)?;
     let tmp = Path::new("");

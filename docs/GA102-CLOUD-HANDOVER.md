@@ -1,5 +1,38 @@
 # GA102 cloud development handover
 
+## Latest sampler/pipeline follow-up
+
+Verified starting point: `68f57d3bff2a7e9cc67735c5dd90904a2541b4ee` on
+`dev/ga102-3080ti-diagnostics`, matching the fetched remote tip. The owner reports
+24/24 isolated hardware qualification passes for baseline `8fd5960` / candidate
+`acb7241` on Sequoia 15.8.1 / RTX 3080 Ti FE. Read
+`GA102-HARDWARE-RESULTS-ANALYSIS.md` for the supplied paired summaries and limits.
+
+The follow-up candidate shares AIR lowering/stage metadata within the sampler ABI
+and reuses reflection on the unused-sampler fallback. Linux native suite: 2160
+PASS / zero FAIL / zero ignored. Portable Python suite: 81 PASS, including real C
+ASan+UBSan harness controls. Two actual ABI trials retain byte-identical validated
+outputs and function-constant/threadgroup/capability/error controls; paired median
+savings are 22–23 us nearest, 8–17 us linear and 88–95 us unused-sampler storage
+write. Some first-trial p95 timings worsen. See `evidence/ga102-prepared-air.json`.
+
+The isolated v2 profile adds inclusive pipeline timing, optional linear-first
+ordering and paired process statistics while keeping source/image/cache/pixel
+gates. It needs new Darwin builds and separate authorized GPU qualification.
+Baseline for the incremental comparison is `acb7241`; candidate is the commit
+containing this checkpoint. Use the same new v2 harness for both arms. No installed
+drivers, EFI/OpenCore/kexts/kernel collections or GPU workloads were changed/run.
+
+### NEXT-STEPS
+
+Exact next portable command:
+`python3 -S -m unittest discover -s tools -p 'test_ga102_*.py'`.
+For Mac build-only preparation, pin the candidate's full commit and follow
+`GA102-HARDWARE-VALIDATION-RUNBOOK.md` in new owned directories. Preserve working
+installed binaries. Do not execute the run step until separately authorized;
+compare nearest-first and linear-first sessions with identical retained ICD/LLVM,
+shaders and build settings. Keep absolute stalls and p95 alongside paired medians.
+
 Target: `dev/ga102-3080ti-diagnostics`. Select this branch explicitly when starting
 cloud work; do not resume the default branch by accident. The handover commit
 contains the finished source changes and the config-helper fix. Previous baseline:

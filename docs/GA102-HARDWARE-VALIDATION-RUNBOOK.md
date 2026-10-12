@@ -1,17 +1,19 @@
 # GA102 isolated graphics validation runbook
 
-Status after portable harness preparation: **READY for Linux source/policy checks;
-NEEDS MACOS VALIDATION for all Darwin compilation and GPU claims; BLOCKED for
-meaningful performance conclusions until cold/reuse and sampler-path qualification
-passes.** No Mac access, build or execution occurred. No hardware testing is being
-requested by this checkpoint.
+The owner reports that the original `68f57d3` harness qualified baseline
+`8fd5960` / candidate `acb7241` on Sequoia 15.8.1 / RTX 3080 Ti FE, with all
+24 extended runs passing correctness, isolation and shader validation. Supplied
+paired timing summaries are analysed in `GA102-HARDWARE-RESULTS-ANALYSIS.md`;
+raw hardware logs have not been independently reanalysed in this checkout.
 
-This supersedes the original runbook's missing-harness placeholders. Production
-source pins remain baseline `8fd5960d0bda6bde25f435b8f05b2cd35c58f431` and candidate
-`acb724185daba72de472e5954e69d3cec6221c51`. Use the **new published harness revision**
-for both; record its full commit/tree SHA. These source pins have identical plugin
-inputs and isolate translator reflection reuse. They do not independently measure
-all historical plugin fixes or saturation versus its original implementation.
+The current **v2 follow-up profile is source/CPU-tested only**. Its Darwin build,
+new inclusive pipeline timing and reversed filter order still need qualification.
+No further GPU execution is authorized by this runbook or the previous results.
+Production source pins for the incremental prepared-AIR comparison are baseline
+`acb724185daba72de472e5954e69d3cec6221c51` and the committed follow-up candidate
+specified in the handover. Set `GA102_CANDIDATE_COMMIT` to that full commit hash;
+use the same new harness commit/tree for both arms. Do not mix old v1 profile
+binaries with this revision. Plugin production inputs remain identical.
 
 ## Scope and entry conditions
 
@@ -43,8 +45,8 @@ candidate. No build from `$HOME/nvmtl-build/bindless` is assumed.
 
 `build/build_isolated_plugin.py --graphics-performance` applies
 `build/ga102_perf_instrumentation.py` **only to copied, namespaced source**. Ordinary
-builds retain their old behavior. No production plugin/translator source changes
-or unconditional tracing were added. The copied profile retains x86_64/O1,
+builds retain their old behavior. Instrumentation does not modify production
+inputs or add unconditional tracing. The copied profile retains x86_64/O1,
 `NVMTL_RELEASE=1`, hidden C symbols and private Objective-C class/protocol/global
 names. The actual release environment-clearing/config constructor stays identical.
 
@@ -147,8 +149,8 @@ Record clean commits and exact source inputs first:
 
 ```sh
 mkdir -m 700 "$GA102_SESSION"
-git -C "$GA102_REPO" worktree add --detach "$GA102_SESSION/baseline-src" 8fd5960d0bda6bde25f435b8f05b2cd35c58f431
-git -C "$GA102_REPO" worktree add --detach "$GA102_SESSION/candidate-src" acb724185daba72de472e5954e69d3cec6221c51
+git -C "$GA102_REPO" worktree add --detach "$GA102_SESSION/baseline-src" acb724185daba72de472e5954e69d3cec6221c51
+git -C "$GA102_REPO" worktree add --detach "$GA102_SESSION/candidate-src" "$GA102_CANDIDATE_COMMIT"
 ```
 
 For each `GA102_ARM` (`baseline`, then `candidate`):
@@ -208,8 +210,8 @@ files are rehashed before/after each child; unknown non-system dyld images fail.
 
 ## Execution gate and workload contract
 
-**No current GPU claim is READY.** Before meaningful timings, the code above must
-compile on Mac and the owner must review final source/build/dependency manifests
+**The new candidate/profile is not yet GPU-qualified.** Before meaningful timings,
+the code above must compile on Mac and the owner must review final source/build/dependency manifests
 and isolate the child. Do not request physical testing merely because portable
 mocks pass. A later separately authorized execution uses the exact runner below;
 `--execute-reviewed` is a guard flag, not evidence of permission by itself.
@@ -218,8 +220,8 @@ mocks pass. A later separately authorized execution uses the exact runner below;
 python3 "$GA102_HARNESS/tools/ga102_graphics_perf.py" run \
   --baseline-plugin "$GA102_SESSION/baseline-plugin/NVMTLDriver" \
   --candidate-plugin "$GA102_SESSION/candidate-plugin/NVMTLDriver" \
-  --baseline-commit 8fd5960d0bda6bde25f435b8f05b2cd35c58f431 \
-  --candidate-commit acb724185daba72de472e5954e69d3cec6221c51 \
+  --baseline-commit acb724185daba72de472e5954e69d3cec6221c51 \
+  --candidate-commit "$GA102_CANDIDATE_COMMIT" \
   --metallib "$GA102_SESSION/fixture/runtime_sampler.metallib" \
   --dependency-manifest "$GA102_SESSION/dependencies.json" \
   --output "$GA102_SESSION/graphics-qualification" --pairs 1 --execute-reviewed
@@ -320,3 +322,34 @@ Next useful step is review and Mac **build-only** qualification of this source i
 a future separately authorized session. Physical testing is not requested now.
 If actual Mac cold/reuse or device-cache behavior disagrees with the contract,
 report precisely **BLOCKED** and investigate before any performance comparison.
+
+## Follow-up cold pipeline controls (v2)
+
+The v2 profile adds `pipeline_total`, an inclusive CPU span containing address
+lowering, object preparation, the actual `vk_pipeline` driver call and cleanup.
+Acceptance requires matching creation counts and `pipeline_total.ns >=
+vk_pipeline.ns`. The difference is preparation/cleanup plus tracing overhead,
+not a named NVK compiler phase. Existing sampler/branch/cache/provenance/pixel
+and real shader-validation gates remain mandatory. Old schema-v1 records remain
+readable for offline analysis; new launches require schema v2 and rebuilt proofs.
+
+After separate execution authorization, run two matched sessions using the same
+A/B artifacts, SDK/toolchain, common metallib and retained ICD/LLVM hashes:
+
+- `run ... --sampler-first nearest --pairs 5 --output <new-nearest-session>`
+- `run ... --sampler-first linear --pairs 5 --output <new-linear-session>`
+
+The omitted arguments are the complete explicit paths/commits/manifest and
+reviewed execution flag in the command above. Both outputs must be new private
+directories. Alternate which session runs first in a repeat, retain its order,
+and keep owned-cache cold/reuse results separate. Do not clear working production
+caches. The initial PSO remains first in both conditions; the control changes which
+specialized PSO is created first, not global initialization. A full independent
+process-per-filter control remains a possible later extension if order matters.
+
+`results.json` retains process-paired absolute saved nanoseconds, paired relative
+changes and faster-pair counts under `paired_statistics`; qualification pair 0 is
+excluded. Assess total encoding/preparation p95 and absolute stall size alongside
+ABI medians. Do not pool initial/nearest/linear timings or add overlapping spans.
+An inconsistent direction or a regression remains a finding to investigate.
+There is no new desktop FPS, physical scanout or installed-stack performance claim.

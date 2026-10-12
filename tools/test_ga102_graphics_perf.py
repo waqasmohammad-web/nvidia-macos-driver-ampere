@@ -12,6 +12,19 @@ from tools import ga102_graphics_perf as perf
 
 
 class GraphicsPolicyTests(unittest.TestCase):
+    @classmethod
+    def setUpClass(cls):
+        # Exercise the real source-pinning gate even when developing in a dirty
+        # checkout. The integration fixture uses committed production inputs.
+        cls.source_parent=tempfile.TemporaryDirectory()
+        cls.pinned_source=Path(cls.source_parent.name)/'pinned'
+        subprocess.run(['git','-C',str(perf.ROOT),'worktree','add','--detach',str(cls.pinned_source),'HEAD'],check=True,capture_output=True)
+
+    @classmethod
+    def tearDownClass(cls):
+        subprocess.run(['git','-C',str(perf.ROOT),'worktree','remove',str(cls.pinned_source)],check=True,capture_output=True)
+        cls.source_parent.cleanup()
+
     def test_owned_cache_rejects_tokens_permissions_and_symlinks(self):
         with tempfile.TemporaryDirectory() as parent:
             root,token=perf.new_cache(parent)
@@ -33,6 +46,7 @@ static void *worker(void *p) { (void)p; for(int i=0;i<1000;++i)ga102_hit(GA102_L
 int main(void) {
     ga102_owned_air(); ga102_owned_mesa();
     uint64_t t=ga102_tick(); ga102_record(GA102_VK_PIPELINE,ga102_tick()-t,0);
+    ga102_record(GA102_PIPELINE_TOTAL,ga102_tick()-t,0);
     pthread_t threads[4];
     for(int i=0;i<4;++i)if(pthread_create(&threads[i],NULL,worker,NULL))return 2;
     for(int i=0;i<4;++i)if(pthread_join(threads[i],NULL))return 3;
@@ -49,6 +63,8 @@ int main(void) {
             m=json.loads(output.stdout); perf.metrics(m)
             self.assertEqual(m['local_hit']['count'],4000)
             self.assertEqual(m['vk_pipeline']['count'],1)
+            self.assertEqual(m['pipeline_total']['count'],1)
+            self.assertGreaterEqual(m['pipeline_total']['ns'],m['vk_pipeline']['ns'])
             self.assertEqual(list((root/'capture').iterdir()),[])
             captured=subprocess.run([str(exe)],env={**env,'GA102_TEST_CAPTURE':'1'},capture_output=True,text=True)
             self.assertEqual(captured.returncode,0,captured.stderr)
@@ -65,7 +81,7 @@ int main(void) {
         originals={p.name:perf.sha(p) for p in (perf.ROOT/'plugin').iterdir() if p.is_file()}
         with tempfile.TemporaryDirectory() as parent:
             out=Path(parent)/'snapshot'
-            with patch('sys.argv',['builder','--prepare-only','--graphics-performance','--output',str(out),'--translator','/owned/translator.dylib','--icd','/retained/nvk.dylib','--air-runtime','/retained/runtime']):
+            with patch('sys.argv',['builder','--source-root',str(self.pinned_source),'--prepare-only','--graphics-performance','--output',str(out),'--translator','/owned/translator.dylib','--icd','/retained/nvk.dylib','--air-runtime','/retained/runtime']):
                 builder.main()
             proof=json.loads((out/'preparation-proof.json').read_text())
             self.assertIsNone(proof['binary_sha256']); self.assertFalse(proof['runtime_executed'])
@@ -82,6 +98,8 @@ int main(void) {
             self.assertIn('ga102_hit(selected ? GA102_DEVICE_HIT : GA102_DEVICE_MISS)',objects)
             self.assertIn('ga102_actual_sampler(',library)
             self.assertIn('ga102_record(GA102_VK_PIPELINE',vk)
+            self.assertIn('ga102_record(GA102_PIPELINE_TOTAL',vk)
+            self.assertEqual(proof['performance']['profile'],'ga102-graphics-v2')
             self.assertIn('loader fallback prohibited',vk)
             self.assertIn('in-memory AIR extraction failed; fallback prohibited',library)
             with self.assertRaises(ValueError): instrument(source,Path('/x'),Path('/y'))
@@ -142,6 +160,64 @@ int main(void) {
         corners=[(1,3),(2,3),(1,4),(2,4)]; weights=[.1875,.5625,.0625,.1875]
         result=[round(sum(w*(32*x if c==0 else 32*y if c==1 else 16*(x+y)) for (x,y),w in zip(corners,weights))) for c in range(3)]
         self.assertEqual(result,[56,104,80]); self.assertNotEqual(result,[64,96,80])
+
+    def diagnostic_fixture(self,condition,first):
+        result,paths=self.fixture(condition)
+        result.update(schema_version=2,sampler_first=first)
+        for row in result['records']:
+            for name in ('before','after'):
+                driver=row[name]['vk_pipeline']
+                row[name]['pipeline_total']=dict(count=driver['count'],ns=driver['ns']*2,failures=0)
+        driver=result['final_metrics']['vk_pipeline']
+        result['final_metrics']['pipeline_total']=dict(count=driver['count'],ns=driver['ns']*2,failures=0)
+        # Reconstruct a monotonic timeline after reordering the operations.
+        by_label={row['label']:row for row in result['records']}
+        running={k:dict(count=0,ns=0,failures=0) for k in perf.DIAGNOSTIC_EVENTS}
+        rows=[]
+        for label in perf.labels(first):
+            row=copy.deepcopy(by_label[label]); change=perf.delta(row)
+            row['before']=copy.deepcopy(running)
+            for key in running:
+                for field in running[key]: running[key][field]+=change[key][field]
+            row['after']=copy.deepcopy(running); rows.append(row)
+        result['records']=rows; result['final_metrics']=running
+        return result,paths
+
+    def test_diagnostic_orders_require_inclusive_timing_and_preserve_gates(self):
+        for condition in ('cold','reuse'):
+            for first in ('nearest','linear'):
+                result,paths=self.diagnostic_fixture(condition,first)
+                perf.validate_record(result,condition,paths)
+                mutations=[lambda r:r['records'][1]['after']['pipeline_total'].update(ns=0),
+                           lambda r:r['records'][1]['after']['pipeline_total'].update(count=0),
+                           lambda r:r.update(sampler_first='unexpected'),
+                           lambda r:r['records'][2].update(center_rgba=[0,0,0,0]),
+                           lambda r:r['records'][2]['after']['pipeline_total'].update(failures=1),
+                           lambda r:r['records'][2]['after'].pop('pipeline_total'),
+                           lambda r:r['final_metrics']['pipeline_total'].update(count=0)]
+                for mutate in mutations:
+                    changed=copy.deepcopy(result); mutate(changed)
+                    with self.assertRaises(ValueError): perf.validate_record(changed,condition,paths)
+
+    def test_pairing_keeps_process_conditions_and_qualification_separate(self):
+        rows=[]
+        for pair in (0,1,2):
+            for condition in ('cold','reuse'):
+                for arm in ('baseline','candidate'):
+                    result,paths=self.diagnostic_fixture(condition,'linear')
+                    d=perf.validate_record(result,condition,paths)
+                    if arm=='candidate':
+                        for events in d.values():
+                            for item in events.values(): item['ns']*=.8 if condition=='cold' else 1.1
+                    rows.append(dict(pair=pair,condition=condition,arm=arm,qualification=pair==0,differences=d))
+        report=perf.paired_statistics(rows)
+        cold=report['cold:nearest-miss:vk_pipeline']; reuse=report['reuse:nearest-miss:vk_pipeline']
+        self.assertEqual(cold['n'],2); self.assertEqual(cold['faster_pairs'],2)
+        self.assertAlmostEqual(cold['paired_median_change_percent'],20)
+        self.assertEqual(reuse['faster_pairs'],0); self.assertAlmostEqual(reuse['paired_median_change_percent'],-10)
+        self.assertEqual([p['pair'] for p in cold['pairs']],[1,2])
+        for invalid in (rows[:-1],rows+[rows[-1]]):
+            with self.assertRaises(ValueError): perf.paired_statistics(invalid)
 
     def test_unknown_non_system_dependency_is_not_auto_accepted(self):
         perf.verify_inventory(['/usr/lib/libSystem.B.dylib','/owned/nvk'],{'/owned/nvk'})

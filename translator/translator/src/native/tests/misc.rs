@@ -690,6 +690,14 @@ declare i1 @air.is_function_constant_defined(ptr addrspace(2))
     )
     .expect("specialized");
 
+    let specialized = crate::specialize_air_function_constants(ll, &[(0, vec![1])]).unwrap();
+    let prepared = crate::PreparedNativeAir::new(&specialized, Stage::Fragment);
+    let reflection = prepared.reflect(passes::TransformOptions::default()).unwrap();
+    let prepared_bytes = prepared.translate_constructed(passes::TransformOptions::default()).unwrap();
+    tools::spirv_val_bytes(&prepared_bytes, &tmp).expect("prepared FC spirv-val");
+    assert_eq!(prepared_bytes, enabled, "preparation must use specialized function constants");
+    assert_eq!(reflection, prepared.reflect(passes::TransformOptions::default()).unwrap());
+
     let constants = |bytes: &[u8]| {
         load_bytes(bytes)
             .expect("load")

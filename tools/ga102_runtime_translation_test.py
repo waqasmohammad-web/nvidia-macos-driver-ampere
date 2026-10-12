@@ -18,6 +18,8 @@ import time
 ROOT = Path(__file__).resolve().parents[1]
 TEXTURES = 'translator/translator/src/native/tests/textures.rs'
 INTERFACE = 'translator/translator/src/native/tests/interface.rs'
+MISC = 'translator/translator/src/native/tests/misc.rs'
+THREADGROUP = 'translator/translator/src/native/tests/threadgroup.rs'
 
 
 def fixture(path, owner, variable='ll', constant=False):
@@ -57,6 +59,12 @@ class Translator:
         self.call.restype = ctypes.c_int
         self.lib.nvmtl_translate_free.argtypes = [ctypes.c_void_p, ctypes.c_size_t]
         self.lib.nvmtl_translate_free.restype = None
+        self.lib.nvmtl_translate_set_threadgroup_lengths.argtypes = [ctypes.POINTER(ctypes.c_uint32), ctypes.c_uint32]
+        self.lib.nvmtl_translate_set_threadgroup_lengths.restype = None
+
+    def threadgroup_lengths(self, lengths):
+        values=(ctypes.c_uint32*len(lengths))(*lengths)
+        self.lib.nvmtl_translate_set_threadgroup_lengths(values,len(lengths))
 
     def translate(self, ll, stage, config, caps=3):
         self.lib.nvmtl_translate_set_caps(caps)
@@ -148,6 +156,34 @@ def main():
                for lib in libs.values()]
     assert results[0] == results[1] and results[0][0] is None and results[0][1], results
     controls.append('identical explicit malformed AIR error')
+    fc=fixture(MISC,'air_level_function_constant_specialization_selects_cfg_before_emission')
+    fc_outputs=[]
+    for enabled in (0,1,0):
+        results=[lib.translate(fc,'fragment',config({'3':state()}, {'0':[enabled]}))[:2] for lib in libs.values()]
+        assert results[0]==results[1] and results[0][0] is not None, results
+        validate(results[0][0],args.output,f'function-constant-{enabled}')
+        fc_outputs.append(results[0][0])
+    assert fc_outputs[0]!=fc_outputs[1] and fc_outputs[0]==fc_outputs[2], 'function constants must change the program without retaining previous values'
+    controls.append('positive function-constant specialization and call independence')
+    tg=fixture(THREADGROUP,'kernel_threadgroup_array_length_follows_the_caller')
+    tg_outputs=[]
+    try:
+        for length in (0,4352,2,0):
+            results=[]
+            for lib in libs.values():
+                lib.threadgroup_lengths([length])
+                results.append(lib.translate(tg,'kernel',config({'3':state()}))[:2])
+            assert results[0]==results[1], results
+            if length==2:
+                assert results[0][0] is None and 'less than one 4-byte element' in results[0][1], results
+            else:
+                assert results[0][0] is not None, results
+                validate(results[0][0],args.output,f'threadgroup-length-{length}')
+                tg_outputs.append(results[0][0])
+        assert tg_outputs[0]!=tg_outputs[1] and tg_outputs[0]==tg_outputs[2], 'unused-sampler fallback must apply and clear threadgroup lengths'
+    finally:
+        for lib in libs.values(): lib.threadgroup_lengths([])
+    controls.append('unused-sampler fallback preserves threadgroup lengths, error and clearing')
     malformed = args.output / 'invalid-header.spv'
     malformed.write_bytes(b'\x00\x00\x00\x00' + reference['fragment-nearest']['candidate'][4:])
     rejection = subprocess.run(['spirv-val', '--target-env', 'vulkan1.2', str(malformed)],
@@ -156,6 +192,7 @@ def main():
     controls.append('real validator rejects malformed SPIR-V header')
     measurements = {name: {'baseline': [], 'candidate': []} for name, *_ in workloads}
     paired = {name: [] for name, *_ in workloads}
+    paired_saved = {name: [] for name, *_ in workloads}
     for round_index in range(args.rounds):
         batch = {name: {} for name, *_ in workloads}
         for variant in (['baseline', 'candidate'] if round_index % 2 == 0 else ['candidate', 'baseline']):
@@ -170,13 +207,17 @@ def main():
                 batch[name][variant] = statistics.median(samples)
         for name in paired:
             paired[name].append(100*(1-batch[name]['candidate']/batch[name]['baseline']))
+            paired_saved[name].append(batch[name]['baseline']-batch[name]['candidate'])
     results = []
     for name, ll, stage, cfg in workloads:
         row = dict(workload=name, stage=stage, source_sha256=hashlib.sha256(ll).hexdigest(),
                    config_sha256=hashlib.sha256(cfg).hexdigest(), spirv_sha256=hashlib.sha256(reference[name]['candidate']).hexdigest(),
                    spirv_bytes=len(reference[name]['candidate']), byte_identical=True,
                    baseline=stats(measurements[name]['baseline']), candidate=stats(measurements[name]['candidate']),
-                   paired_reductions_percent=paired[name])
+                   paired_reductions_percent=paired[name],paired_saved_ns=paired_saved[name],
+                   paired_median_reduction_percent=statistics.median(paired[name]),
+                   paired_median_saved_ns=statistics.median(paired_saved[name]),
+                   faster_batches=sum(value>0 for value in paired_saved[name]))
         row['median_reduction_percent'] = 100*(1-row['candidate']['median_ns']/row['baseline']['median_ns'])
         results.append(row)
         print(name, 'median ms', row['baseline']['median_ns']/1e6, '->', row['candidate']['median_ns']/1e6,

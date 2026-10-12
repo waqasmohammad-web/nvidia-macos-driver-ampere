@@ -21,6 +21,9 @@ func complete(_ command: MTLCommandBuffer) {
           command.error == nil else { fail("GPU command completion") }
 }
 guard CommandLine.arguments.count == 2 else { fail("one owned metallib argument required") }
+let samplerFirst=ProcessInfo.processInfo.environment["GA102_TEST_SAMPLER_FIRST"] ?? "nearest"
+guard samplerFirst == "nearest" || samplerFirst == "linear" else { fail("sampler order") }
+let filterOrder=samplerFirst == "nearest" ? [0,1] : [1,0]
 let device=Unmanaged<AnyObject>.fromOpaque(boundDevice()).takeRetainedValue() as! any MTLDevice
 owned(device)
 guard let queue=device.makeCommandQueue() else { fail("queue") }; owned(queue)
@@ -94,13 +97,15 @@ func draw(_ p: MTLRenderPipelineState, _ filter: Int, _ label: String) {
     if c.gpuStartTime > 0 && c.gpuEndTime >= c.gpuStartTime { record["gpu_ns"]=(c.gpuEndTime-c.gpuStartTime)*1e9 }
     records.append(record)
 }
-draw(pipeline,0,"nearest-miss"); draw(pipeline,0,"nearest-local-hit")
-draw(pipeline,1,"linear-miss"); draw(pipeline,1,"linear-local-hit")
+for filter in filterOrder {
+    let name=filter == 0 ? "nearest" : "linear"
+    draw(pipeline,filter,name+"-miss"); draw(pipeline,filter,name+"-local-hit")
+}
 let equivalent=makePipeline("pipeline-equivalent")
-draw(equivalent,0,"nearest-device-hit"); draw(equivalent,1,"linear-device-hit")
+for filter in filterOrder { draw(equivalent,filter,(filter == 0 ? "nearest" : "linear")+"-device-hit") }
 guard let provenanceData=String(cString:provenancePointer()).data(using:.utf8),
       let provenance=try? JSONSerialization.jsonObject(with:provenanceData) else { fail("provenance") }
-let result:[String:Any]=["schema_version":1,"records":records,"provenance":provenance,"final_metrics":snapshot(),
+let result:[String:Any]=["schema_version":2,"sampler_first":samplerFirst,"records":records,"provenance":provenance,"final_metrics":snapshot(),
     "scope":"owned runtime-sampler graphics; no desktop or scanout claim"]
 do {
     let encoded=try JSONSerialization.data(withJSONObject:result,options:[.sortedKeys])

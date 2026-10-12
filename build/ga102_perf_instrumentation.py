@@ -100,6 +100,12 @@ static int ga102_timed_{name}({params}) {{
     s = once(s, '    if (g_state) return g_state == 1 ? 0 : -1;\n    g_state = -1;', '    if (g_state) return g_state == 1 ? 0 : -1;\n    g_state = -1;\n    ga102_owned_mesa();')
     call = 'VkResult result = pvkCreateGraphicsPipelines(dev, cache, count, info, allocator, &handle);'
     s = once(s, call, 'uint64_t t=ga102_tick();\n    '+call+'\n    ga102_record(GA102_VK_PIPELINE,ga102_tick()-t,result != VK_SUCCESS);')
+    # Inclusive CPU pipeline time: address lowering, Vulkan object preparation,
+    # driver compilation and cleanup. Do not label the residual as NVK time.
+    call = 'int result = nvmtl_vk_pipeline_create_impl_lifetime_body(vs, vn, fs, fn, vkfmt, depthfmt, blend_, vin_, samples, td, rt, &pending);'
+    s = once(s, call, 'uint64_t pipelineT=ga102_tick();\n    '+call)
+    site = 'else *(nvk_pipeline *)out_ = pending;\n    return result;'
+    s = once(s, site, 'else *(nvk_pipeline *)out_ = pending;\n    ga102_record(GA102_PIPELINE_TOTAL,ga102_tick()-pipelineT,result != 0);\n    return result;')
     vk.write_text(s)
     with unit.open('a') as out:
         out.write('''
@@ -119,7 +125,7 @@ __attribute__((visibility("default"))) const char *ga102_perf_image(unsigned kin
     Dl_info info={0}; return p && dladdr(p,&info) ? info.dli_fname : NULL;
 }
 ''')
-    return {'profile': 'ga102-graphics-v1', 'metrics_header_sha256': hashlib.sha256(header.read_bytes()).hexdigest(),
+    return {'profile': 'ga102-graphics-v2', 'metrics_header_sha256': hashlib.sha256(header.read_bytes()).hexdigest(),
             'transformer_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             'transformed_source_sha256': {p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in source.iterdir() if p.is_file()},
             'limitations': 'Generated source only until Apple compilation/GPU qualification; internal sampler reflection is included in sampler ABI time, not separately instrumented.'}

@@ -27,9 +27,18 @@ FIXTURE = ROOT/'tools/ga102_perf/runtime_sampler.metal'
 EVENTS = ('air_extract','reflect','rust','sampler_abi','lower','vk_pipeline','local_hit','local_miss',
           'device_hit','device_miss','variant_build','air_memory_hit','air_disk_hit','air_miss','spv_hit','spv_miss',
           'index_disk_hit','sampler_bind','local_lookup','device_lookup','vk_error')
+DIAGNOSTIC_EVENTS = EVENTS + ('pipeline_total',)
 LABELS = ('library','pipeline-initial','nearest-miss','nearest-local-hit','linear-miss',
           'linear-local-hit','pipeline-equivalent','nearest-device-hit','linear-device-hit')
 SYSTEM_IMAGES=('/System/Library/','/usr/lib/','/Library/Apple/System/Library/')
+
+
+def labels(sampler_first):
+    if sampler_first not in ('nearest','linear'): raise ValueError('unknown sampler order')
+    second='linear' if sampler_first=='nearest' else 'nearest'
+    return ('library','pipeline-initial',sampler_first+'-miss',sampler_first+'-local-hit',
+            second+'-miss',second+'-local-hit','pipeline-equivalent',
+            sampler_first+'-device-hit',second+'-device-hit')
 
 
 def sha(path):
@@ -68,7 +77,7 @@ def cache_snapshot(root):
 
 
 def metrics(value):
-    if not isinstance(value,dict) or set(value) != set(EVENTS): raise ValueError('missing/unknown metrics')
+    if not isinstance(value,dict) or set(value) not in (set(EVENTS),set(DIAGNOSTIC_EVENTS)): raise ValueError('missing/unknown metrics')
     for item in value.values():
         if not isinstance(item,dict) or set(item) != {'count','ns','failures'}: raise ValueError('metric fields')
         if any(type(n) is not int or n < 0 for n in item.values()) or item['failures'] > item['count']: raise ValueError('invalid metric')
@@ -77,7 +86,8 @@ def metrics(value):
 
 def delta(row):
     a,b=metrics(row['before']),metrics(row['after'])
-    d={key:{field:b[key][field]-a[key][field] for field in a[key]} for key in EVENTS}
+    if set(a)!=set(b): raise ValueError('metrics schema changed during operation')
+    d={key:{field:b[key][field]-a[key][field] for field in a[key]} for key in a}
     if any(n < 0 for item in d.values() for n in item.values()): raise ValueError('metrics went backwards')
     if any(item['failures'] for item in b.values()): raise ValueError('measured operation failed')
     return d
@@ -86,9 +96,13 @@ def delta(row):
 def validate_record(result,condition,paths):
     if condition not in ('cold','reuse'): raise ValueError('unknown cache condition')
     rows=result.get('records',[])
-    if result.get('schema_version') != 1 or [r.get('label') for r in rows] != list(LABELS): raise ValueError('operation sequence incomplete')
+    schema=result.get('schema_version')
+    first=result.get('sampler_first','nearest')
+    if schema not in (1,2) or (schema==1 and first!='nearest') or [r.get('label') for r in rows] != list(labels(first)): raise ValueError('operation sequence incomplete')
     provenance=result.get('provenance',{})
     final=metrics(result['final_metrics'])
+    event_names=DIAGNOSTIC_EVENTS if schema==2 else EVENTS
+    if set(final)!=set(event_names): raise ValueError('metric schema does not match record version')
     expected_images=[paths['translator']]*3+[paths['icd']]*2+[paths['llvm'] if final['air_extract']['count'] else None]
     if provenance.get('images') != expected_images or provenance.get('namespace_verified') is not True:
         raise ValueError('actual function images not verified')
@@ -96,13 +110,17 @@ def validate_record(result,condition,paths):
         raise ValueError('effective cache path mismatch')
     inventory=provenance.get('inventory',[])
     if not inventory or any(p not in inventory for p in expected_images+[paths['plugin']] if p is not None): raise ValueError('dyld dependency inventory incomplete')
-    previous={key:{field:0 for field in ('count','ns','failures')} for key in EVENTS}
-    totals={key:0 for key in EVENTS}; differences={}
+    previous={key:{field:0 for field in ('count','ns','failures')} for key in event_names}
+    totals={key:0 for key in event_names}; differences={}
     for row in rows:
         d=delta(row); differences[row['label']]=d
-        if any(row['before'][key][field] < previous[key][field] for key in EVENTS for field in previous[key]): raise ValueError('record timeline went backwards')
+        if set(d)!=set(event_names): raise ValueError('inconsistent metric schema')
+        if any(row['before'][key][field] < previous[key][field] for key in event_names for field in previous[key]): raise ValueError('record timeline went backwards')
         previous=row['after']
-        for key in EVENTS: totals[key]+=d[key]['count']
+        for key in event_names: totals[key]+=d[key]['count']
+        if schema==2:
+            if d['pipeline_total']['count']!=d['vk_pipeline']['count'] or d['pipeline_total']['ns']<d['vk_pipeline']['ns']:
+                raise ValueError('inclusive pipeline timing/count differs from Vulkan creation')
         for name in ('wall_ns','encode_ns','completion_ns','readback_ns','gpu_ns'):
             if name in row and (isinstance(row[name],bool) or not isinstance(row[name],(int,float)) or not math.isfinite(row[name]) or row[name]<0):
                 raise ValueError('invalid timing')
@@ -123,7 +141,7 @@ def validate_record(result,condition,paths):
         elif label.startswith('pipeline-'):
             if d['vk_pipeline']['count'] != 1: raise ValueError('public pipeline did not execute exactly one Vulkan creation')
     final=metrics(result['final_metrics'])
-    if any(final[k][f] < previous[k][f] for k in EVENTS for f in previous[k]) or any(v['failures'] for v in final.values()): raise ValueError('final metrics invalid')
+    if any(final[k][f] < previous[k][f] for k in event_names for f in previous[k]) or any(v['failures'] for v in final.values()): raise ValueError('final metrics invalid')
     if totals['sampler_abi'] != 2 or totals['variant_build'] != 2: raise ValueError('sampler ABI/build evidence absent')
     # Persistent reuse must not suppress the two fresh-process sampler variants.
     if condition == 'cold':
@@ -138,7 +156,7 @@ def validate_record(result,condition,paths):
 def artifact(plugin):
     plugin=plugin.resolve(); proof=json.loads((plugin.parent/'isolation-proof.json').read_text())
     perf=proof.get('performance',{})
-    if proof.get('schema_version') != 2 or proof.get('class_prefix') != 'NVMTLGA102_' or not proof.get('c_symbols_hidden') or proof.get('binary_sha256') != sha(plugin) or perf.get('profile') != 'ga102-graphics-v1':
+    if proof.get('schema_version') != 2 or proof.get('class_prefix') != 'NVMTLGA102_' or not proof.get('c_symbols_hidden') or proof.get('binary_sha256') != sha(plugin) or perf.get('profile') != 'ga102-graphics-v2':
         raise ValueError('compiled performance profile proof required')
     if perf.get('metrics_header_sha256') != sha(ROOT/'tools/ga102_perf/metrics.h') or perf.get('transformer_sha256') != sha(ROOT/'build/ga102_perf_instrumentation.py'):
         raise ValueError('instrumentation revision mismatch')
@@ -164,6 +182,38 @@ def summary(samples):
     mean=statistics.mean(s)
     return dict(n=len(s),median_ns=statistics.median(s),p95_ns=s[math.ceil(.95*len(s))-1],
                 min_ns=min(s),max_ns=max(s),iqr_ns=q[2]-q[0],cv_percent=100*statistics.pstdev(s)/mean if mean else None,samples_ns=samples)
+
+
+def paired_statistics(rows):
+    """Pair process measurements; never pool cold/reuse or qualification data."""
+    groups={}
+    for row in rows:
+        if row['qualification']: continue
+        key=(row['pair'],row['condition'])
+        if row['arm'] not in ('baseline','candidate') or row['condition'] not in ('cold','reuse'):
+            raise ValueError('unknown comparison arm/condition')
+        group=groups.setdefault(key,{})
+        if row['arm'] in group: raise ValueError('duplicate comparison arm')
+        group[row['arm']]=row
+    output={}
+    for (pair,condition),group in sorted(groups.items()):
+        if set(group)!= {'baseline','candidate'}: raise ValueError('incomplete paired comparison')
+        for label in LABELS:
+            for event in ('sampler_abi','vk_pipeline','pipeline_total','sampler_bind','lower'):
+                a=group['baseline']['differences'][label].get(event)
+                b=group['candidate']['differences'][label].get(event)
+                if a is None and b is None: continue  # Legacy v1 has no inclusive span.
+                if a is None or b is None or a['count']!=b['count']:
+                    raise ValueError('comparison event counts differ')
+                if not a['count']: continue
+                if a['ns']<=0 or b['ns']<=0: raise ValueError('nonpositive comparison span')
+                key=f'{condition}:{label}:{event}'
+                output.setdefault(key,[]).append(dict(pair=pair,baseline_ns=a['ns'],candidate_ns=b['ns'],
+                    saved_ns=a['ns']-b['ns'],change_percent=100*(1-b['ns']/a['ns'])))
+    return {key:dict(pairs=values,paired_median_change_percent=statistics.median(v['change_percent'] for v in values),
+                    paired_median_saved_ns=statistics.median(v['saved_ns'] for v in values),
+                    faster_pairs=sum(v['saved_ns']>0 for v in values),n=len(values))
+            for key,values in output.items()}
 
 
 def verify_inventory(inventory,approved):
@@ -271,6 +321,7 @@ def execute(args):
                 env.update(GA102_PLUGIN_IMAGE=arms[arm]['plugin'],GA102_PLUGIN_NAMESPACE='NVMTLGA102_',
                     GA102_PLUGIN_TRANSLATOR=arms[arm]['translator'],GA102_PLUGIN_LOWER_PROBE='1',GA102_TEST_ICD=arms[arm]['icd'],
                     GA102_TEST_LLVM=arms[arm]['llvm'],GA102_TEST_CACHE=str(root),GA102_TEST_TOKEN=token)
+                env['GA102_TEST_SAMPLER_FIRST']=args.sampler_first
                 if pair==0: env['GA102_TEST_CAPTURE']='1'
                 paths={**arms[arm],'cache':str(root)}
                 log_path=args.output/f'{pair}-{arm}-{condition}.private.log'
@@ -283,6 +334,8 @@ def execute(args):
                 lines=log_path.read_text().splitlines(); results=[json.loads(x[8:]) for x in lines if x.startswith('result: ')]
                 if rc or len(results)!=1 or any(lines.count(x)!=1 for x in ('binding_verified: true','binding_namespace_verified: true','binding_translator_verified: true','binding_lowering_verified: true')) or any('duplicate' in x.lower() and 'class' in x.lower() for x in lines):
                     raise ValueError('child or independent provenance marker failed: '+str(log_path))
+                if results[0].get('schema_version')!=2 or results[0].get('sampler_first')!=args.sampler_first:
+                    raise ValueError('requested diagnostic profile/order not executed')
                 differences=validate_record(results[0],condition,paths)
                 verify_inventory(results[0]['provenance']['inventory'],approved_images)
                 row=dict(pair=pair,arm=arm,condition=condition,qualification=pair==0,records=results[0]['records'],
@@ -301,12 +354,12 @@ def execute(args):
         for condition in ('cold','reuse'):
             for label in LABELS:
                 selected=[r for r in rows if not r['qualification'] and r['arm']==arm and r['condition']==condition]
-                for event in ('air_extract','reflect','rust','sampler_abi','vk_pipeline','sampler_bind','local_lookup','device_lookup'):
+                for event in ('air_extract','reflect','rust','sampler_abi','lower','vk_pipeline','pipeline_total','sampler_bind','local_lookup','device_lookup'):
                     values=[r['differences'][label][event]['ns'] for r in selected if r['differences'][label][event]['count']]
                     if values: stats[f'{arm}:{condition}:{label}:{event}']=summary(values)
     # Raw paths/image inventories stay only in private logs. Preserve raw timings.
-    report=dict(status='PASS',scope='owned offscreen graphics only',fixture_sha256=sha(args.metallib),fixture_source_sha256=sha(FIXTURE),
-                source_commits={k:proofs[k]['source_commit'] for k in arms},
+    report=dict(status='PASS',scope='owned offscreen graphics only',sampler_first=args.sampler_first,fixture_sha256=sha(args.metallib),fixture_source_sha256=sha(FIXTURE),
+                source_commits={k:proofs[k]['source_commit'] for k in arms},paired_statistics=paired_statistics(rows),
                 dependency_hashes={arm:{kind:sha(arms[arm][kind]) for kind in ('plugin','translator','icd','llvm')} for arm in arms},probe_sha256=exe_hash,rows=rows,statistics=stats,
                 limits=['Internal sampler reflection is included in sampler ABI time.','Mesa file persistence is not driver cache-hit attribution.',
                         'Owned-cache cold only; Apple/OS/internal driver caches and GPU clocks are uncontrolled.','No desktop/FPS/scanout conclusion.'])
@@ -323,6 +376,7 @@ def main():
     run.add_argument('--baseline-commit',required=True); run.add_argument('--candidate-commit',required=True)
     run.add_argument('--dependency-manifest',type=Path,required=True,help='Reviewed canonical non-system image paths and SHA256 closure; no runtime auto-acceptance')
     run.add_argument('--pairs',type=int,choices=range(1,11),default=1); run.add_argument('--execute-reviewed',action='store_true')
+    run.add_argument('--sampler-first',choices=('nearest','linear'),default='nearest',help='Use separate matched sessions for each order to control first-variant effects')
     args=p.parse_args()
     if sys.platform!='darwin': p.error('NEEDS MACOS VALIDATION: this command cannot execute on Linux')
     if args.command=='run' and not args.execute_reviewed: p.error('BLOCKED: reviewed execution authorization flag required')

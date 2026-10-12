@@ -588,19 +588,32 @@ pub unsafe extern "C" fn nvmtl_translate_samplers(
         let values:Vec<_>=constants.into_iter().collect();
         let specialized=metal2vulkan::specialize_air_function_constants(ll,&values)?;
         let ll=specialized.as_ref();
-        let reflection=metal2vulkan::reflect_sanitized(ll,st,metal2vulkan::passes::TransformOptions::default())?;
+        let prepared=metal2vulkan::PreparedNativeAir::new(ll,st);
+        let reflection=prepared.reflect(metal2vulkan::passes::TransformOptions::default())?;
         let states:std::collections::BTreeMap<u32,metal2vulkan::reflect::RuntimeSamplerState>=serde_json::from_value(j["samplers"].clone()).map_err(|e|e.to_string())?;
         // Both decisions use the same specialized AIR and default reflection options.
         // Reuse that reflection instead of parsing/lowering the module a second time.
-        let mut opts=formatless_options_reflected(&reflection,CAPS.load(Ordering::Relaxed)).unwrap_or_default();
+        let caps=CAPS.load(Ordering::Relaxed);
+        let formatless=formatless_options_reflected(&reflection,caps);
+        let mut opts=formatless.unwrap_or_default();
         let mut used=0;
         for (idx,state) in states {
             if reflection.bindings.iter().any(|b| b.kind==metal2vulkan::reflect::ResourceKind::Sampler && b.metal_index==idx) {
                 opts=opts.with_runtime_sampler(idx,state)?;used+=1;
             }
         }
-        if used==0{return translate_one(ll,st)}
-        metal2vulkan::translate_native_no_retry_constructed_with_options(ll,st,opts)
+        if used==0 {
+            // Match translate_one's capability gate and fallback, using analysis
+            // already obtained from this exact specialized input and stage.
+            if let Some(o)=formatless.filter(|_| caps!=0) {
+                match prepared.translate_constructed(apply_tg(o)) {
+                    Ok(v)=>return Ok(v),
+                    Err(e)=>eprintln!("nvmtl_translate: formatless storage images refused, falling back: {e}"),
+                }
+            }
+            return prepared.translate_constructed(apply_tg(metal2vulkan::passes::TransformOptions::default()))
+        }
+        prepared.translate_constructed(opts)
     })();
     match result {
         Ok(bytes)=>{let mut b=bytes.into_boxed_slice();*out=b.as_mut_ptr();*out_len=b.len();std::mem::forget(b);0}

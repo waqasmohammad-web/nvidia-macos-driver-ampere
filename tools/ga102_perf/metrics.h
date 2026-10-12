@@ -19,13 +19,14 @@ enum ga102_event {
     GA102_DEVICE_HIT, GA102_DEVICE_MISS, GA102_VARIANT_BUILD,
     GA102_AIR_MEMORY_HIT, GA102_AIR_DISK_HIT, GA102_AIR_MISS,
     GA102_SPV_HIT, GA102_SPV_MISS, GA102_INDEX_DISK_HIT,
-    GA102_SAMPLER_BIND, GA102_LOCAL_LOOKUP, GA102_DEVICE_LOOKUP, GA102_VK_ERROR, GA102_EVENT_COUNT
+    GA102_SAMPLER_BIND, GA102_LOCAL_LOOKUP, GA102_DEVICE_LOOKUP, GA102_VK_ERROR,
+    GA102_PIPELINE_TOTAL, GA102_EVENT_COUNT
 };
 static const char *const ga102_event_names[] = {
     "air_extract", "reflect", "rust", "sampler_abi", "lower", "vk_pipeline",
     "local_hit", "local_miss", "device_hit", "device_miss", "variant_build",
     "air_memory_hit", "air_disk_hit", "air_miss", "spv_hit", "spv_miss", "index_disk_hit",
-    "sampler_bind", "local_lookup", "device_lookup", "vk_error"
+    "sampler_bind", "local_lookup", "device_lookup", "vk_error", "pipeline_total"
 };
 struct ga102_metric { _Atomic uint64_t count, ns, failures; };
 static struct ga102_metric ga102_metrics[GA102_EVENT_COUNT];

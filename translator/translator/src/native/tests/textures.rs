@@ -1887,6 +1887,68 @@ declare { <4 x float>, i8 } @air.sample_texture_2d.v4f32(ptr addrspace(1), ptr a
         }]
     );
     tools::spirv_val_bytes(&spv, &tmp).expect("fragment spirv-val");
+
+    // Reusing preparation must not retain options from an earlier operation.
+    let prepared = crate::PreparedNativeAir::new(ll, Stage::Fragment);
+    let default_reflection = prepared.reflect(passes::TransformOptions::default()).unwrap();
+    let mut programs = Vec::new();
+    for filter in [crate::reflect::SamplerFilter::Nearest, crate::reflect::SamplerFilter::Linear] {
+        let state = runtime_sampler_state(
+            crate::reflect::SamplerCoordinates::Pixel, filter,
+            crate::reflect::SamplerAddressMode::Repeat,
+        );
+        let options = passes::TransformOptions::default().with_runtime_sampler(3, state).unwrap();
+        let reflected = prepared.reflect(options).unwrap();
+        assert_eq!(reflected.runtime_sampler_specializations.len(), 1);
+        assert_eq!(reflected.runtime_sampler_specializations[0].state, state);
+        let bytes = prepared.translate_constructed(options).unwrap();
+        tools::spirv_val_bytes(&bytes, &tmp).expect("prepared sampler spirv-val");
+        let asm = disassemble(&bytes).unwrap();
+        assert!(asm.contains("OpImageFetch"), "{asm}");
+        assert_eq!(asm.matches("OpImageFetch").count(), if filter == crate::reflect::SamplerFilter::Nearest { 1 } else { 4 });
+        programs.push(bytes);
+    }
+    assert_ne!(programs[0], programs[1], "filter selection must affect the program");
+    assert_eq!(prepared.reflect(passes::TransformOptions::default()).unwrap(), default_reflection);
+    let mut invalid = state;
+    invalid.mag_filter = crate::reflect::SamplerFilter::Linear;
+    let mut invalid_options = passes::TransformOptions::default();
+    invalid_options.runtime_sampler_states[3] = Some(invalid);
+    assert!(prepared.reflect(invalid_options).is_err());
+    assert!(prepared.translate_constructed(invalid_options).is_err());
+    let repeated = prepared.translate_constructed(options).unwrap();
+    assert_eq!(repeated, programs[0], "invalid/linear calls must not contaminate nearest options");
+}
+
+#[test]
+fn prepared_air_storage_options_are_independent_and_revalidated() {
+    let prepared = crate::PreparedNativeAir::new(RUNTIME_STORAGE_IMAGE_WRITE_PAIR_LL, Stage::Kernel);
+    let tmp = std::env::temp_dir().join(format!("metal2vulkan_prepared_storage_{}", std::process::id()));
+    std::fs::create_dir_all(&tmp).unwrap();
+    let default_reflection = prepared.reflect(passes::TransformOptions::default()).unwrap();
+    let mut programs = Vec::new();
+    for formatless in [false, true, false] {
+        let format = if formatless { crate::reflect::RuntimeStorageImageFormat::Bgra8Unorm } else { crate::reflect::RuntimeStorageImageFormat::Rgba8Unorm };
+        let state = runtime_storage_image_state(format, false, formatless);
+        let options = passes::TransformOptions::default()
+            .with_runtime_storage_image(0, state).unwrap()
+            .with_runtime_storage_image(1, state).unwrap();
+        let bytes = prepared.translate_constructed(options).unwrap();
+        tools::spirv_val_bytes(&bytes, &tmp).expect("prepared storage spirv-val");
+        let asm = disassemble(&bytes).unwrap();
+        assert_eq!(asm.matches("OpImageWrite").count(), 2, "{asm}");
+        assert_eq!(asm.contains("OpCapability StorageImageWriteWithoutFormat"), formatless, "{asm}");
+        programs.push(bytes);
+    }
+    assert_eq!(programs[0], programs[2]);
+    assert_ne!(programs[0], programs[1]);
+    assert_eq!(prepared.reflect(passes::TransformOptions::default()).unwrap(), default_reflection);
+    let missing_capability = passes::TransformOptions::default()
+        .with_runtime_storage_image(0, runtime_storage_image_state(crate::reflect::RuntimeStorageImageFormat::Bgra8Unorm, false, false)).unwrap();
+    assert!(prepared.translate_constructed(missing_capability).unwrap_err().contains("write-without-format"));
+    let invalid = passes::TransformOptions { kernel_dispatch: Some(crate::reflect::KernelDispatch::ThreadsDynamic { offset: 1 }), ..passes::TransformOptions::default() };
+    assert!(prepared.reflect(invalid).is_err());
+    assert!(prepared.translate_constructed(invalid).is_err());
 }
 
 #[test]
