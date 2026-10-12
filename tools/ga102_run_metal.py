@@ -54,6 +54,16 @@ private let MTLCopyAllDevices: () -> [any MTLDevice] = { [ga102ExplicitDevice] }
     return prefix + source
 
 
+def volatile_smoke_source(source, tag):
+    qualifier = b'device float *numbers'
+    if source.count(qualifier) != 1 or source.count(b'ga102_double') != 3:
+        raise ValueError('smoke shader instrumentation site changed')
+    if not tag or not tag.isascii() or not tag.isalnum():
+        raise ValueError('shader tag must contain ASCII letters or digits')
+    return source.replace(qualifier, b'volatile device float *numbers').replace(
+        b'ga102_double', b'ga102_volatile_' + tag.encode())
+
+
 def run_owned(command, log, timeout, env=None, observer=None):
     """Deadline applies to our process group, including compiler children."""
     with subprocess.Popen(command, env=env, stdout=log, stderr=subprocess.STDOUT,
@@ -122,6 +132,7 @@ def main():
     parser.add_argument("probe", choices=PROBES)
     parser.add_argument("--repeat", type=int, choices=range(1, 4), default=1)
     parser.add_argument("--isolated-cache", action="store_true")
+    parser.add_argument('--volatile-smoke', action='store_true', help='Fresh four-element volatile compute shader in an owned source copy')
     parser.add_argument('--plugin', type=Path, help='Explicit process-local plugin binding for offscreen probes only; never installs a component')
     parser.add_argument('--namespaced-plugin', action='store_true', help='Require the private class namespace built by build_isolated_plugin.py; allows offscreen IOSurface tests')
     parser.add_argument("--surface-comparison", action="store_true", help="Benchmark matching BGRA8 targets at 3440x1440 only")
@@ -140,6 +151,8 @@ def main():
     parser.add_argument("--capture-bridge", action="store_true", help="Capture only the owned visual window via ScreenCaptureKit in this Python process; never requests permission")
     parser.add_argument("--result-json", type=Path, help="Save scoped visual-probe verdicts and numeric metrics, excluding raw logs and machine identities")
     args = parser.parse_args()
+    if args.volatile_smoke and args.probe != 'ga102_metal_smoketest':
+        parser.error('--volatile-smoke requires ga102_metal_smoketest')
     if args.namespaced_plugin and not args.plugin: parser.error('--namespaced-plugin requires --plugin')
     isolated_probes = (*CORE_PROBES, 'ga102_metal_memory', 'ga102_metal_benchmark') if args.namespaced_plugin else ISOLATED_PROBES
     if args.plugin and (args.probe not in isolated_probes or args.capture_bridge):
@@ -189,6 +202,9 @@ def main():
         print("Cache isolation scope: Mesa override requested; AIR override may be stripped by release-plugin initialization", flush=True)
     source_bytes = (ROOT / "tools" / f"{args.probe}.swift").read_bytes()
     original_source_hash = hashlib.sha256(source_bytes).hexdigest()
+    if args.volatile_smoke:
+        import uuid
+        source_bytes = volatile_smoke_source(source_bytes, uuid.uuid4().hex)
     plugin_hash = None
     binding_hash = None
     translator_hash = None
@@ -411,6 +427,7 @@ def main():
                 report['runtime'] = {'binding': 'explicit process-local user-space plugin',
                     'plugin_sha256': plugin_hash, 'binding_helper_source_sha256': binding_hash,
                     'original_probe_source_sha256': original_source_hash,
+                    'volatile_smoke': args.volatile_smoke,
                     'class_namespace': 'NVMTLGA102_' if args.namespaced_plugin else 'single driver image',
                     'translator_sha256': translator_hash,
                     'installed_driver_changed': False,

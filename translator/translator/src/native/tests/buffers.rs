@@ -14301,9 +14301,30 @@ entry:
         .count();
     assert_eq!(
         (null_copies, float_loads),
-        (0, 2),
-        "(null-folded copies, real float loads): both helper reads must survive"
+        (0, 1),
+        "the shared guarded-load helper must retain its real float load"
     );
+    let load_helpers = module.functions.iter().filter_map(|function| {
+        function.blocks.iter().flat_map(|block| &block.instructions).any(|instruction| {
+            instruction.class.opcode == Op::Load
+                && instruction.result_type.is_some_and(|ty| float_types.contains(&ty))
+        }).then_some(function.def.as_ref()?.result_id?)
+    }).collect::<HashSet<_>>();
+    let reads = module.all_inst_iter().filter_map(|instruction| {
+        if instruction.class.opcode != Op::FunctionCall { return None; }
+        let [Operand::IdRef(helper), Operand::IdRef(_base), Operand::IdRef(address)] = instruction.operands.as_slice() else { return None; };
+        load_helpers.contains(helper).then_some((instruction.result_id?, *address))
+    }).collect::<Vec<_>>();
+    assert_eq!(reads.len(), 2, "both helper reads must execute");
+    assert_ne!(reads[0].1, reads[1].1, "the two reads must retain distinct addresses");
+    let difference = module.all_inst_iter().find(|instruction| {
+        instruction.class.opcode == Op::FSub
+            && instruction.operands == vec![Operand::IdRef(reads[0].0), Operand::IdRef(reads[1].0)]
+    }).and_then(|instruction| instruction.result_id).expect("subtract both loaded values");
+    assert!(module.all_inst_iter().any(|instruction| {
+        instruction.class.opcode == Op::Store
+            && instruction.operands.get(1) == Some(&Operand::IdRef(difference))
+    }), "the output store must consume both reads");
 }
 
 #[test]
@@ -14387,4 +14408,60 @@ declare { i32, float, i32, i32, i8 addrspace(1)*, i32, i32, <2 x float>, i1 } @a
         "field `a` (words 2, 3) must not be read\n{asm}"
     );
     tools::spirv_val_bytes(&spv, &tmp).expect("spirv-val");
+}
+
+#[test]
+fn native_volatile_buffer_accesses_preserve_memory_access_flags() {
+    let ll = r#"
+define void @k(ptr addrspace(1) %out, ptr addrspace(1) %in) {
+entry:
+  %value = load volatile i32, ptr addrspace(1) %in, align 4
+  store volatile i32 %value, ptr addrspace(1) %out, align 4
+  ret void
+}
+!air.kernel = !{!0}
+!0 = !{ptr @k, !1, !2}
+!1 = !{}
+!2 = !{!3, !4}
+!3 = !{i32 0, !"air.buffer", !"air.location_index", i32 0, i32 1, !"air.write", !"air.address_space", i32 1, !"air.arg_type_size", i32 4, !"air.arg_type_align_size", i32 4, !"air.arg_type_name", !"uint", !"air.arg_name", !"out"}
+!4 = !{i32 1, !"air.buffer", !"air.location_index", i32 1, i32 1, !"air.read", !"air.address_space", i32 1, !"air.arg_type_size", i32 4, !"air.arg_type_align_size", i32 4, !"air.arg_type_name", !"uint", !"air.arg_name", !"in"}
+"#;
+    let tmp = std::env::temp_dir().join(format!("native_volatile_accesses_{}", std::process::id()));
+    std::fs::create_dir_all(&tmp).unwrap();
+    for volatile in [false, true] {
+        let input = if volatile { ll.to_owned() } else { ll.replace(" volatile ", " ") };
+        let spv = crate::translate_sanitized_native(&input, Stage::Kernel, &tmp).expect("translate buffer accesses");
+        let module = load_bytes(&spv).unwrap();
+        for opcode in [Op::Load, Op::Store] {
+            let flagged = module.all_inst_iter().filter(|instruction| {
+                instruction.class.opcode == opcode && instruction.operands.iter().any(|operand| {
+                    matches!(operand, Operand::MemoryAccess(flags) if flags.contains(spirv::MemoryAccess::VOLATILE))
+                })
+            }).count();
+            assert_eq!(flagged, usize::from(volatile), "{opcode:?} volatile={volatile}");
+        }
+        tools::spirv_val_bytes(&spv, &tmp).expect("valid volatile flags");
+    }
+    for volatile_first in [false, true] {
+        let mut input = ll.replace("  %value = load volatile i32, ptr addrspace(1) %in, align 4",
+            "  %base = load ptr addrspace(1), ptr addrspace(1) %in, align 8\n  %value = load volatile i32, ptr addrspace(1) %base, align 4\n  %plain = load i32, ptr addrspace(1) %base, align 4\n  %sum = add i32 %value, %plain");
+        input = input.replace("store volatile i32 %value", "store volatile i32 %sum");
+        if !volatile_first {
+            input = input.replace("  %value = load volatile i32, ptr addrspace(1) %base, align 4\n  %plain = load i32, ptr addrspace(1) %base, align 4", "  %plain = load i32, ptr addrspace(1) %base, align 4\n  %value = load volatile i32, ptr addrspace(1) %base, align 4");
+        }
+        let spv = crate::translate_sanitized_native(&input, Stage::Kernel, &tmp).expect("translate mixed guarded loads");
+        let module = load_bytes(&spv).unwrap();
+        let helpers = module.functions.iter().filter_map(|function| {
+            let loads = function.blocks.iter().flat_map(|block| &block.instructions)
+                .filter(|instruction| instruction.class.opcode == Op::Load).collect::<Vec<_>>();
+            if function.parameters.len() != 2 || loads.len() != 1 { return None; }
+            Some(loads[0].operands.iter().any(|operand| {
+                matches!(operand, Operand::MemoryAccess(flags) if flags.contains(spirv::MemoryAccess::VOLATILE))
+            }))
+        }).collect::<Vec<_>>();
+        assert!(helpers.contains(&false) && helpers.contains(&true),
+            "plain and volatile guarded loads must use separate helpers in either creation order");
+        tools::spirv_val_bytes(&spv, &tmp).expect("valid mixed helper flags");
+    }
+    std::fs::remove_dir_all(tmp).unwrap();
 }

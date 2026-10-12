@@ -671,6 +671,7 @@ enum TirInstData {
     },
     Memory {
         align: Option<u64>,
+        volatile: bool,
         load: Option<Box<LlLoad>>,
         store: Option<Box<(TypedValue, TypedValue)>>,
     },
@@ -845,6 +846,10 @@ impl TirInst {
             TirInstData::Memory { align, .. } => *align,
             _ => None,
         }
+    }
+
+    pub(super) fn memory_volatile(&self) -> bool {
+        matches!(&self.data.payload, TirInstData::Memory { volatile: true, .. })
     }
 
     pub(super) fn gep_source_ty(&self) -> Option<&LlType> {

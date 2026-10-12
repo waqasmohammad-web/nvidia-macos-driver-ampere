@@ -3066,3 +3066,52 @@ validation correctness, with no measured desktop performance claim.
 3. Rerun the native suite after validated fixes; keep remaining failures visible.
 4. Continue independent source improvements while mesa_clc/full NVRM builds remain
    blocked. Keep the staged PM candidate for supervised boot/wake validation.
+
+## Confirmed volatile memory translation defect and isolated candidate fix
+
+A fresh bounded four-float Metal kernel compiled with the byte-identical installed
+CPU translator contains one volatile LLVM load and store, but its cached SPIR-V
+contains **zero volatile loads and zero volatile stores**. Its numeric GPU output
+still passes, so a plain arithmetic correctness test would miss this defect.
+No sleep/wake or desktop symptom is attributed to it without further evidence.
+
+The native typed carrier now preserves the LLVM volatile qualifier on loads and
+stores. Emission adds the SPIR-V volatile mask to the memory operations produced
+for that access while preserving existing alignment operands. Guarded physical
+address load helpers include volatility in their cache key and emitted load mask;
+ordinary and volatile accesses cannot share an incorrectly qualified helper.
+This retains access semantics; it does not add atomicity or synchronization fences.
+
+CPU controls cover ordinary/volatile buffers and mixed physical-address loads in
+both helper creation orders, with real SPIR-V validation. The old missing-mask
+control fails. A separate fault control removing volatility from the helper key
+also fails. The improved existing buffer regression verifies two helper calls at
+distinct addresses, subtraction of both values and the output store, rather than
+counting two identical helper bodies. Seventy-two GA102 Python tests pass. The
+full native suite records **2142 PASS / 14 FAIL / one ignored**. Remaining failures
+are retained; an arbitrary-hash-map-phi selection makes one test unstable. All
+three reloop cases pass with the official disassembler available.
+
+The rebuilt CPU dylib SHA256 is
+`6b8d9fe0b5c0928844af6ed728e20d890d0182fb5fff600ad88bfb851ad19233`,
+with the same exported translator ABI as the installed release. It is copied
+into an immutable-by-workflow owned artifact before candidate linking, so later
+source builds cannot silently change this candidate dependency. The fresh
+`--volatile-smoke` route changes only a copied shader's qualifier and unique
+entry-point name. Its isolated GPU run passes `[2,4,6,8]`, executes one primary
+translation and one address-lowering call, and retains **one volatile load and
+one volatile store in cached SPIR-V**. Offscreen render and all four private/
+IOSurface composite cases pass with the same CPU candidate. The loaded driver
+and original recovered Swift edits remain unchanged. Evidence:
+[`evidence/ga102-volatile-memory.json`](evidence/ga102-volatile-memory.json).
+
+### NEXT-STEPS
+
+1. Extend volatile controls to constant-space and vector/pointer payload paths;
+   preserve the current isolated CPU binary while making further source changes.
+2. Replace arbitrary phi selection in the loop-carried-address regression with
+   loop-header identification and guarded-helper return provenance.
+3. Diagnose the remaining native failures individually: diagnostic-text changes,
+   guarded-helper provenance, opt-in trig behavior and bindless descriptor bands.
+4. Continue source-level PM/NVK work independently of missing mesa_clc/full Darwin
+   archive producers; keep kernel PM deployment and wake validation supervised.

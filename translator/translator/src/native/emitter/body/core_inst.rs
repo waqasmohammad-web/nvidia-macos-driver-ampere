@@ -7,6 +7,33 @@ impl Emitter {
         inst: &crate::native::tir::TirInst,
         instructions: &mut Vec<Instruction>,
     ) -> Result<(), String> {
+        let volatile = inst.memory_volatile();
+        let saved = std::mem::replace(&mut self.volatile_access, volatile);
+        let start = instructions.len();
+        let result = self.emit_body_inst_inner(inst, instructions);
+        self.volatile_access = saved;
+        if volatile && result.is_ok() {
+            for instruction in &mut instructions[start..] {
+                let index = match instruction.class.opcode {
+                    Op::Load => 1,
+                    Op::Store => 2,
+                    _ => continue,
+                };
+                if let Some(Operand::MemoryAccess(flags)) = instruction.operands.get_mut(index) {
+                    *flags |= spirv::MemoryAccess::VOLATILE;
+                } else {
+                    instruction.operands.insert(index, Operand::MemoryAccess(spirv::MemoryAccess::VOLATILE));
+                }
+            }
+        }
+        result
+    }
+
+    fn emit_body_inst_inner(
+        &mut self,
+        inst: &crate::native::tir::TirInst,
+        instructions: &mut Vec<Instruction>,
+    ) -> Result<(), String> {
         if inst.opcode == "metal2vulkan.inline_parameter" {
             let (Some(name), Some(argument)) = (
                 inst.result.as_deref(),

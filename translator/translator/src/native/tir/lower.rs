@@ -438,6 +438,9 @@ pub(in crate::native) fn push_inst_line(
         },
         "load" | "store" => TirInstData::Memory {
             align: mem_align,
+            volatile: rhs_of(line).split_whitespace().skip(1)
+                .take_while(|word| matches!(*word, "atomic" | "volatile"))
+                .any(|word| word == "volatile"),
             load,
             store,
         },

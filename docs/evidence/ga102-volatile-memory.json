@@ -1,0 +1,77 @@
+{
+  "schema_version": 1,
+  "scope": "process-local user-space candidate; installed driver unchanged",
+  "plugin_sha256": "d45317358516d585b832cf984b725e2861aa83736cc4c082926b115fecc072f1",
+  "translator_sha256": "6b8d9fe0b5c0928844af6ed728e20d890d0182fb5fff600ad88bfb851ad19233",
+  "fresh_volatile_compute": {
+    "verdict": "PASS",
+    "values": [
+      2,
+      4,
+      6,
+      8
+    ],
+    "execution": {
+      "address_lowering_calls": 1,
+      "image_verified": true,
+      "lowering_image_verified": true,
+      "primary_translation_calls": 1
+    },
+    "llvm_volatile_loads": 1,
+    "llvm_volatile_stores": 1,
+    "spirv_volatile_loads": 1,
+    "spirv_volatile_stores": 1
+  },
+  "cpu_controls": {
+    "ordinary_and_volatile_buffer_accesses": "PASS; validated SPIR-V",
+    "mixed_guarded_load_creation_orders": "PASS; validated SPIR-V",
+    "old_missing_flag_control": "FAIL as expected",
+    "missing_volatile_helper_cache_key_control": "FAIL as expected"
+  },
+  "native_suite": {
+    "passed": 2142,
+    "failed": 14,
+    "ignored": 1
+  },
+  "python_tests_passed": 72,
+  "exported_translator_abi_matches_release": true,
+  "limits": [
+    "Remaining native failures are not hidden or reclassified as passes.",
+    "Four-element compute correctness and retained flags do not establish broader synchronization or desktop speed improvements.",
+    "No active driver replacement or sleep/wake validation."
+  ],
+  "installed_cpu_translator_reference": {
+    "sha256": "0ad9ab8b8fa1c28519a033c1e7e5367692463de5c81b8651c78ea8d382b3fd57",
+    "compute_verdict": "PASS",
+    "execution": {
+      "address_lowering_calls": 1,
+      "image_verified": true,
+      "lowering_image_verified": true,
+      "primary_translation_calls": 1
+    },
+    "llvm_volatile_loads": 1,
+    "llvm_volatile_stores": 1,
+    "spirv_volatile_loads": 0,
+    "spirv_volatile_stores": 0
+  },
+  "additional_candidate_gpu_checks": {
+    "ga102_metal_render_smoketest": {
+      "verdict": "PASS",
+      "execution": {
+        "address_lowering_calls": 2,
+        "image_verified": true,
+        "lowering_image_verified": true,
+        "primary_translation_calls": 2
+      }
+    },
+    "ga102_metal_composite": {
+      "verdict": "PASS",
+      "execution": {
+        "address_lowering_calls": 2,
+        "image_verified": true,
+        "lowering_image_verified": true,
+        "primary_translation_calls": 2
+      }
+    }
+  }
+}

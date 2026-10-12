@@ -150,8 +150,9 @@ pub(super) struct Emitter {
     pointee_snapshots: Vec<(String, HashMap<String, LlType>)>,
     bda_device_pointers: bool,
     constant_space_load: bool,
+    volatile_access: bool,
     nonwritable_psb_wrappers: HashMap<LlType, Word>,
-    null_bda_load_helpers: HashMap<(LlType, bool), Word>,
+    null_bda_load_helpers: HashMap<(LlType, bool, bool), Word>,
     used_device_address: bool,
 }
 
@@ -461,6 +462,7 @@ impl Emitter {
             pointee_snapshots: Vec::new(),
             bda_device_pointers: false,
             constant_space_load: false,
+            volatile_access: false,
             nonwritable_psb_wrappers: HashMap::new(),
             null_bda_load_helpers: HashMap::new(),
             used_device_address: false,

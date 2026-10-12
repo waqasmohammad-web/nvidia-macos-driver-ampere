@@ -10,6 +10,16 @@ from build import build_isolated_plugin as builder
 
 
 class PluginBindingTests(unittest.TestCase):
+    def test_volatile_smoke_uses_an_owned_fresh_shader(self):
+        source=(runner.ROOT/'tools/ga102_metal_smoketest.swift').read_bytes()
+        first=runner.volatile_smoke_source(source,'abc123')
+        second=runner.volatile_smoke_source(source,'xyz456')
+        self.assertNotEqual(first,second)
+        self.assertEqual(first.replace(b'volatile device float *numbers',b'device float *numbers')
+                         .replace(b'ga102_volatile_abc123',b'ga102_double'),source)
+        for tag in ('','bad_tag','é'):
+            with self.assertRaises(ValueError):runner.volatile_smoke_source(source,tag)
+
     def test_namespace_changes_only_symbol_names_and_literal_lookups(self):
         with tempfile.TemporaryDirectory() as directory:
             mapping, hashes=builder.snapshot(Path(directory))

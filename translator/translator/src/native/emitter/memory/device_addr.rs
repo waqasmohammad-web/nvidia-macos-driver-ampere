@@ -353,7 +353,7 @@ impl Emitter {
     }
 
     fn null_bda_load_helper(&mut self, ty: &LlType) -> Result<Word, String> {
-        let key = (ty.clone(), self.constant_space_load);
+        let key = (ty.clone(), self.constant_space_load, self.volatile_access);
         if let Some(helper) = self.null_bda_load_helpers.get(&key) {
             return Ok(*helper);
         }
@@ -438,7 +438,11 @@ impl Emitter {
             Some(loaded),
             vec![
                 Operand::IdRef(p),
-                Operand::MemoryAccess(spirv::MemoryAccess::ALIGNED),
+                Operand::MemoryAccess(spirv::MemoryAccess::ALIGNED | if self.volatile_access {
+                    spirv::MemoryAccess::VOLATILE
+                } else {
+                    spirv::MemoryAccess::NONE
+                }),
                 Operand::LiteralBit32(align),
             ],
         ));
