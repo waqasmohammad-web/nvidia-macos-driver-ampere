@@ -16,6 +16,174 @@ use crate::{disassemble, meta, tools};
 use spirv::{Decoration, Op, Scope, SelectionControl, StorageClass, Word};
 use std::collections::{HashMap, HashSet};
 
+// Each ABI runs in a fresh process: its production switches use OnceLock.
+fn texture_abi_child(test: &str) -> Option<bool> {
+    if let Ok(mode) = std::env::var("M2V_TEXTURE_ABI_CHILD") {
+        return Some(mode == "heap");
+    }
+    for (mode, disable) in [("flat", "1"), ("heap", "0")] {
+        let status = std::process::Command::new(std::env::current_exe().expect("test executable"))
+            .args(["--exact", test, "--nocapture", "--test-threads=1"])
+            .env("M2V_TEXTURE_ABI_CHILD", mode)
+            .env("NVMTL_NO_BINDLESS_ALL", disable)
+            .status()
+            .expect("run ABI child");
+        assert!(status.success(), "{mode} ABI failed");
+    }
+    None
+}
+
+fn descriptor_variable(module: &Module, set: u32, binding: u32) -> Option<Word> {
+    module
+        .types_global_values
+        .iter()
+        .filter(|i| i.class.opcode == Op::Variable)
+        .find_map(|i| {
+            let id = i.result_id?;
+            [
+                (Decoration::DescriptorSet, set),
+                (Decoration::Binding, binding),
+            ]
+            .iter()
+            .all(|(kind, value)| {
+                module.annotations.iter().any(|d| {
+                    d.class.opcode == Op::Decorate
+                        && d.operands
+                            == [
+                                Operand::IdRef(id),
+                                Operand::Decoration(*kind),
+                                Operand::LiteralBit32(*value),
+                            ]
+                })
+            })
+            .then_some(id)
+        })
+}
+
+// Follow the actual sampled-image load back through its masked slot to the
+// per-draw address table. Reflection's logical Metal bands alone cannot prove it.
+fn heap_texture_route(module: &Module, metal_index: u32, dimension: spirv::Dim) -> bool {
+    let Some(heap) = descriptor_variable(module, 2, 0) else {
+        return false;
+    };
+    let Some(table) = descriptor_variable(module, 0, 640) else {
+        return false;
+    };
+    let defs = module
+        .all_inst_iter()
+        .filter_map(|i| Some((i.result_id?, i)))
+        .collect::<HashMap<_, _>>();
+    let constant = |id: Word, value: u32| {
+        defs.get(&id).is_some_and(|i| {
+            i.class.opcode == Op::Constant && i.operands == [Operand::LiteralBit32(value)]
+        })
+    };
+    let nonuniform = |id: Word| {
+        module.annotations.iter().any(|i| {
+            i.class.opcode == Op::Decorate
+                && i.operands
+                    == [
+                        Operand::IdRef(id),
+                        Operand::Decoration(Decoration::NonUniform),
+                    ]
+        })
+    };
+    module.all_inst_iter().any(|load| {
+        if load.class.opcode != Op::Load { return false; }
+        let Some(image) = load.result_type.and_then(|t| defs.get(&t)) else { return false; };
+        if image.class.opcode != Op::TypeImage || image.operands.get(1) != Some(&Operand::Dim(dimension))
+            || image.operands.get(5) != Some(&Operand::LiteralBit32(1)) { return false; }
+        let Some(Operand::IdRef(pointer)) = load.operands.first() else { return false; };
+        let Some(chain) = defs.get(pointer) else { return false; };
+        let [Operand::IdRef(root), Operand::IdRef(slot)] = chain.operands.as_slice() else { return false; };
+        if chain.class.opcode != Op::AccessChain || *root != heap { return false; }
+        let Some(mask) = defs.get(slot) else { return false; };
+        let [Operand::IdRef(word), Operand::IdRef(limit)] = mask.operands.as_slice() else { return false; };
+        if mask.class.opcode != Op::BitwiseAnd || !constant(*limit, 131071) { return false; }
+        let Some(word_load) = defs.get(word) else { return false; };
+        if word_load.class.opcode != Op::Load { return false; }
+        let Some(Operand::IdRef(table_pointer)) = word_load.operands.first() else { return false; };
+        let Some(table_chain) = defs.get(table_pointer) else { return false; };
+        let [Operand::IdRef(root), Operand::IdRef(zero), Operand::IdRef(entry), Operand::IdRef(component)] = table_chain.operands.as_slice() else { return false; };
+        table_chain.class.opcode == Op::AccessChain && *root == table && constant(*zero, 0)
+            && constant(*entry, 64 + metal_index) && constant(*component, 0)
+            && nonuniform(*slot) && nonuniform(*pointer) && load.result_id.is_some_and(nonuniform)
+    })
+}
+
+fn assert_heap_texture_with_controls(
+    spv: &[u8],
+    index: u32,
+    dim: spirv::Dim,
+    tmp: &std::path::Path,
+) {
+    let module = load_bytes(spv).expect("module");
+    tools::spirv_val_bytes(spv, tmp).expect("real SPIR-V validation");
+    assert!(
+        heap_texture_route(&module, index, dim),
+        "texture {index} must load through its exact table slot and shape"
+    );
+    let mut wrong_slot = module.clone();
+    let mut changed = 0;
+    for i in &mut wrong_slot.types_global_values {
+        if i.class.opcode == Op::Constant && i.operands == [Operand::LiteralBit32(64 + index)] {
+            i.operands = vec![Operand::LiteralBit32(64 + index + 1)];
+            changed += 1;
+        }
+    }
+    assert_eq!(changed, 1);
+    tools::spirv_val_bytes(&super::buffer_execution::bytes(&wrong_slot), tmp)
+        .expect("valid wrong-slot control");
+    assert!(
+        !heap_texture_route(&wrong_slot, index, dim),
+        "wrong slot must fail the routing oracle"
+    );
+    let mut wrong_shape = module.clone();
+    let mut changed = 0;
+    for i in &mut wrong_shape.types_global_values {
+        if i.class.opcode == Op::TypeImage
+            && i.operands.get(1) == Some(&Operand::Dim(dim))
+            && i.operands.get(5) == Some(&Operand::LiteralBit32(1))
+        {
+            i.operands[1] = Operand::Dim(if dim == spirv::Dim::Dim1D {
+                spirv::Dim::Dim2D
+            } else {
+                spirv::Dim::Dim1D
+            });
+            changed += 1;
+        }
+    }
+    assert!(changed > 0);
+    // Changing 2D to 1D also needs its real SPIR-V capability.
+    if dim != spirv::Dim::Dim1D {
+        wrong_shape
+            .capabilities
+            .push(crate::spirv_module::Instruction::new(
+                Op::Capability,
+                None,
+                None,
+                vec![Operand::Capability(spirv::Capability::Sampled1D)],
+            ));
+    }
+    tools::spirv_val_bytes(&super::buffer_execution::bytes(&wrong_shape), tmp)
+        .expect("valid wrong-shape control");
+    assert!(!heap_texture_route(&wrong_shape, index, dim));
+    let mut wrong_band = module.clone();
+    let heap = descriptor_variable(&module, 2, 0).expect("heap");
+    for d in &mut wrong_band.annotations {
+        if d.class.opcode == Op::Decorate
+            && d.operands.first() == Some(&Operand::IdRef(heap))
+            && d.operands.get(1) == Some(&Operand::Decoration(Decoration::DescriptorSet))
+        {
+            d.operands[2] = Operand::LiteralBit32(0);
+        }
+    }
+    tools::spirv_val_bytes(&super::buffer_execution::bytes(&wrong_band), tmp)
+        .expect("valid wrong-set control");
+    passes::validate_descriptor_bindings(&wrong_band, crate::reflect::DescriptorLayout::default())
+        .expect_err("sampled heap in the buffer band must be rejected");
+}
+
 fn translate_one_cell_tile(
     san_ll: &str,
     stage: Stage,
@@ -1092,6 +1260,11 @@ declare i1 @air.is_null_texture_2d(ptr addrspace(1))
 
 #[test]
 fn native_kernel_texture_sampler_metadata_bindings() {
+    let Some(heap) = texture_abi_child(
+        "native::tests::textures::native_kernel_texture_sampler_metadata_bindings",
+    ) else {
+        return;
+    };
     let ll = r#"
 target triple = "spirv-unknown-vulkan1.2"
 define void @k(ptr addrspace(1) %tex, ptr addrspace(2) %sampler) {
@@ -1119,7 +1292,11 @@ entry:
         "{asm}"
     );
     assert!(asm.contains("OpTypeSampler"), "{asm}");
-    assert!(asm.contains("Binding 37"), "{asm}");
+    if heap {
+        assert_heap_texture_with_controls(&spv, 5, spirv::Dim::Dim2D, &tmp);
+    } else {
+        assert!(asm.contains("Binding 37"), "{asm}");
+    }
     assert!(asm.contains("Binding 162"), "{asm}");
     if std::process::Command::new("spirv-val")
         .arg("--version")
@@ -1181,6 +1358,7 @@ declare { <4 x float>, i8 } @air.sample_texture_2d.v4f32(ptr addrspace(1), ptr a
 
 #[test]
 fn native_texture_and_sampler_binding_bands_cover_high_and_last_abi_indices() {
+    let Some(heap) = texture_abi_child("native::tests::textures::native_texture_and_sampler_binding_bands_cover_high_and_last_abi_indices") else { return; };
     let ll = r#"
 target triple = "spirv-unknown-vulkan1.2"
 define void @k(ptr addrspace(1) %tex40, ptr addrspace(1) %tex127, ptr addrspace(2) %sampler8, ptr addrspace(2) %sampler15) {
@@ -1223,7 +1401,11 @@ entry:
             .expect("reflected descriptor");
         assert_eq!(reflected.set, 0);
         assert_eq!(reflected.binding, binding);
-        assert!(asm.contains(&format!("Binding {binding}")), "{asm}");
+        if heap && kind == crate::reflect::ResourceKind::Texture {
+            assert_heap_texture_with_controls(&spv, metal_index, spirv::Dim::Dim2D, &tmp);
+        } else {
+            assert!(asm.contains(&format!("Binding {binding}")), "{asm}");
+        }
     }
     reflection
         .validate_descriptor_abi()
@@ -1257,6 +1439,7 @@ entry:
 
 #[test]
 fn native_sampled_and_storage_views_of_one_metal_texture_use_distinct_bands() {
+    let Some(heap) = texture_abi_child("native::tests::textures::native_sampled_and_storage_views_of_one_metal_texture_use_distinct_bands") else { return; };
     let ll = r#"
 target triple = "spirv-unknown-vulkan1.2"
 @dest_location = internal addrspace(2) global i32 40, align 4
@@ -1301,7 +1484,11 @@ entry:
         .expect("storage descriptor");
     assert_eq!(sampled.binding, 72);
     assert_eq!(storage.binding, 520);
-    assert!(asm.contains("Binding 72"), "{asm}");
+    if heap {
+        assert_heap_texture_with_controls(&spv, 40, spirv::Dim::Dim2D, &tmp);
+    } else {
+        assert!(asm.contains("Binding 72"), "{asm}");
+    }
     assert!(asm.contains("Binding 520"), "{asm}");
     reflection
         .validate_descriptor_abi()
@@ -4147,6 +4334,11 @@ declare {{ <4 x float>, i8 }} @air.gather_depth_2d_array.v4f32(ptr addrspace(1),
 
 #[test]
 fn native_kernel_unused_texture1d_uses_metadata_dimension() {
+    let Some(heap) = texture_abi_child(
+        "native::tests::textures::native_kernel_unused_texture1d_uses_metadata_dimension",
+    ) else {
+        return;
+    };
     let ll = r#"
 target triple = "spirv-unknown-vulkan1.2"
 
@@ -4172,7 +4364,11 @@ entry:
     let asm = disassemble(&spv).expect("disassemble");
     assert!(asm.contains("OpTypeImage"), "{asm}");
     assert!(asm.contains(" 1D "), "{asm}");
-    assert!(asm.contains("Binding 32"), "{asm}");
+    if heap {
+        assert_heap_texture_with_controls(&spv, 0, spirv::Dim::Dim1D, &tmp);
+    } else {
+        assert!(asm.contains("Binding 32"), "{asm}");
+    }
     if std::process::Command::new("spirv-val")
         .arg("--version")
         .output()

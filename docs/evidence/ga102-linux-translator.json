@@ -1,0 +1,371 @@
+{
+  "date": "2026-10-12",
+  "baseline_commit": "40f018b05ec88c8250ff577abc5067163e26b300",
+  "scope": "Linux CPU translator compilation and extracted config helper; no GPU or macOS execution",
+  "tool_versions": {
+    "rustc": "1.87.0 (17067e9ac 2025-05-09)",
+    "spirv_tools": "v2026.4 v2026.4-0-gef96ed7",
+    "python": "3.12.14",
+    "cc": "Debian 14.2.0-19"
+  },
+  "resource_policy": {
+    "build_jobs": 1,
+    "rust_test_threads": 1,
+    "memory_limit_gib": 8,
+    "cargo": "offline locked",
+    "cargo_profile": "debug; no duplicate release/toolchain builds"
+  },
+  "tests": {
+    "baseline": {
+      "passed": 2151,
+      "failed": 6,
+      "ignored": 1
+    },
+    "buffer_group": {
+      "passed": 286,
+      "failed": 0,
+      "ignored": 1
+    },
+    "texture_group": {
+      "passed": 148,
+      "failed": 0,
+      "ignored": 0
+    },
+    "python": {
+      "passed": 72,
+      "failed": 0
+    },
+    "saturation_contract": {
+      "passed": 1,
+      "cases": 32,
+      "valid_negative_controls": 32
+    },
+    "pre_existing_ignored": "native_generic_callback_table_cursor_keeps_its_store: known defect refuses the device-address store",
+    "final": {
+      "passed": 2158,
+      "failed": 0,
+      "ignored": 1,
+      "new_ignores": 0,
+      "elapsed_seconds": 100.54
+    }
+  },
+  "six_failure_classifications": [
+    {
+      "test": "native_forward_unmodeled_device_gep_phi_uses_typed_zero_not_pointer_phi",
+      "classification": "outdated, non-observable test fixture",
+      "finding": "Entry lacks AIR parameter bindings; parameters become undefined and return is discarded. Real metadata-backed fixture merges integer addresses and reads selected source with correct 24-byte stride.",
+      "replacement": "native_forward_device_gep_phi_preserves_selected_address_and_load"
+    },
+    {
+      "test": "native_mtl_force_not_checked_i64_load_uses_bda_inttoptr_address",
+      "classification": "outdated no-helper assumption",
+      "finding": "Guarded helper reads real uint64 at loaded source address + 8; null base suppresses read."
+    },
+    {
+      "test": "native_kernel_texture_sampler_metadata_bindings",
+      "classification": "outdated flat-only ABI assumption",
+      "finding": "Sampled texture 5 uses heap 2/0 via table element 69; sampler remains 0/162."
+    },
+    {
+      "test": "native_texture_and_sampler_binding_bands_cover_high_and_last_abi_indices",
+      "classification": "outdated flat-only ABI assumption",
+      "finding": "Texture 40/127 route via table 104/191 to heap 2/0; samplers 8/15 remain 0/168 and 0/175."
+    },
+    {
+      "test": "native_sampled_and_storage_views_of_one_metal_texture_use_distinct_bands",
+      "classification": "outdated flat-only ABI assumption",
+      "finding": "Sampled view uses heap 2/0 via table 104; storage view remains 0/520."
+    },
+    {
+      "test": "native_kernel_unused_texture1d_uses_metadata_dimension",
+      "classification": "outdated flat-only ABI assumption",
+      "finding": "1D shape preserved with heap 2/0 via table 64."
+    }
+  ],
+  "negative_controls": {
+    "buffers": [
+      "valid physical-read replacement with zero",
+      "valid uint64 address-offset mutation",
+      "exact CPU memory execution of both branch arms and indexed stride"
+    ],
+    "textures": [
+      "valid wrong address-table slot",
+      "valid wrong image dimension",
+      "valid wrong descriptor set rejected by ABI validator"
+    ],
+    "assertion_policy": "Original flat-band assertions retained in fresh flat-mode child processes. Default heap path follows actual descriptor and table dataflow. No tests skipped or newly ignored."
+  },
+  "performance": {
+    "change": "clamp_edges queries the requested type instead of cloning all global definitions per saturation/tanh lowering call",
+    "timed_path": "translate_native_no_retry_with_options; AIR parsing, native emission and lowering, assembly; no validator subprocess in timing",
+    "method": "same source/compiler/debug profile/options, one warmup per process; B,C,C,B,B,C process order, 3 samples per workload per process (9 per variant); no concurrent builds or tests",
+    "validation": "Every process validates warmup and final output with real spirv-val. All six process outputs and source files match byte-for-byte for each workload.",
+    "results": [
+      {
+        "workload": "saturation-16-4-precise",
+        "baseline_samples_ns": [
+          33713369,
+          33394209,
+          33679118,
+          33979581,
+          32706525,
+          32209703,
+          33228524,
+          33490870,
+          33628152
+        ],
+        "baseline_median_ns": 33490870,
+        "candidate_samples_ns": [
+          33622565,
+          32905829,
+          32770880,
+          32005362,
+          32128954,
+          32308679,
+          34111906,
+          37786801,
+          36709093
+        ],
+        "candidate_median_ns": 32905829,
+        "spirv_sha256": "07cf3d1fd4500b13ef86a691e5258c2ae5714422c976e3df303da71f820bdf0c",
+        "source_sha256": "a3c3089b8d4ec591652bdf8dfd57d5c4b0fcd4f6b6cba38b0bdc376da555eced",
+        "spirv_bytes": 3676,
+        "reduction_percent": 1.75
+      },
+      {
+        "workload": "saturation-64-4-precise",
+        "baseline_samples_ns": [
+          111567732,
+          110746123,
+          111534624,
+          113883090,
+          112406284,
+          112906682,
+          120885398,
+          130204470,
+          110746779
+        ],
+        "baseline_median_ns": 112406284,
+        "candidate_samples_ns": [
+          104848039,
+          102653155,
+          103630386,
+          104233784,
+          103312367,
+          103814416,
+          106746106,
+          111249012,
+          134198589
+        ],
+        "candidate_median_ns": 104233784,
+        "spirv_sha256": "b5663417b26d252ebcfc27cc6ff8c3861ccfbc772195c9b355801e6e4d969f19",
+        "source_sha256": "69e356d1d6a39bc271659a8d4a511e4d757ddd414c88ffd5e74134b1e681831d",
+        "spirv_bytes": 11932,
+        "reduction_percent": 7.27
+      },
+      {
+        "workload": "saturation-256-4-precise",
+        "baseline_samples_ns": [
+          533323147,
+          533110140,
+          533130419,
+          534121784,
+          539981898,
+          539545535,
+          547515408,
+          553945113,
+          563555995
+        ],
+        "baseline_median_ns": 539545535,
+        "candidate_samples_ns": [
+          419947858,
+          421904936,
+          419237271,
+          418229055,
+          418093385,
+          415997276,
+          620930298,
+          585703359,
+          583081566
+        ],
+        "candidate_median_ns": 419947858,
+        "spirv_sha256": "d75d32894a3c18847a2ed6985290484753638d4e203ceb5c89c7b3eda6131563",
+        "source_sha256": "0e33dba7ed4ba8facb69487946333fc39b36ff51471e9873baa60cdbc6842c50",
+        "spirv_bytes": 44956,
+        "reduction_percent": 22.17
+      },
+      {
+        "workload": "saturation-64-1-precise",
+        "baseline_samples_ns": [
+          93668646,
+          94312415,
+          92682393,
+          94069434,
+          93871432,
+          93003083,
+          92945909,
+          93265068,
+          93096921
+        ],
+        "baseline_median_ns": 93265068,
+        "candidate_samples_ns": [
+          87950630,
+          84956488,
+          86930287,
+          84913234,
+          84538753,
+          86517228,
+          130629253,
+          131867348,
+          131546886
+        ],
+        "candidate_median_ns": 86930287,
+        "spirv_sha256": "2cb8520e1a968032f0ad1ae9b9039b3a4d38f795cd0030288d2f891e67c2f352",
+        "source_sha256": "2f3d5381ffdff6e2202914ab5f3d530c01b16ca609e8b6b3f7240f32ff27fa49",
+        "spirv_bytes": 9812,
+        "reduction_percent": 6.79
+      },
+      {
+        "workload": "saturation-64-4-fast",
+        "baseline_samples_ns": [
+          113023026,
+          111853533,
+          112732107,
+          113717516,
+          112553841,
+          113846385,
+          112505490,
+          128632513,
+          123909604
+        ],
+        "baseline_median_ns": 113023026,
+        "candidate_samples_ns": [
+          104228086,
+          104543431,
+          104664068,
+          103573121,
+          103507304,
+          103831532,
+          151083944,
+          148714643,
+          150121395
+        ],
+        "candidate_median_ns": 104543431,
+        "spirv_sha256": "a85730fe70379d82a8e7431d04cbf20cf86dbbab0c5d902725ee3df88d696862",
+        "source_sha256": "3ff266c92330111770a53781ee42190f77d0f0398af2fda70aecc93a8aa31d7f",
+        "spirv_bytes": 11932,
+        "reduction_percent": 7.5
+      }
+    ],
+    "limits": [
+      "Unoptimized debug-profile timings; release performance not established.",
+      "Container timing outliers overlap; raw samples retained. Small workload reduction is not a robust general speedup.",
+      "Owned color-filter workload, not WindowServer/desktop capture. No GPU execution, FPS, presentation, VRAM, synchronization or wake-recovery claim."
+    ]
+  },
+  "config_helper": {
+    "source_changed": false,
+    "asan_ubsan": [
+      {
+        "variant": "original",
+        "sanitizer": "address,undefined",
+        "mode": "parser",
+        "exit_code": 1,
+        "race_warnings": 0,
+        "source_sha256": "4c32e9ebfe1f9a7b7df313c5880029a1499c2a67211dd1208a9b75c308deb743"
+      },
+      {
+        "variant": "original",
+        "sanitizer": "address,undefined",
+        "mode": "first-use",
+        "exit_code": 1,
+        "race_warnings": 0,
+        "source_sha256": "4c32e9ebfe1f9a7b7df313c5880029a1499c2a67211dd1208a9b75c308deb743"
+      },
+      {
+        "variant": "original",
+        "sanitizer": "address,undefined",
+        "mode": "ring",
+        "exit_code": 1,
+        "race_warnings": 0,
+        "source_sha256": "4c32e9ebfe1f9a7b7df313c5880029a1499c2a67211dd1208a9b75c308deb743"
+      },
+      {
+        "variant": "candidate",
+        "sanitizer": "address,undefined",
+        "mode": "parser",
+        "exit_code": 0,
+        "race_warnings": 0,
+        "source_sha256": "2368c7e9e743b168640e11660ff2cd07d3608a45dc047ddc03062808dd08fbf0"
+      },
+      {
+        "variant": "candidate",
+        "sanitizer": "address,undefined",
+        "mode": "first-use",
+        "exit_code": 0,
+        "race_warnings": 0,
+        "source_sha256": "2368c7e9e743b168640e11660ff2cd07d3608a45dc047ddc03062808dd08fbf0"
+      },
+      {
+        "variant": "candidate",
+        "sanitizer": "address,undefined",
+        "mode": "ring",
+        "exit_code": 0,
+        "race_warnings": 0,
+        "source_sha256": "2368c7e9e743b168640e11660ff2cd07d3608a45dc047ddc03062808dd08fbf0"
+      }
+    ],
+    "tsan": [
+      {
+        "variant": "original",
+        "sanitizer": "thread",
+        "mode": "parser",
+        "exit_code": 1,
+        "race_warnings": 0,
+        "source_sha256": "4c32e9ebfe1f9a7b7df313c5880029a1499c2a67211dd1208a9b75c308deb743"
+      },
+      {
+        "variant": "original",
+        "sanitizer": "thread",
+        "mode": "first-use",
+        "exit_code": 66,
+        "race_warnings": 2,
+        "source_sha256": "4c32e9ebfe1f9a7b7df313c5880029a1499c2a67211dd1208a9b75c308deb743"
+      },
+      {
+        "variant": "original",
+        "sanitizer": "thread",
+        "mode": "ring",
+        "exit_code": 66,
+        "race_warnings": 9,
+        "source_sha256": "4c32e9ebfe1f9a7b7df313c5880029a1499c2a67211dd1208a9b75c308deb743"
+      },
+      {
+        "variant": "candidate",
+        "sanitizer": "thread",
+        "mode": "parser",
+        "exit_code": 0,
+        "race_warnings": 0,
+        "source_sha256": "2368c7e9e743b168640e11660ff2cd07d3608a45dc047ddc03062808dd08fbf0"
+      },
+      {
+        "variant": "candidate",
+        "sanitizer": "thread",
+        "mode": "first-use",
+        "exit_code": 0,
+        "race_warnings": 0,
+        "source_sha256": "2368c7e9e743b168640e11660ff2cd07d3608a45dc047ddc03062808dd08fbf0"
+      },
+      {
+        "variant": "candidate",
+        "sanitizer": "thread",
+        "mode": "ring",
+        "exit_code": 0,
+        "race_warnings": 0,
+        "source_sha256": "2368c7e9e743b168640e11660ff2cd07d3608a45dc047ddc03062808dd08fbf0"
+      }
+    ],
+    "interpretation": "Candidate parser/first-use/ring cases pass both sanitizers. Original fails all functional cases and reproduces first-use/ring races under real Linux TSan. Not GPU or power-management qualification."
+  },
+  "hardware_validation": "Not performed; actual macOS RTX 3080 Ti requires later shader rendering correctness, compositor/frame-pacing, optimized compilation and stability testing."
+}

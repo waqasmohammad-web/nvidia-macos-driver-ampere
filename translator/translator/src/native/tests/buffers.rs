@@ -1639,14 +1639,97 @@ declare extern_weak i64 @mtl.force_not_checked.load.i64.p1(ptr addrspace(1)) sec
     let asm = disassemble(&spv).expect("disassemble");
     assert!(asm.contains("PhysicalStorageBuffer64"), "{asm}");
     assert!(asm.contains("OpConvertUToPtr"), "{asm}");
-    assert!(!asm.contains("OpFunctionCall"), "{asm}");
-    if std::process::Command::new("spirv-val")
-        .arg("--version")
-        .output()
-        .is_ok()
-    {
-        tools::spirv_val_bytes(&spv, &tmp).expect("spirv-val");
+    let module = load_bytes(&spv).expect("load module");
+    tools::spirv_val_bytes(&spv, &tmp).expect("real SPIR-V validation");
+    let run = |module: &Module, address: u64| {
+        let mut memory = super::buffer_execution::Memory::default();
+        memory.put(0, 640, 0, 0x2000, 8);
+        memory.put(0, 640, 8, 0x3000, 8);
+        memory.put(0, 1, 0, address, 8);
+        memory.physical(address + 8, 0xfedcba9876543210, 8);
+        memory.physical(address + 16, 0x1122334455667788, 8);
+        super::buffer_execution::execute(module, &mut memory);
+        memory.get(0, 0, 0, 8)
+    };
+    assert_eq!(
+        run(&module, 0x1234567800004000),
+        0xfedcba9876543210,
+        "the two output words must contain the actual 64-bit load at source address + 8"
+    );
+    assert_eq!(
+        run(&module, 0),
+        0,
+        "the null base guard must suppress the physical read"
+    );
+
+    let mut lost_read = module.clone();
+    let physical_types = module
+        .types_global_values
+        .iter()
+        .filter(|i| {
+            i.class.opcode == Op::TypePointer
+                && i.operands.first()
+                    == Some(&Operand::StorageClass(StorageClass::PhysicalStorageBuffer))
+        })
+        .filter_map(|i| i.result_id)
+        .collect::<HashSet<_>>();
+    let types = module
+        .all_inst_iter()
+        .filter_map(|i| Some((i.result_id?, i.result_type?)))
+        .collect::<HashMap<_, _>>();
+    let null = module
+        .types_global_values
+        .iter()
+        .find(|i| {
+            i.class.opcode == Op::ConstantNull
+                && i.result_type.is_some_and(|ty| {
+                    module.types_global_values.iter().any(|t| {
+                        t.result_id == Some(ty)
+                            && t.class.opcode == Op::TypeInt
+                            && t.operands.first() == Some(&Operand::LiteralBit32(64))
+                    })
+                })
+        })
+        .and_then(|i| i.result_id)
+        .expect("guard's uint64 zero");
+    let mut changed = 0;
+    for i in lost_read.all_inst_iter_mut() {
+        if i.class.opcode == Op::Load
+            && i.operands.first().is_some_and(|o| match o {
+                Operand::IdRef(p) => types.get(p).is_some_and(|ty| physical_types.contains(ty)),
+                _ => false,
+            })
+        {
+            *i = Instruction::new(
+                Op::CopyObject,
+                i.result_type,
+                i.result_id,
+                vec![Operand::IdRef(null)],
+            );
+            changed += 1;
+        }
     }
+    assert_eq!(changed, 1, "exactly the real physical load is neutralized");
+    tools::spirv_val_bytes(&super::buffer_execution::bytes(&lost_read), &tmp)
+        .expect("valid lost-read negative control");
+    assert_ne!(
+        run(&lost_read, 0x1234567800004000),
+        0xfedcba9876543210,
+        "validation alone must not hide a lost read"
+    );
+    let mut wrong_offset = module.clone();
+    let mut changed = 0;
+    for i in &mut wrong_offset.types_global_values {
+        if i.class.opcode == Op::Constant && i.operands == [Operand::LiteralBit64(8)] {
+            i.operands = vec![Operand::LiteralBit64(16)];
+            changed += 1;
+        }
+    }
+    assert_eq!(changed, 1);
+    tools::spirv_val_bytes(&super::buffer_execution::bytes(&wrong_offset), &tmp)
+        .expect("valid wrong-offset control");
+    assert_ne!(run(&wrong_offset, 0x1234567800004000), 0xfedcba9876543210);
+    std::fs::remove_dir_all(tmp).expect("remove scratch");
 }
 
 #[test]
@@ -12369,63 +12452,125 @@ merge:
 }
 
 #[test]
-fn native_forward_unmodeled_device_gep_phi_uses_typed_zero_not_pointer_phi() {
+fn native_forward_device_gep_phi_preserves_selected_address_and_load() {
     let ll = r#"
 target triple = "spirv-unknown-vulkan1.2"
 %struct.Box = type { [3 x float], [3 x float] }
 %struct.Table = type { ptr addrspace(1), ptr addrspace(1) }
-
-define float @k(ptr addrspace(2) %table, i1 %cond, i64 %idx) {
+define void @k(ptr addrspace(2) %table, ptr addrspace(1) %out) {
 entry:
+  %control = load i64, ptr addrspace(1) %out, align 8
+  %cond = icmp eq i64 %control, 0
+  %idx = and i64 %control, 1
   %f0 = getelementptr inbounds %struct.Table, ptr addrspace(2) %table, i64 0, i32 0
   %b0 = load ptr addrspace(1), ptr addrspace(2) %f0, align 8
   %f1 = getelementptr inbounds %struct.Table, ptr addrspace(2) %table, i64 0, i32 1
   %b1 = load ptr addrspace(1), ptr addrspace(2) %f1, align 8
   br i1 %cond, label %lhs, label %rhs
-
 merge:
   %p = phi ptr addrspace(1) [ %lp, %lhs ], [ %rp, %rhs ]
   %x = getelementptr inbounds %struct.Box, ptr addrspace(1) %p, i64 0, i32 0, i64 0
   %v = load float, ptr addrspace(1) %x, align 4
-  ret float %v
-
+  store float %v, ptr addrspace(1) %out, align 4
+  ret void
 lhs:
   %lp = getelementptr inbounds %struct.Box, ptr addrspace(1) %b0, i64 %idx
   br label %merge
-
 rhs:
   %rp = getelementptr inbounds %struct.Box, ptr addrspace(1) %b1, i64 %idx
   br label %merge
 }
+!air.kernel = !{!0}
+!0 = !{ptr @k, !1, !2}
+!1 = !{}
+!2 = !{!3, !4}
+!3 = !{i32 0, !"air.buffer", !"air.location_index", i32 0, i32 1, !"air.read", !"air.address_space", i32 2, !"air.arg_type_size", i32 16, !"air.arg_type_align_size", i32 8, !"air.arg_type_name", !"Table", !"air.arg_name", !"table"}
+!4 = !{i32 1, !"air.buffer", !"air.location_index", i32 1, i32 1, !"air.read_write", !"air.address_space", i32 1, !"air.arg_type_size", i32 8, !"air.arg_type_align_size", i32 8, !"air.arg_type_name", !"ulong", !"air.arg_name", !"out"}
 "#;
     let tmp = std::env::temp_dir().join(format!(
-        "metal2vulkan_native_forward_unmodeled_gep_phi_{}",
+        "metal2vulkan_forward_gep_phi_{}",
         std::process::id()
     ));
-    let _ = std::fs::create_dir_all(&tmp);
-    let out = crate::translate_sanitized_native(ll, Stage::Kernel, &tmp).expect("translate");
-    let asm = disassemble(&out).expect("disassemble");
+    let spv = crate::translate_sanitized_native_with_options(
+        ll,
+        Stage::Kernel,
+        &tmp,
+        whole_workgroup_options(),
+    )
+    .expect("translate");
+    tools::spirv_val_bytes(&spv, &tmp).expect("real validation");
+    let module = load_bytes(&spv).expect("module");
+    let pointer_types = module
+        .types_global_values
+        .iter()
+        .filter(|i| i.class.opcode == Op::TypePointer)
+        .filter_map(|i| i.result_id)
+        .collect::<HashSet<_>>();
     assert!(
-        !asm.lines().any(|line| line.contains("OpPhi %_ptr_")),
-        "unmodeled forward-GEP arms must not emit a pointer phi:\n{asm}"
+        !module
+            .all_inst_iter()
+            .any(|i| matches!(i.class.opcode, Op::Phi | Op::Select)
+                && i.result_type.is_some_and(|ty| pointer_types.contains(&ty))),
+        "addresses must merge as integers"
     );
-    assert!(
-        !asm.lines().any(|line| line.contains("OpSelect %_ptr_")),
-        "unmodeled forward-GEP arms must not emit a pointer select:\n{asm}"
-    );
-    assert!(
-        !asm.contains("OpTypePointer Private")
-            && asm.contains("OpConstantNull")
-            && asm.contains("OpCopyObject"),
-        "expected typed zero values without private pointer backing:\n{asm}"
-    );
-    if std::process::Command::new("spirv-val")
-        .arg("--version")
-        .output()
-        .is_ok()
-    {
-        tools::spirv_val_bytes(&out, &tmp).expect("spirv-val");
+    let run = |module: &Module, control: u64| {
+        let mut memory = super::buffer_execution::Memory::default();
+        memory.put(0, 640, 0, 0x1000, 8);
+        memory.put(0, 640, 8, 0x2000, 8);
+        memory.put(0, 0, 0, 0x1234567800003000, 8);
+        memory.put(0, 0, 8, 0x8765432100004000, 8);
+        memory.put(0, 1, 0, control, 8);
+        for (address, bits) in [
+            (0x1234567800003000, 0x3f800001),
+            (0x1234567800003018, 0x40000002),
+            (0x8765432100004000, 0x40400003),
+            (0x8765432100004018, 0x40800004),
+        ] {
+            memory.physical(address, bits, 4);
+        }
+        super::buffer_execution::execute(module, &mut memory);
+        memory.get(0, 1, 0, 4)
+    };
+    for (control, expected) in [(0, 0x3f800001), (1, 0x40800004), (2, 0x40400003)] {
+        assert_eq!(
+            run(&module, control),
+            expected,
+            "branch {control} must load its exact address and stride"
+        );
     }
+    let mut lost_read = module.clone();
+    let float = module
+        .types_global_values
+        .iter()
+        .find(|i| i.class.opcode == Op::TypeFloat)
+        .and_then(|i| i.result_id)
+        .expect("float type");
+    let zero = lost_read.fresh_id();
+    lost_read.types_global_values.push(Instruction::new(
+        Op::ConstantNull,
+        Some(float),
+        Some(zero),
+        vec![],
+    ));
+    let mut changed = 0;
+    for i in lost_read.all_inst_iter_mut() {
+        if i.class.opcode == Op::Load && i.result_type == Some(float) {
+            *i = Instruction::new(
+                Op::CopyObject,
+                Some(float),
+                i.result_id,
+                vec![Operand::IdRef(zero)],
+            );
+            changed += 1;
+        }
+    }
+    assert!(changed > 0);
+    tools::spirv_val_bytes(&super::buffer_execution::bytes(&lost_read), &tmp)
+        .expect("valid lost-read control");
+    for control in [0, 1, 2] {
+        assert_ne!(run(&lost_read, control), run(&module, control));
+    }
+    std::fs::remove_dir_all(tmp).expect("remove scratch");
 }
 
 const VECTOR_ALLOCATION_STRIDE_LL: &str = r#"

@@ -3087,3 +3087,164 @@ declare float @air.convert.f.f32.f.f8e5m2(i8)
         "the refusal must not be the downstream shape complaint, got {error}"
     );
 }
+
+// Verify the emitted numerical contract independently of the type lookup used
+// by lowering: exact lane count/precision, zero/one bounds, and precise NClamp
+// versus explicitly fast FClamp. A valid collapsed interval must fail this oracle.
+#[test]
+fn native_saturation_keeps_precision_lanes_bounds_and_nan_contract() {
+    use crate::spirv_module::Module;
+    use spirv::GlslStd450Op;
+    fn contract(module: &Module, width: u32, lanes: u32, fast: bool) -> bool {
+        let defs = module
+            .all_inst_iter()
+            .filter_map(|i| Some((i.result_id?, i)))
+            .collect::<HashMap<_, _>>();
+        let opcode = if fast {
+            GlslStd450Op::FClamp
+        } else {
+            GlslStd450Op::NClamp
+        } as u32;
+        let clamps = module
+            .all_inst_iter()
+            .filter(|i| {
+                i.class.opcode == Op::ExtInst
+                    && i.operands.get(1) == Some(&Operand::LiteralExtInstInteger(opcode))
+            })
+            .collect::<Vec<_>>();
+        if clamps.len() != 1 {
+            return false;
+        }
+        let clamp = clamps[0];
+        let Some(ty) = clamp.result_type else {
+            return false;
+        };
+        let Some(shape) = defs.get(&ty) else {
+            return false;
+        };
+        let scalar = if lanes == 1 {
+            ty
+        } else {
+            if shape.class.opcode != Op::TypeVector
+                || shape.operands.get(1) != Some(&Operand::LiteralBit32(lanes))
+            {
+                return false;
+            }
+            let Some(Operand::IdRef(elem)) = shape.operands.first() else {
+                return false;
+            };
+            *elem
+        };
+        if !defs.get(&scalar).is_some_and(|t| {
+            t.class.opcode == Op::TypeFloat && t.operands == [Operand::LiteralBit32(width)]
+        }) {
+            return false;
+        }
+        let bound = |operand: &Operand, bits: u32| {
+            let Operand::IdRef(id) = operand else {
+                return false;
+            };
+            let Some(value) = defs.get(id) else {
+                return false;
+            };
+            if value.result_type != Some(ty) {
+                return false;
+            }
+            let scalar_matches = |id: &Word| {
+                defs.get(id).is_some_and(|i| {
+                    i.result_type == Some(scalar)
+                        && ((i.class.opcode == Op::Constant
+                            && i.operands == [Operand::LiteralBit32(bits)])
+                            || (bits == 0 && i.class.opcode == Op::ConstantNull))
+                })
+            };
+            if lanes == 1 {
+                scalar_matches(id)
+            } else {
+                value.class.opcode == Op::ConstantComposite
+                    && value.operands.len() == lanes as usize
+                    && value.operands.iter().all(|o| match o {
+                        Operand::IdRef(id) => scalar_matches(id),
+                        _ => false,
+                    })
+            }
+        };
+        clamp.operands.len() == 5
+            && bound(&clamp.operands[3], 0)
+            && bound(
+                &clamp.operands[4],
+                if width == 16 { 0x3c00 } else { 0x3f800000 },
+            )
+    }
+    let tmp = std::env::temp_dir().join(format!("m2v_saturation_contract_{}", std::process::id()));
+    for width in [16, 32] {
+        for lanes in [1, 2, 3, 4] {
+            for fast in [false, true] {
+                let elem = if width == 16 { "half" } else { "float" };
+                let ty = if lanes == 1 {
+                    elem.to_owned()
+                } else {
+                    format!("<{lanes} x {elem}>")
+                };
+                let name = format!(
+                    "air.{}saturate.{}f{width}",
+                    if fast { "fast_" } else { "" },
+                    if lanes == 1 {
+                        String::new()
+                    } else {
+                        format!("v{lanes}")
+                    }
+                );
+                let ll = format!(
+                    r#"
+define void @k(ptr addrspace(1) %input, ptr addrspace(1) %output) {{
+entry:
+  %value = load {ty}, ptr addrspace(1) %input, align 2
+  %clamped = call {ty} @{name}({ty} %value)
+  store {ty} %clamped, ptr addrspace(1) %output, align 2
+  ret void
+}}
+declare {ty} @{name}({ty})
+!air.kernel = !{{!0}}
+!0 = !{{ptr @k, !1, !2}}
+!1 = !{{}}
+!2 = !{{!3, !4}}
+!3 = !{{i32 0, !"air.buffer", !"air.location_index", i32 0, i32 1, !"air.read", !"air.address_space", i32 1, !"air.arg_type_name", !"{elem}", !"air.arg_name", !"input"}}
+!4 = !{{i32 1, !"air.buffer", !"air.location_index", i32 1, i32 1, !"air.write", !"air.address_space", i32 1, !"air.arg_type_name", !"{elem}", !"air.arg_name", !"output"}}
+"#
+                );
+                let spv = crate::translate_sanitized_native_with_options(
+                    &ll,
+                    Stage::Kernel,
+                    &tmp,
+                    whole_workgroup_options(),
+                )
+                .expect("translate saturation");
+                tools::spirv_val_bytes(&spv, &tmp).expect("real saturation validation");
+                let module = load_bytes(&spv).expect("module");
+                assert!(
+                    contract(&module, width, lanes, fast),
+                    "width={width} lanes={lanes} fast={fast}"
+                );
+                let mut wrong_bound = module.clone();
+                let opcode = if fast {
+                    GlslStd450Op::FClamp
+                } else {
+                    GlslStd450Op::NClamp
+                } as u32;
+                let clamp = wrong_bound
+                    .all_inst_iter_mut()
+                    .find(|i| {
+                        i.class.opcode == Op::ExtInst
+                            && i.operands.get(1) == Some(&Operand::LiteralExtInstInteger(opcode))
+                    })
+                    .expect("clamp");
+                clamp.operands[4] = clamp.operands[3].clone();
+                tools::spirv_val_bytes(&super::buffer_execution::bytes(&wrong_bound), &tmp)
+                    .expect("valid wrong-bound control");
+                assert!(!contract(&wrong_bound, width, lanes, fast));
+            }
+        }
+    }
+    std::fs::remove_dir_all(tmp).expect("remove scratch");
+}

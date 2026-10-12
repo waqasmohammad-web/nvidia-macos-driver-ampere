@@ -3297,3 +3297,67 @@ remain preserved locally, outside the published baseline.
 3. Repair remaining buffer/texture semantic regressions with negative controls.
 4. Keep source-NVK GPU provenance and PM deployment/wake validation for macOS
    and the physical card under the existing supervision boundaries.
+
+### Linux translator regression qualification and saturation compilation
+
+Rust 1.87.0 / real SPIRV-Tools v2026.4 reproduce the handover baseline:
+2151 PASS / six FAIL / one pre-existing ignored. The six failures are outdated
+test assumptions, not confirmed production translation defects:
+
+| Regression | Finding and replacement proof |
+| --- | --- |
+| Forward device GEP phi / typed zero | Old entry lacks AIR parameter bindings and discards its return. A metadata-backed, observable fixture instead executes both selected addresses and the 24-byte record stride, preserving high address bits and exact output float bits. Pointer phi/select prohibition remains. |
+| Forced unchecked i64 load / no helper | A guarded helper preserves the real physical read at source address + 8. CPU execution checks both output words and null-base suppression; validated lost-read and wrong-offset mutations fail the semantic check. |
+| Texture/sampler metadata | Default texture 5 routes through heap set 2/binding 0 and address-table element 69; sampler remains set 0/binding 162. |
+| High/last texture and sampler indices | Textures 40/127 route through elements 104/191; samplers 8/15 retain bindings 168/175. |
+| Sampled/storage views of texture 40 | Sampled view uses the heap through element 104; storage view retains binding 520. |
+| Unused 1D texture | Metadata dimension remains 1D; default route uses table element 64. |
+
+All four texture tests retain their original flat-band checks in an explicit
+flat-mode subprocess and independently prove the default heap route, slot mask,
+image shape and NonUniform decorations. Valid wrong-slot, wrong-dimension and
+wrong-set mutations are detected. Buffer group: 286 PASS / one existing ignored;
+texture group: 148 PASS. Final full native suite: 2158 PASS / zero FAIL / one
+pre-existing ignored (100.54 seconds). A bounded CPU SPIR-V executor checks the buffer fixtures;
+unsupported instructions and unspecified memory fail loudly. No production
+memory semantics, expected buffer results, exclusions or ignores were relaxed.
+
+The performance change removes whole-type-table copying in `clamp_edges`, using
+the existing single-type lookup for saturation/tanh bounds. Identical owned
+color-filter workloads, alternating baseline/candidate processes and nine samples
+per variant show median debug compilation times of 539.55 -> 419.95 ms (22.17%
+reduction) for 256 float4 operations, 112.41 -> 104.23 ms (7.27%) for 64 float4
+operations, and 93.27 -> 86.93 ms (6.79%) for 64 scalar operations. Fast float4:
+113.02 -> 104.54 ms (7.50%). The 16-operation case shows only 1.75%; container
+outliers overlap. All five SPIR-V outputs are byte-identical and really validated.
+The timed native pipeline excludes validator subprocesses. These unoptimized
+Linux compilation results do not establish optimized-build or desktop/FPS gains.
+The new saturation contract test covers scalar and 2/3/4 lanes in float16/float32,
+precise NClamp versus fast FClamp, exact zero/one bounds, and 32 valid negative
+controls that collapse the clamp interval.
+
+The next portable task also completed: extracted current NVK config source passes
+parser/first-use/ring cases under GCC 14 ASan+UBSan and TSan. Original source fails
+its functional controls and reproduces first-use/ring races (2/9 TSan warnings).
+No config-helper source change was needed. Python GA102 suite: 72 PASS.
+Normalized samples, classifications and sanitizer results are in
+[`evidence/ga102-linux-translator.json`](evidence/ga102-linux-translator.json).
+The existing ignored generic-callback cursor/store defect remains unresolved;
+external private fixtures and actual RTX 3080 Ti behavior remain unqualified.
+
+### NEXT-STEPS
+
+1. Reproduce portable qualification with one job/thread:
+   `CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=1 cargo test --offline --locked --manifest-path translator/translator/Cargo.toml --lib -- --test-threads=1`.
+2. Reproduce the owned benchmark outside Git:
+   `cargo run --offline --locked --manifest-path translator/translator/Cargo.toml --example benchmark_saturation -- work/saturation-benchmark 9`.
+   Compare against the handover implementation with the same example and profile;
+   optimized-build measurements are a separate later qualification.
+3. Next source task: investigate the already-ignored generic callback cursor/store
+   refusal with the exact focused command
+   `cargo test --offline --locked --manifest-path translator/translator/Cargo.toml --lib native_generic_callback_table_cursor_keeps_its_store -- --ignored --exact native::tests::buffers::native_generic_callback_table_cursor_keeps_its_store --test-threads=1`.
+   Keep explicit refusal until a real stored-address proof supports a fix.
+4. Actual Sequoia/RTX 3080 Ti validation must later check candidate shader rendering,
+   optimized compilation, compositor pacing and stability with verified source/image
+   provenance. No macOS build, physical-host access or installed-component change
+   was performed in this Linux session.

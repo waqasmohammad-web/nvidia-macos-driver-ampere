@@ -5,6 +5,7 @@ use std::collections::{HashMap, HashSet};
 
 mod bounded_work;
 mod buffers;
+mod buffer_execution;
 mod byte_image;
 mod control_flow;
 mod interface;

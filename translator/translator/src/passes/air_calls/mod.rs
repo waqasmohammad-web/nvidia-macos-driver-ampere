@@ -54,30 +54,16 @@ fn copy_or_bitcast_result(
 }
 
 fn clamp_edges(ctx: &mut Ctx, rty: Word, zero: Word, one: Word) -> (Word, Word) {
-    let defs = type_defs(&ctx.module);
-    let is_vec = ctx
-        .new_globals
-        .iter()
-        .chain(ctx.module.types_global_values.iter())
-        .find(|g| g.result_id == Some(rty))
-        .map(|g| g.class.opcode == Op::TypeVector)
-        .or_else(|| defs.get(&rty).map(|g| g.class.opcode == Op::TypeVector))
-        .unwrap_or(false);
-    if !is_vec {
+    // Inspect only this type. Cloning every global into a definition map for
+    // each saturation/tanh call made lowering scale with unrelated constants.
+    let definition = type_def_of(ctx, rty);
+    let Some(definition) = definition.filter(|i| i.class.opcode == Op::TypeVector) else {
         return (zero, one);
-    }
-    let n = ctx
-        .new_globals
-        .iter()
-        .chain(ctx.module.types_global_values.iter())
-        .find(|g| g.result_id == Some(rty))
-        .and_then(|g| g.operands.get(1).cloned())
-        .or_else(|| defs.get(&rty).and_then(|g| g.operands.get(1).cloned()))
-        .and_then(|o| match o {
-            Operand::LiteralBit32(n) => Some(n),
-            _ => None,
-        })
-        .unwrap_or(4);
+    };
+    let n = match definition.operands.get(1) {
+        Some(Operand::LiteralBit32(n)) => *n,
+        _ => 4,
+    };
     let lo = splat(ctx, rty, zero, n);
     let hi = splat(ctx, rty, one, n);
     (lo, hi)
