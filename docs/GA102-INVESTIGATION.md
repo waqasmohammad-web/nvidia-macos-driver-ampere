@@ -3680,3 +3680,56 @@ NEED MACOS VALIDATION; prior physical passes belong to the earlier artifacts.
 4. Profile real variant miss frequency and encoding stalls before attempting
    persistence, concurrent-miss coalescing or Vulkan object/cache sharing.
    Installed macOS drivers/EFI/OpenCore/kexts/kernel collections stay untouched.
+
+### Autonomous local v2 qualification and smaller first descriptor pool
+
+The owner authorized local builds and isolated GPU execution. Verified local
+Darwin x86_64 / Sequoia 15.8.1, fetched `4095041`, and preserved the two existing
+Swift experiments and prior results in their original paths. New detached source
+worktrees and a private output directory hold all binaries, manifests and logs.
+Baseline `acb7241` and candidate `4095041` were release-built with identical tools
+and settings; isolated v2 plugins and one common metallib compiled. Actual image,
+dependency, namespace, owned-cache, branch, pixel and real SPIR-V gates passed.
+
+One-pair qualification and five-pair nearest-first/linear-first comparisons
+passed. Prepared AIR gives a repeated actual-shader ABI benefit of about 50–55 us,
+but cold-process linear ABI regresses by 318–452 us in the hardware comparisons.
+Binding/tail benefits are mixed. Those findings remain unresolved, not discarded.
+
+The inclusive initial pipeline span exposed about 17–19 ms outside Vulkan
+creation. Optional copied-source diagnostics attribute most of that to descriptor
+setup: pool allocation 5.28 ms and dummy resources 9.18 ms. Source candidate
+`a1d3538` (the identical complete tree qualified locally as `7ad6e18`) reserves 256 sets initially rather than 4096, retaining later pool sizes,
+locking, failure accounting and the exact 262144-set ceiling. Extracted real-source
+ASan/UBSan tests cover mutable/ordinary descriptor counts, growth, failure and
+ceiling boundaries with real Vulkan headers and captured API calls.
+
+The rebuilt candidate qualified against `4095041`; both five-pair orders passed,
+with the repeat reversing session order. Initial inclusive preparation improves
+24.33–33.11%, saving 4.758–6.238 ms; all twenty process pairs are faster. Initial
+public PSO wall medians also improve. Diagnostic pool creation falls from 5.38 to
+0.44 ms. Later shader/Vulkan timings remain mixed. This is an owned offscreen
+process-start improvement, not a desktop, steady-frame or installed-driver claim.
+
+Across all sessions: 136 processes / 816 draws, exact checked pixels, no measured
+Vulkan errors, real captured SPIR-V validation and byte equality. The initial
+Python baseline had a Darwin feature-macro compile failure; the repaired suite
+passes 83 tests without exclusions. See `GA102-V2-LOCAL-RESULTS.md` and
+`evidence/ga102-v2-local.json` for normalized hashes, samples, medians/p95 and limits.
+Installed drivers, configuration, display and boot/security components were
+unchanged. No reboot, service restart or sleep/wake was attempted.
+
+### NEXT-STEPS
+
+1. Exact next source regression command:
+   `python3 tools/ga102_descriptor_pool_test.py --vulkan-headers "$GA102_HEADERS/include"`.
+   Requires actual Vulkan headers and a compiler with ASan/UBSan; the independent
+   standard-library suite remains `python3 -S -m unittest discover -s tools -p 'test_ga102_*.py'`.
+2. Extend the owned GPU fixture to hold more than 256 descriptor sets concurrently,
+   prove actual pool growth/free/reuse, then validate larger representative loads.
+   Physical pool growth/saturation is not qualified by the small gradient runs;
+   growth can shift allocation latency into a later burst.
+3. Profile the remaining dummy-resource setup and investigate the cold linear ABI
+   regression with independent process/filter controls before further optimization.
+4. Obtain representative desktop evidence before claiming responsiveness gains or
+   proposing installation. All system-component and recovery boundaries remain.

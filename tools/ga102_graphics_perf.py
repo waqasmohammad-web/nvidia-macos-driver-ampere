@@ -291,6 +291,8 @@ def execute(args):
         arms[name],hashes,proofs[name]=artifact(path); dependency_hashes.update(hashes)
     if arms['baseline']['icd'] != arms['candidate']['icd'] or arms['baseline']['llvm'] != arms['candidate']['llvm']:
         raise ValueError('A/B requires identical retained ICD and AIR runtime')
+    if proofs['baseline']['performance'].get('preparation_breakdown',False) != proofs['candidate']['performance'].get('preparation_breakdown',False):
+        raise ValueError('A/B requires identical diagnostic logging settings')
     verify_plugin_inputs(proofs['baseline']['source_sha256'],proofs['candidate']['source_sha256'],args.descriptor_pool_comparison)
     if args.descriptor_pool_comparison and proofs['baseline']['translator_build']['input_sha256'] != proofs['candidate']['translator_build']['input_sha256']:
         raise ValueError('descriptor-pool comparison requires identical translator source inputs')

@@ -353,3 +353,26 @@ excluded. Assess total encoding/preparation p95 and absolute stall size alongsid
 ABI medians. Do not pool initial/nearest/linear timings or add overlapping spans.
 An inconsistent direction or a regression remains a finding to investigate.
 There is no new desktop FPS, physical scanout or installed-stack performance claim.
+
+## Completed local v2 follow-up and descriptor-pool experiment
+
+The owner's subsequent autonomous-local instruction authorized the builds and
+isolated execution described in `GA102-V2-LOCAL-RESULTS.md`. The earlier pending
+authorization statements above describe the preparation checkpoint; they do not
+negate that later authorization. No installed component or configuration changed.
+
+The builder's optional `--preparation-breakdown` prints descriptor layout, pool,
+dummy-resource, dummy-zeroing and bindless setup durations only in copied sources.
+Keep these diagnostic binaries separate from primary timing artifacts. Both arms
+must use identical diagnostic logging settings. The proof records the option and
+transformed hashes; ordinary production sources have no diagnostic printing.
+
+For the reviewed smaller-first-pool change, rebuild both arms with this harness,
+using baseline `4095041` and candidate `a1d3538` (or a clean later revision with
+the same production change). Add `--descriptor-pool-comparison` to the complete
+run command above. That explicit scope permits only `nvmtl_vk.c` plugin inputs to
+differ and requires identical tracked translator inputs; all source/build,
+dependency, cache, shader, branch and pixel gates continue to apply. Begin with
+one pair, then use new outputs for both five-pair orders. The local results
+qualify the initial-pool change on the small owned workload; they do not qualify
+physical growth/saturation of all pools or desktop performance.
