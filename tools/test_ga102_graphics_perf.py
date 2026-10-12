@@ -36,6 +36,15 @@ class GraphicsPolicyTests(unittest.TestCase):
             (root/'air'/'escape').symlink_to(parent)
             with self.assertRaises(ValueError): perf.verify_cache(root,token)
 
+    def test_descriptor_pool_comparison_keeps_other_source_gates(self):
+        a={'nvmtl_vk.c':'a','NVMTLObjects.m':'b'}
+        b={**a,'nvmtl_vk.c':'c'}
+        perf.verify_plugin_inputs(a,a)
+        with self.assertRaises(ValueError): perf.verify_plugin_inputs(a,b)
+        perf.verify_plugin_inputs(a,b,True)
+        for bad in ({**b,'NVMTLObjects.m':'d'}, {'nvmtl_vk.c':'c'}, {**b,'extra.c':'e'}):
+            with self.assertRaises(ValueError): perf.verify_plugin_inputs(a,bad,True)
+
     def test_real_portable_C_cache_metrics_and_capture_controls(self):
         with tempfile.TemporaryDirectory() as parent:
             base=Path(parent); root,token=perf.new_cache(base)
@@ -56,7 +65,12 @@ int main(void) {
 }
 ''')
             exe=base/'proof'
-            subprocess.run(['cc','-std=c11','-D_XOPEN_SOURCE=700','-Wall','-Wextra','-Werror','-pthread','-fsanitize=address,undefined',str(unit),'-o',str(exe)],check=True,capture_output=True)
+            # Darwin hides O_NOFOLLOW under strict XSI feature selection. Keep
+            # the no-symlink checks enabled in the actual sanitized C proof.
+            feature_flags=['-D_XOPEN_SOURCE=700']
+            if perf.sys.platform == 'darwin': feature_flags.append('-D_DARWIN_C_SOURCE')
+            compiled=subprocess.run(['cc','-std=c11',*feature_flags,'-Wall','-Wextra','-Werror','-pthread','-fsanitize=address,undefined',str(unit),'-o',str(exe)],capture_output=True,text=True)
+            self.assertEqual(compiled.returncode,0,compiled.stderr)
             env={**os.environ,'GA102_TEST_CACHE':str(root),'GA102_TEST_TOKEN':token}
             env.pop('MESA_SHADER_CACHE_DISABLE',None)
             output=subprocess.run([str(exe)],env=env,capture_output=True,text=True,check=True)
@@ -106,6 +120,29 @@ int main(void) {
         self.assertEqual(originals,{p.name:perf.sha(p) for p in (perf.ROOT/'plugin').iterdir() if p.is_file()})
         for text in ('absent','site site'):
             with self.assertRaises(ValueError): once(text,'site','new')
+
+    def test_descriptor_breakdown_is_opt_in_and_uses_actual_initialization(self):
+        with tempfile.TemporaryDirectory() as parent:
+            for enabled in (False,True):
+                out=Path(parent)/str(enabled)
+                args=['builder','--source-root',str(self.pinned_source),'--prepare-only','--graphics-performance','--output',str(out),'--translator','/owned/translator.dylib','--icd','/retained/nvk.dylib','--air-runtime','/retained/runtime']
+                if enabled: args.append('--preparation-breakdown')
+                with patch('sys.argv',args): builder.main()
+                proof=json.loads((out/'preparation-proof.json').read_text())
+                self.assertEqual(proof['performance']['preparation_breakdown'],enabled)
+                vk=(out/'source/nvmtl_vk.c').read_text()
+                self.assertEqual('ga102_preparation:' in vk,enabled)
+                if enabled:
+                    body=vk.split('static int ensure_descriptors_locked(void)')[1].split('static int ensure_descriptors(void)')[0]
+                    self.assertLess(body.index('if (g_descriptor_state)'),body.index('descriptorT=ga102_tick()'))
+                    self.assertLess(body.index('poolT=ga102_tick()'),body.index('nvmtl_desc_pool_open()'))
+                    self.assertLess(body.index('nvmtl_desc_pool_open()'),body.index('poolNS=ga102_tick()-poolT'))
+                    self.assertLess(body.index('nvmtl_sampler_acquire'),body.index('resourceNS=ga102_tick()-resourceT'))
+                    self.assertLess(body.index('zeroT=ga102_tick()'),body.index('nvmtl_vk_zero_dummies();'))
+                    self.assertLess(body.index('nvmtl_vk_zero_dummies();'),body.index('zeroNS=ga102_tick()-zeroT'))
+                    self.assertLess(body.index('heapT=ga102_tick()'),body.index('if (g_bindless)'))
+                    self.assertLess(body.index('pvkUpdateDescriptorSets'),body.index('heapNS=ga102_tick()-heapT'))
+                    self.assertLess(body.index('g_descriptor_state = 1;'),body.index('ga102_preparation:'))
 
     @staticmethod
     def fixture(condition='cold'):

@@ -1851,9 +1851,14 @@ typedef struct { nvmtl_slot s[2][NVMTL_NBIND];
                  uint64_t emb_key[2][NVMTL_EMB_KEYMAX]; } nvmtl_bindtable;
 
 static VkDescriptorSetLayout g_setLayout;
-#define NVMTL_MAX_POOLS 64
+#define NVMTL_DESC_SET_BUDGET (64u * NVMTL_MAX_SETS)
+#define NVMTL_INITIAL_POOL_SETS 256u
+// One extra pool preserves the previous total capacity after a smaller first
+// allocation. Later pools retain the established allocation/free behavior.
+#define NVMTL_MAX_POOLS 65
 static VkDescriptorPool      g_descPools[NVMTL_MAX_POOLS];
 static unsigned              g_ndescPools;
+static uint32_t              g_desc_pool_sets;
 static pthread_mutex_t       g_desc_lock = PTHREAD_MUTEX_INITIALIZER;
 static unsigned              g_peak_sets, g_peak_fbs;
 static nvk_buffer            g_dummyBuf;
@@ -2032,28 +2037,31 @@ static VkDescriptorType binding_type(uint32_t i)
 
 static int nvmtl_desc_pool_open(void)
 {
-    if (g_ndescPools == NVMTL_MAX_POOLS) {
-        nvlog("vk: descriptor pool CEILING: %u pools x %d sets all live in one frame — draws are being skipped", g_ndescPools, NVMTL_MAX_SETS);
+    if (g_ndescPools == NVMTL_MAX_POOLS || g_desc_pool_sets == NVMTL_DESC_SET_BUDGET) {
+        nvlog("vk: descriptor pool CEILING: %u sets in %u pools — draws are being skipped", g_desc_pool_sets, g_ndescPools);
         return -1;
     }
+    uint32_t sets = g_ndescPools ? NVMTL_MAX_SETS : NVMTL_INITIAL_POOL_SETS;
+    if (sets > NVMTL_DESC_SET_BUDGET - g_desc_pool_sets) sets = NVMTL_DESC_SET_BUDGET - g_desc_pool_sets;
     VkDescriptorPoolSize sizes[5] = {
-        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, NVMTL_MAX_SETS },
-        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, (NVMTL_NBUF + 1) * NVMTL_MAX_SETS },
-        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,  NVMTL_NTEX  * NVMTL_MAX_SETS },
-        { VK_DESCRIPTOR_TYPE_SAMPLER,        NVMTL_NSAMP * NVMTL_MAX_SETS },
-        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  NVMTL_NSTEX * NVMTL_MAX_SETS } };
+        { VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC, sets },
+        { VK_DESCRIPTOR_TYPE_STORAGE_BUFFER, (NVMTL_NBUF + 1) * sets },
+        { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE,  NVMTL_NTEX  * sets },
+        { VK_DESCRIPTOR_TYPE_SAMPLER,        NVMTL_NSAMP * sets },
+        { VK_DESCRIPTOR_TYPE_STORAGE_IMAGE,  NVMTL_NSTEX * sets } };
     VkDescriptorPoolCreateInfo pci = { VK_STRUCTURE_TYPE_DESCRIPTOR_POOL_CREATE_INFO, NULL,
-        VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, NVMTL_MAX_SETS, 5, sizes };
+        VK_DESCRIPTOR_POOL_CREATE_FREE_DESCRIPTOR_SET_BIT, sets, 5, sizes };
     static const VkDescriptorType mut4[4] = { VK_DESCRIPTOR_TYPE_SAMPLED_IMAGE, VK_DESCRIPTOR_TYPE_UNIFORM_TEXEL_BUFFER,
                                               VK_DESCRIPTOR_TYPE_STORAGE_IMAGE, VK_DESCRIPTOR_TYPE_STORAGE_TEXEL_BUFFER };
     VkMutableDescriptorTypeListEXT plists[5] = { { 0, NULL }, { 0, NULL }, { 4, mut4 }, { 0, NULL }, { 4, mut4 } };
     VkMutableDescriptorTypeCreateInfoEXT pmi = { VK_STRUCTURE_TYPE_MUTABLE_DESCRIPTOR_TYPE_CREATE_INFO_EXT, NULL, 5, plists };
     if (g_mutable_layout) { sizes[2].type = VK_DESCRIPTOR_TYPE_MUTABLE_EXT; sizes[4].type = VK_DESCRIPTOR_TYPE_MUTABLE_EXT; pci.pNext = &pmi; }
     VKCK(pvkCreateDescriptorPool(g_dev, &pci, NULL, &g_descPools[g_ndescPools]), "vkCreateDescriptorPool");
+    g_desc_pool_sets += sets;
     g_ndescPools++;
     if (g_ndescPools > 1)
-        nvlog("vk: descriptor pool %u opened — one frame needed more than %u sets (%u draws)",
-              g_ndescPools, (g_ndescPools - 1) * NVMTL_MAX_SETS, (g_ndescPools - 1) * NVMTL_MAX_SETS / 2);
+        nvlog("vk: descriptor pool %u opened — %u sets reserved (%u in this pool)",
+              g_ndescPools, g_desc_pool_sets, sets);
     return 0;
 }
 

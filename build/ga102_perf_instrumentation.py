@@ -12,7 +12,7 @@ def once(text, old, new):
     return text.replace(old, new)
 
 
-def instrument(source, translator, icd):
+def instrument(source, translator, icd, preparation_breakdown=False):
     header = ROOT / 'tools/ga102_perf/metrics.h'
     (source/'ga102_perf_metrics.h').write_bytes(header.read_bytes())
     unit = source/'NVMTLDevice.m'
@@ -106,6 +106,20 @@ static int ga102_timed_{name}({params}) {{
     s = once(s, call, 'uint64_t pipelineT=ga102_tick();\n    '+call)
     site = 'else *(nvk_pipeline *)out_ = pending;\n    return result;'
     s = once(s, site, 'else *(nvk_pipeline *)out_ = pending;\n    ga102_record(GA102_PIPELINE_TOTAL,ga102_tick()-pipelineT,result != 0);\n    return result;')
+    if preparation_breakdown:
+        # A separate diagnostic build: print after initialization, never from
+        # inside timed GPU waits or descriptor updates. No production edits.
+        s = once(s, '    g_descriptor_state = -1;', '    g_descriptor_state = -1;\n    uint64_t descriptorT=ga102_tick(), layoutNS=0, poolNS=0, resourceNS=0, zeroNS=0, heapT=0, heapNS=0;')
+        s = once(s, '    if (nvmtl_desc_pool_open()) return -1;', '    layoutNS=ga102_tick()-descriptorT;\n    uint64_t poolT=ga102_tick();\n    if (nvmtl_desc_pool_open()) return -1;\n    poolNS=ga102_tick()-poolT;\n    uint64_t resourceT=ga102_tick();')
+        s = once(s, '    nvmtl_vk_zero_dummies();', '    resourceNS=ga102_tick()-resourceT;\n    uint64_t zeroT=ga102_tick();\n    nvmtl_vk_zero_dummies();\n    zeroNS=ga102_tick()-zeroT;')
+        s = once(s, '    if (g_bindless) {\n        VkDescriptorBindingFlags hf', '    heapT=ga102_tick();\n    if (g_bindless) {\n        VkDescriptorBindingFlags hf')
+        s = once(s, '    g_descriptor_state = 1;\n    return 0;', '''    heapNS=ga102_tick()-heapT;
+    g_descriptor_state = 1;
+    fprintf(stderr,"ga102_preparation: {\\"descriptor_ns\\":%llu,\\"layout_ns\\":%llu,\\"pool_ns\\":%llu,\\"dummy_resources_ns\\":%llu,\\"zero_dummies_ns\\":%llu,\\"bindless_heap_ns\\":%llu,\\"bindless\\":%d}\\n",
+        (unsigned long long)(ga102_tick()-descriptorT), (unsigned long long)layoutNS,
+        (unsigned long long)poolNS, (unsigned long long)resourceNS, (unsigned long long)zeroNS,
+        (unsigned long long)heapNS, g_bindless);
+    return 0;''')
     vk.write_text(s)
     with unit.open('a') as out:
         out.write('''
@@ -125,7 +139,8 @@ __attribute__((visibility("default"))) const char *ga102_perf_image(unsigned kin
     Dl_info info={0}; return p && dladdr(p,&info) ? info.dli_fname : NULL;
 }
 ''')
-    return {'profile': 'ga102-graphics-v2', 'metrics_header_sha256': hashlib.sha256(header.read_bytes()).hexdigest(),
+    return {'profile': 'ga102-graphics-v2', 'preparation_breakdown': preparation_breakdown,
+            'metrics_header_sha256': hashlib.sha256(header.read_bytes()).hexdigest(),
             'transformer_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
             'transformed_source_sha256': {p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in source.iterdir() if p.is_file()},
             'limitations': 'Generated source only until Apple compilation/GPU qualification; internal sampler reflection is included in sampler ABI time, not separately instrumented.'}

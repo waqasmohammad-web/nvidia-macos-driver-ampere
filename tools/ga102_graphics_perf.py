@@ -223,6 +223,13 @@ def verify_inventory(inventory,approved):
             raise ValueError('unreviewed non-system loaded dependency: '+path)
 
 
+def verify_plugin_inputs(baseline,candidate,descriptor_pool_comparison=False):
+    if baseline == candidate: return
+    changed={name for name in set(baseline)|set(candidate) if baseline.get(name)!=candidate.get(name)}
+    if not descriptor_pool_comparison or changed != {'nvmtl_vk.c'}:
+        raise ValueError('plugin inputs differ outside the explicit descriptor-pool comparison')
+
+
 def captures(root):
     modules=[]
     for p in sorted((root/'capture').glob('*.spv')):
@@ -284,7 +291,9 @@ def execute(args):
         arms[name],hashes,proofs[name]=artifact(path); dependency_hashes.update(hashes)
     if arms['baseline']['icd'] != arms['candidate']['icd'] or arms['baseline']['llvm'] != arms['candidate']['llvm']:
         raise ValueError('A/B requires identical retained ICD and AIR runtime')
-    if proofs['baseline']['source_sha256'] != proofs['candidate']['source_sha256']: raise ValueError('plugin inputs differ in translator-only A/B')
+    verify_plugin_inputs(proofs['baseline']['source_sha256'],proofs['candidate']['source_sha256'],args.descriptor_pool_comparison)
+    if args.descriptor_pool_comparison and proofs['baseline']['translator_build']['input_sha256'] != proofs['candidate']['translator_build']['input_sha256']:
+        raise ValueError('descriptor-pool comparison requires identical translator source inputs')
     if proofs['baseline'].get('source_commit') != args.baseline_commit or proofs['candidate'].get('source_commit') != args.candidate_commit:
         raise ValueError('pinned source commit mismatch')
     for field in ('rust','sdk','opt_level','codegen_units','incremental','jobs'):
@@ -358,7 +367,7 @@ def execute(args):
                     values=[r['differences'][label][event]['ns'] for r in selected if r['differences'][label][event]['count']]
                     if values: stats[f'{arm}:{condition}:{label}:{event}']=summary(values)
     # Raw paths/image inventories stay only in private logs. Preserve raw timings.
-    report=dict(status='PASS',scope='owned offscreen graphics only',sampler_first=args.sampler_first,fixture_sha256=sha(args.metallib),fixture_source_sha256=sha(FIXTURE),
+    report=dict(status='PASS',scope='owned offscreen graphics only',descriptor_pool_comparison=args.descriptor_pool_comparison,sampler_first=args.sampler_first,fixture_sha256=sha(args.metallib),fixture_source_sha256=sha(FIXTURE),
                 source_commits={k:proofs[k]['source_commit'] for k in arms},paired_statistics=paired_statistics(rows),
                 dependency_hashes={arm:{kind:sha(arms[arm][kind]) for kind in ('plugin','translator','icd','llvm')} for arm in arms},probe_sha256=exe_hash,rows=rows,statistics=stats,
                 limits=['Internal sampler reflection is included in sampler ABI time.','Mesa file persistence is not driver cache-hit attribution.',
@@ -377,6 +386,7 @@ def main():
     run.add_argument('--dependency-manifest',type=Path,required=True,help='Reviewed canonical non-system image paths and SHA256 closure; no runtime auto-acceptance')
     run.add_argument('--pairs',type=int,choices=range(1,11),default=1); run.add_argument('--execute-reviewed',action='store_true')
     run.add_argument('--sampler-first',choices=('nearest','linear'),default='nearest',help='Use separate matched sessions for each order to control first-variant effects')
+    run.add_argument('--descriptor-pool-comparison',action='store_true',help='Explicit source-reviewed pool experiment: only nvmtl_vk.c may differ; translator inputs must match')
     args=p.parse_args()
     if sys.platform!='darwin': p.error('NEEDS MACOS VALIDATION: this command cannot execute on Linux')
     if args.command=='run' and not args.execute_reviewed: p.error('BLOCKED: reviewed execution authorization flag required')

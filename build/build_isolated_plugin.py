@@ -45,10 +45,13 @@ def main():
     parser.add_argument('--translator',type=Path,help='Explicit CPU translator dylib for this private build; defaults to installed release')
     parser.add_argument('--source-root',type=Path,default=ROOT,help='Pinned production worktree; harness transformation stays at this builder revision')
     parser.add_argument('--graphics-performance',action='store_true',help='Test-only owned caches, fail-closed dependencies and path counters/timers')
+    parser.add_argument('--preparation-breakdown',action='store_true',help='Diagnostic-only descriptor initialization breakdown in private logs')
     parser.add_argument('--icd',type=Path,help='Explicit retained NVK dylib, required for performance profile')
     parser.add_argument('--air-runtime',type=Path,help='Explicit AIR runtime directory, required for performance profile')
     parser.add_argument('--prepare-only',action='store_true',help='Generate owned source/proof without compiling or loading anything (Linux-compatible)')
     args=parser.parse_args()
+    if args.preparation_breakdown and not args.graphics_performance:
+        parser.error('preparation breakdown requires the isolated performance profile')
     if args.graphics_performance and not all([args.translator,args.icd,args.air_runtime]):
         parser.error('performance profile requires explicit --translator, --icd and --air-runtime')
     source_identity={}
@@ -139,7 +142,7 @@ unsigned long ga102_isolated_lowering_calls(void) {
             from .ga102_perf_instrumentation import instrument
         except ImportError:
             from ga102_perf_instrumentation import instrument
-        performance=instrument(source,args.translator.resolve(),args.icd.resolve())
+        performance=instrument(source,args.translator.resolve(),args.icd.resolve(),preparation_breakdown=args.preparation_breakdown)
     if args.prepare_only:
         proof={'schema_version':2,'class_prefix':PREFIX,'class_mapping':mapping,
                'source_sha256':hashes,'performance':performance,'prepared_only':True,
