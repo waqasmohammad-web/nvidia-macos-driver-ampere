@@ -1704,6 +1704,11 @@ impl Emitter {
         line: &str,
         instructions: &mut Vec<Instruction>,
     ) -> Result<(), String> {
+        if call.callee.starts_with("llvm.memcpy.")
+            && matches!(call.args.get(3).map(|argument| &argument.value), Some(LlValue::Bool(true)))
+        {
+            return Err("native emitter: volatile memcpy lowering is not supported".to_string());
+        }
         if self.emit_zero_memset(&call, instructions)? {
             return Ok(());
         }

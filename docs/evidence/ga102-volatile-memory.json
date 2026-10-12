@@ -73,5 +73,17 @@
         "primary_translation_calls": 2
       }
     }
+  },
+  "additional_offline_controls": {
+    "constant_space_scalar": "PASS; validated SPIR-V",
+    "vector_access": "PASS; validated SPIR-V",
+    "pointer_payload": "PASS; validated SPIR-V",
+    "volatile_memcpy_unmodeled_control_before_fix": "FAIL: silent discard reproduced",
+    "volatile_memcpy_after_fix": "PASS: explicit unsupported-lowering error",
+    "memcpy_test_group": {
+      "passed": 33,
+      "failed": 0
+    },
+    "volatile_memcpy_limit": "No volatile copy lowering is implemented; affected source inputs are rejected instead of silently dropped."
   }
 }

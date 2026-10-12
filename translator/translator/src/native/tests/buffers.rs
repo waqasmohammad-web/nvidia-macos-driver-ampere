@@ -14442,6 +14442,25 @@ entry:
         }
         tools::spirv_val_bytes(&spv, &tmp).expect("valid volatile flags");
     }
+    for kind in ["constant_scalar", "vector", "pointer_payload"] {
+        let input = match kind {
+            "constant_scalar" => ll.replace("ptr addrspace(1) %in", "ptr addrspace(2) %in")
+                .replace("!\"air.read\", !\"air.address_space\", i32 1", "!\"air.read\", !\"air.address_space\", i32 2"),
+            "vector" => ll.replace("load volatile i32", "load volatile <4 x i32>")
+                .replace("store volatile i32", "store volatile <4 x i32>"),
+            _ => ll.replace("  %value = load volatile i32, ptr addrspace(1) %in, align 4",
+                "  %base = load volatile ptr addrspace(1), ptr addrspace(1) %in, align 8\n  %value = load i32, ptr addrspace(1) %base, align 4")
+                .replace("store volatile i32", "store i32"),
+        };
+        let spv = crate::translate_sanitized_native(&input, Stage::Kernel, &tmp).expect("translate volatile access path");
+        let module = load_bytes(&spv).unwrap();
+        assert!(module.all_inst_iter().any(|instruction| {
+            instruction.class.opcode == Op::Load && instruction.operands.iter().any(|operand| {
+                matches!(operand, Operand::MemoryAccess(flags) if flags.contains(spirv::MemoryAccess::VOLATILE))
+            })
+        }), "{kind} dropped every volatile load");
+        tools::spirv_val_bytes(&spv, &tmp).expect("valid extended volatile flags");
+    }
     for volatile_first in [false, true] {
         let mut input = ll.replace("  %value = load volatile i32, ptr addrspace(1) %in, align 4",
             "  %base = load ptr addrspace(1), ptr addrspace(1) %in, align 8\n  %value = load volatile i32, ptr addrspace(1) %base, align 4\n  %plain = load i32, ptr addrspace(1) %base, align 4\n  %sum = add i32 %value, %plain");
@@ -14464,4 +14483,24 @@ entry:
         tools::spirv_val_bytes(&spv, &tmp).expect("valid mixed helper flags");
     }
     std::fs::remove_dir_all(tmp).unwrap();
+}
+
+#[test]
+fn native_volatile_memcpy_cannot_be_discarded_as_unmodeled() {
+    let ll = r#"
+define void @k(ptr addrspace(1) %table) {
+entry:
+  %unknown = load ptr, ptr addrspace(1) %table, align 8
+  call void @llvm.memcpy.p0.p1.i64(ptr %unknown, ptr addrspace(1) %table, i64 4, i1 true)
+  ret void
+}
+declare void @llvm.memcpy.p0.p1.i64(ptr, ptr addrspace(1), i64, i1)
+!air.kernel = !{!0}
+!0 = !{ptr @k, !1, !2}
+!1 = !{}
+!2 = !{!3}
+!3 = !{i32 0, !"air.buffer", !"air.location_index", i32 0, i32 1, !"air.read_write", !"air.address_space", i32 1, !"air.arg_type_size", i32 8, !"air.arg_type_align_size", i32 8, !"air.arg_type_name", !"ulong", !"air.arg_name", !"table"}
+"#;
+    let error = emit_vulkan_spirv(ll).expect_err("a volatile copy cannot silently disappear");
+    assert_eq!(error, "native emitter: volatile memcpy lowering is not supported");
 }

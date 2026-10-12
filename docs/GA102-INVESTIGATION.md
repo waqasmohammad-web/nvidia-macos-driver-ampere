@@ -3115,3 +3115,23 @@ and original recovered Swift edits remain unchanged. Evidence:
    guarded-helper provenance, opt-in trig behavior and bindless descriptor bands.
 4. Continue source-level PM/NVK work independently of missing mesa_clc/full Darwin
    archive producers; keep kernel PM deployment and wake validation supervised.
+
+### Volatile pointer/vector coverage and copy rejection follow-up
+
+Constant-space scalar, vector and pointer-payload volatile access controls pass
+translation and real SPIR-V validation. A separate volatile `llvm.memcpy` control
+proved that an unmodeled destination lets the unsupported copy disappear without
+an error. The emitter now explicitly rejects volatile memcpy before ordinary
+copy paths and unmodeled-pointer fallback. All thirty-three memcpy-group tests
+pass, including that new regression. This source-only boundary fix makes affected
+inputs fail translation rather than falsely reporting successful no-op copying;
+it does not implement volatile memcpy or change the already-preserved GPU-tested
+CPU artifact. Ordinary memcpy behavior remains covered by the group tests.
+
+### NEXT-STEPS
+
+1. Configure the pinned LLVM/Clang source build into private artifacts as the
+   first real mesa_clc dependency; retain compiler/link failures if encountered.
+2. Repair loop-header/guarded-return provenance in the unstable pointer regression.
+3. Continue individual native-failure triage and source PM diagnostics. The
+   supervised-only kernel/wake boundaries remain in force.
