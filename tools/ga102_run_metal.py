@@ -36,6 +36,19 @@ except ImportError:
 ROOT = Path(__file__).resolve().parent.parent
 PROBES = ("ga102_metal_smoketest", "ga102_metal_render_smoketest", "ga102_metal_benchmark",
           "ga102_metal_memory", "ga102_metal_present", "ga102_metal_composite", "ga102_metal_crossprocess", "ga102_metal_events", "ga102_core_animation", "ga102_visual_present", "ga102_ca_visual")
+ISOLATED_PROBES = (*CORE_PROBES, 'ga102_metal_memory', 'ga102_metal_benchmark')
+
+
+def isolated_source(source):
+    """Shadow enumeration only in the compiled snapshot; never edit the probe."""
+    if source.count(b'MTLCopyAllDevices()') != 1 or b'MTLCreateSystemDefaultDevice' in source:
+        raise ValueError('isolated probe must contain one explicit enumeration site')
+    prefix = b'''import Metal
+@_silgen_name("ga102_bound_device") private func ga102BoundDevicePointer() -> UnsafeMutableRawPointer
+private let ga102ExplicitDevice = Unmanaged<AnyObject>.fromOpaque(ga102BoundDevicePointer()).takeRetainedValue() as! any MTLDevice
+private let MTLCopyAllDevices: () -> [any MTLDevice] = { [ga102ExplicitDevice] }
+'''
+    return prefix + source
 
 
 def run_owned(command, log, timeout, env=None, observer=None):
@@ -106,6 +119,7 @@ def main():
     parser.add_argument("probe", choices=PROBES)
     parser.add_argument("--repeat", type=int, choices=range(1, 4), default=1)
     parser.add_argument("--isolated-cache", action="store_true")
+    parser.add_argument('--plugin', type=Path, help='Explicit process-local plugin binding for offscreen probes only; never installs a component')
     parser.add_argument("--surface-comparison", action="store_true", help="Benchmark matching BGRA8 targets at 3440x1440 only")
     parser.add_argument("--graphics-copy-queue", action="store_true", help="Attempt test-process-only NVRM_610_CECHAN=0; verify engine selection in logs (installed builds may differ)")
     parser.add_argument("--negative-control", choices=("static", "timestamps", "hidden"))
@@ -122,6 +136,10 @@ def main():
     parser.add_argument("--capture-bridge", action="store_true", help="Capture only the owned visual window via ScreenCaptureKit in this Python process; never requests permission")
     parser.add_argument("--result-json", type=Path, help="Save scoped visual-probe verdicts and numeric metrics, excluding raw logs and machine identities")
     args = parser.parse_args()
+    if args.plugin and (args.probe not in ISOLATED_PROBES or args.capture_bridge):
+        parser.error('--plugin is restricted to offscreen correctness/memory/benchmark probes')
+    if args.plugin and (not args.plugin.is_file() or args.plugin.name != 'NVMTLDriver'):
+        parser.error('--plugin must name an existing NVMTLDriver binary')
     if args.continuous and (args.probe not in ('ga102_ca_visual','ga102_visual_present') or not args.capture_bridge):
         parser.error('--continuous requires an owned-window visual probe --capture-bridge')
     if args.onscreen_every_frame and (not args.continuous or args.probe != 'ga102_ca_visual'):
@@ -164,6 +182,13 @@ def main():
             env[key] = str(folder)
         print("Cache isolation scope: Mesa override requested; AIR override may be stripped by release-plugin initialization", flush=True)
     source_bytes = (ROOT / "tools" / f"{args.probe}.swift").read_bytes()
+    original_source_hash = hashlib.sha256(source_bytes).hexdigest()
+    plugin_hash = None
+    binding_hash = None
+    if args.plugin:
+        plugin_hash = hashlib.sha256(args.plugin.read_bytes()).hexdigest()
+        env['GA102_PLUGIN_IMAGE'] = str(args.plugin.resolve())
+        source_bytes = isolated_source(source_bytes)
     compile_input = scratch / f'{args.probe}.swift'
     compile_input.write_bytes(source_bytes)
     compile_command = ["xcrun", "swiftc", "-O", "-module-cache-path", str(scratch / "modules"),
@@ -172,6 +197,18 @@ def main():
     source_hash = hashlib.sha256(source_bytes).hexdigest()
     capture_source_hash = None
     try:
+        if args.plugin:
+            binding_bytes = (ROOT / 'tools/ga102_isolated_plugin_probe.m').read_bytes()
+            binding_hash = hashlib.sha256(binding_bytes).hexdigest()
+            binding_source = scratch / 'binding.m'; binding_source.write_bytes(binding_bytes)
+            binding_object = scratch / 'binding.o'
+            with (scratch / 'binding-compile.log').open('w') as log:
+                code = run_owned(['xcrun', 'clang', '-fobjc-arc', '-O1', '-Wall', '-Wextra', '-Werror',
+                                  '-DGA102_BINDING_ONLY=1', '-c', str(binding_source), '-o', str(binding_object)], log, 60)
+            if code:
+                print('FAIL: explicit binding helper compilation; details retained privately', flush=True)
+                return code
+            compile_command += [str(binding_object), '-framework', 'IOKit']
         with (scratch / "compile.log").open("w") as log:
             code = run_owned(compile_command, log, 90)
         if code:
@@ -228,6 +265,10 @@ def main():
             # Avoid copying paths, addresses and process identities from driver logs
             # into public reports; print only probe-owned result lines here.
             lines = output.read_text(errors="replace").splitlines()
+            if args.plugin and (lines.count('binding_verified: true') != 1 or
+                                hashlib.sha256(args.plugin.read_bytes()).hexdigest() != plugin_hash):
+                print('FAIL: explicit plugin provenance missing or binary changed', flush=True)
+                code = probe_exit_code = 1
             for line in lines:
                 if args.probe in ('ga102_metal_present','ga102_ca_visual') or args.continuous:
                     if not line.startswith('result: '):
@@ -328,6 +369,12 @@ def main():
                       else repeated_result(runs, args.repeat, source_hash, args.negative_control))
             if args.probe == "ga102_metal_present":
                 report['pacing'] = 'AppKit display link' if args.display_linked else '60 Hz timer'
+            if args.plugin:
+                report['runtime'] = {'binding': 'explicit process-local user-space plugin',
+                    'plugin_sha256': plugin_hash, 'binding_helper_source_sha256': binding_hash,
+                    'original_probe_source_sha256': original_source_hash,
+                    'installed_driver_changed': False,
+                    'limits': 'installed kernel/NVK/translator retained; offscreen coverage only'}
             if args.probe in ('ga102_visual_present', 'ga102_ca_visual'):
                 report['capture_method'] = 'ScreenCaptureKit owned-window broker' if args.capture_bridge else 'ScreenCaptureKit in probe'
                 report['capture_mode'] = 'bounded SCStream' if args.continuous else 'held screenshot references'

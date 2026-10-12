@@ -1,8 +1,8 @@
 # GA102 desktop acceleration investigation
 
-Status: autonomous visual validation and compositor tracing in progress;
-GPU patterns and owned-window ScreenCaptureKit capture validated via broker;
-desktop root cause and installed-driver improvement unresolved, 2026-10-11.
+Status: post-reinstall accelerated stack verified; explicit isolated user-space
+plugin execution established; texture-transfer queue race correction and fresh
+desktop baseline in progress, 2026-10-12. Installed desktop improvement unresolved.
 Branch: `dev/ga102-3080ti-diagnostics`. Starting revision: `c52e088`.
 
 ## Current progress at a glance
@@ -2630,3 +2630,89 @@ clarification and separately authorized system recovery if needed. Do not
 blindly disable SIP or install the candidate. The compiled same-function probe
 is ready for the original working driver once that stack is available; it is
 not justification for a pipeline-sharing performance patch.
+
+
+## Post-reinstall autonomous development — 12 October 2026
+
+The new user authorization permits builds, ordinary GPU workloads and isolated
+user-space candidates. It supersedes earlier source-only experiment restrictions,
+while retaining no reboot/logout, WindowServer restart, display-mode change,
+EFI/security change or active kernel/collection replacement. The failed
+framebuffer candidate remains retired.
+
+**Recovered state preserved:** branch `dev/ga102-3080ti-diagnostics` at `44ed7c7`,
+exactly the two reported Swift files modified, `core.fileMode=false`. Existing
+local patch exists; an additional exact patch and source hashes were retained
+in a new durable private artifact directory. Those edits are not included in
+these commits. Restored vendor, Vulkan headers, CPU fixtures, built plugins and
+failed-boot evidence are available. CLT clang 17, SDK 15.5 and Python 3.9.6 work.
+Rust/Meson/Ninja and GitHub CLI are absent. HTTPS push lacks local credentials;
+the authenticated GitHub connector is available as a publication route.
+
+**Installed runtime restored, independently observed:** all four NullMoth
+extensions loaded; NVRMFB UUID is the original
+`CC151F75-1305-3928-AA0F-B8BC96EF30A3`. On-disk Metal plugin and framebuffer
+hashes match the original working baseline. RTX 3080 Ti, 12 GB, PCI `10de:2208`,
+3440×1440 at 60 Hz are reported. Effective SIP remains custom and
+authenticated-root disabled; neither was changed. Named flip counters exist
+and advance, with zero observed error/drop counters. These are system counts.
+Python screen-capture preflight is permitted after reinstall.
+
+**Fresh installed-driver correctness PASS:** existing suite verifies compute,
+offscreen pixels, all four layered composite cases, 16 shared-event iterations,
+and eight bidirectional cross-process IOSurface roundtrips. This is one run per
+check, not repeated qualification or proof of desktop fluidity. A separate
+three-run presentation baseline is in progress.
+
+### Explicit process-local candidate binding
+
+`tools/ga102_isolated_plugin_probe.m` opens exactly the requested driver image,
+without calling Metal device enumeration. It binds `NVMTLDevice` to the existing
+NVAccel IOKit service using its expected accelerator service right. Before
+work, class ownership and key method implementation images must match the
+requested binary; another Metal driver image is rejected. It creates only
+owned offscreen resources and keeps the image resident until exit. The plugin's
+constructor and forwarding changes affect only this child process. Installed
+files, WindowServer and active kernel components are untouched. The original
+CPU translator/runtime and NVK backend remain dependencies.
+
+**Initial isolated candidate runtime PASS:** original and current release plugin
+were loaded in separate processes, each with eight correct bounded GPU dispatches.
+The rebuilt binary is byte-identical to the prior source-only `2707eeb` artifact,
+SHA256 `ad776d88a83afa0fe97f90837289608c7d7cf58f002eab4d81248e73990b2ba1`.
+This closes the previously missing process-local binding route; it does not
+qualify WindowServer integration or install the AIR/cache changes.
+
+First same-function compute pipeline creation was 19.388 ms original / 19.822 ms
+candidate; subsequent creations were 0.037–0.084 / 0.045–0.076 ms. This small
+initial screening gives no justification for pipeline-object sharing. Library
+times of 96.17 / 1.02 ms are confounded by first-process compiler warmup and
+**must not be called a candidate speedup**. Repeat comparisons must alternate
+order and separate initialization from warm repeated creation.
+
+The runner now offers `--plugin /path/to/NVMTLDriver` for offscreen correctness,
+memory and benchmark probes only. It compiles a private source snapshot that
+shadows enumeration with the explicitly bound device, preserving original probe
+files. Binding checks run at process exit, and absence of the provenance marker
+or a changed binary hash fails acceptance. Reports retain source/binary hashes,
+not private paths. Windowed/capture use is refused because AppKit could load
+another plugin implicitly. Five focused regression cases verify ownership-gate
+reporting, changed-binary rejection, offscreen restrictions and snapshot behavior;
+eleven relevant Python tests pass including existing runner/core checks.
+Full candidate suite execution is next, and is not claimed by the initial probe.
+
+Evidence: [`evidence/ga102-post-reinstall-binding.json`](evidence/ga102-post-reinstall-binding.json).
+Private compiler logs and artifacts remain in durable local storage.
+
+### NEXT-STEPS
+
+1. Finish the running three-repeat installed presentation suite; retain capture
+   backpressure separately from capture-disabled pacing and ordinary CA CPU cost.
+2. Validate and build the pending `nvmtl_device_queue` first-use race correction
+   with `python3 tools/ga102_queue_init_test.py --baseline --output <new-directory>`.
+   Preserve retry after failed queue construction; never change GPU waits.
+3. Run existing offscreen suite with `python3 tools/ga102_suite.py --profile
+   correctness --plugin <rebuilt-NVMTLDriver> --output <new-json>`, then matched
+   installed/candidate memory and IOSurface benchmarks through explicit binding.
+4. Continue with the highest-value reproduced driver defect or justified
+   performance change; supervised deployment remains a separate boundary.

@@ -71,7 +71,9 @@ def main():
     parser.add_argument('--repeat', type=int, choices=(1, 2, 3), default=1,
                         help='Use 3 for reproducibility; controls always run once')
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--plugin', type=Path, help='Use explicit process-local plugin binding for the correctness profile only')
     args = parser.parse_args()
+    if args.plugin and args.profile != 'correctness': parser.error('--plugin requires --profile correctness')
     if args.output.exists(): parser.error('--output must name a new file')
     scratch = Path(tempfile.mkdtemp(prefix='ga102-suite-'))
     print(f'Private suite scratch: {scratch}', flush=True)
@@ -88,6 +90,7 @@ def main():
             artifact = scratch / f'job-{index}.json'
             command = [sys.executable, str(ROOT / 'tools/ga102_run_metal.py'), probe,
                        '--isolated-cache', '--repeat', str(repeat), '--result-json', str(artifact), *options]
+            if args.plugin: command += ['--plugin', str(args.plugin.resolve())]
             print(f'Running {probe} {" ".join(options)} ({repeat} run(s))', flush=True)
             with (scratch / f'job-{index}.log').open('w') as log:
                 code = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT).returncode
