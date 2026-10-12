@@ -4,6 +4,7 @@ import Metal
 import Dispatch
 @_silgen_name("ga102_bound_device") private func boundDevice() -> UnsafeMutableRawPointer
 @_silgen_name("ga102_graphics_snapshot") private func snapshotPointer() -> UnsafePointer<CChar>
+@_silgen_name("ga102_graphics_resources") private func resourcesPointer() -> UnsafePointer<CChar>
 @_silgen_name("ga102_graphics_provenance") private func provenancePointer() -> UnsafePointer<CChar>
 @_silgen_name("ga102_graphics_check_object") private func checkObjectPointer(_ object: UnsafeMutableRawPointer)
 func fail(_ message: String) -> Never { fputs("FAIL: \(message)\n", stderr); exit(1) }
@@ -12,6 +13,11 @@ func owned(_ object: AnyObject) { checkObjectPointer(Unmanaged.passUnretained(ob
 func snapshot() -> [String: Any] {
     guard let bytes=String(cString:snapshotPointer()).data(using:.utf8),
           let object=try? JSONSerialization.jsonObject(with:bytes) as? [String:Any] else { fail("metrics JSON") }
+    return object
+}
+func resources() -> [String: Any] {
+    guard let bytes=String(cString:resourcesPointer()).data(using:.utf8),
+          let object=try? JSONSerialization.jsonObject(with:bytes) as? [String:Any] else { fail("resources JSON") }
     return object
 }
 func complete(_ command: MTLCommandBuffer) {
@@ -105,7 +111,7 @@ let equivalent=makePipeline("pipeline-equivalent")
 for filter in filterOrder { draw(equivalent,filter,(filter == 0 ? "nearest" : "linear")+"-device-hit") }
 guard let provenanceData=String(cString:provenancePointer()).data(using:.utf8),
       let provenance=try? JSONSerialization.jsonObject(with:provenanceData) else { fail("provenance") }
-let result:[String:Any]=["schema_version":2,"sampler_first":samplerFirst,"records":records,"provenance":provenance,"final_metrics":snapshot(),
+let result:[String:Any]=["schema_version":2,"sampler_first":samplerFirst,"records":records,"provenance":provenance,"final_metrics":snapshot(),"resources":resources(),
     "scope":"owned runtime-sampler graphics; no desktop or scanout claim"]
 do {
     let encoded=try JSONSerialization.data(withJSONObject:result,options:[.sortedKeys])

@@ -92,6 +92,33 @@ static int ga102_timed_{name}({params}) {{
     objects.write_text(s)
     vk = source/'nvmtl_vk.c'
     s = vk.read_text()
+    # Keep qualification accounting outside production. Call the real PFNs and
+    # count only regular pools; the bindless heap is a separate allocation.
+    (source/'ga102_perf_resources.h').write_bytes((ROOT/'tools/ga102_perf/resources.h').read_bytes())
+    for original,replacement in [('pvkAllocateMemory(', 'ga102_allocate_memory('),
+                                 ('pvkMapMemory(', 'ga102_map_memory('),
+                                 ('pvkAllocateDescriptorSets(', 'ga102_allocate_sets('),
+                                 ('pvkFreeDescriptorSets(', 'ga102_free_sets(')]:
+        if original not in s: raise ValueError('allocation instrumentation site missing: '+original)
+        s=s.replace(original,replacement)
+    s=once(s,'#undef DECL\n#define LOAD_I', '#undef DECL\n#include "ga102_perf_resources.h"\n#define LOAD_I')
+    s=once(s,'static int g_descriptor_state;', '''static int ga102_regular_pool(VkDescriptorPool pool) {
+    for (unsigned i=0;i<g_ndescPools;i++) if (g_descPools[i]==pool) return 1;
+    return 0;
+}
+static int g_descriptor_state;''')
+    s=once(s,'    if (nvmtl_vk_buffer_create(256, 1, &g_dummyBuf)) return -1;', '''    uint64_t dummyT=ga102_tick(); ga102_in_dummy_buffer=1;
+    int dummyR=nvmtl_vk_buffer_create(256, 1, &g_dummyBuf);
+    ga102_in_dummy_buffer=0; ga102_dummy_buffer_ns=ga102_tick()-dummyT;
+    if (dummyR) return -1;''')
+    s=once(s,'    if (nvmtl_vk_image_create_fmt(1, 1, 0, &g_dummyImg)) return -1;', '''    dummyT=ga102_tick(); dummyR=nvmtl_vk_image_create_fmt(1, 1, 0, &g_dummyImg);
+    ga102_dummy_sampled_ns=ga102_tick()-dummyT; if (dummyR) return -1;''')
+    s=once(s,'    if (nvmtl_vk_image_create_ex2(1, 1, VK_FORMAT_R8G8B8A8_UNORM, 4, 0, 1, 1, &g_dummyStex) || !g_dummyStex.storage) {', '''    dummyT=ga102_tick(); dummyR=nvmtl_vk_image_create_ex2(1, 1, VK_FORMAT_R8G8B8A8_UNORM, 4, 0, 1, 1, &g_dummyStex);
+    ga102_dummy_storage_ns=ga102_tick()-dummyT;
+    if (dummyR || !g_dummyStex.storage) {''')
+    s=once(s,'    if (g_mutable && nvmtl_vk_texel_view_create(&g_dummyBuf,', '    dummyT=ga102_tick();\n    if (g_mutable && nvmtl_vk_texel_view_create(&g_dummyBuf,')
+    s=once(s,'    VkSamplerCreateInfo sci = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };\n    sci.magFilter = sci.minFilter = VK_FILTER_LINEAR; sci.maxLod = VK_LOD_CLAMP_NONE;', '    ga102_dummy_texel_ns=ga102_tick()-dummyT;\n    VkSamplerCreateInfo sci = { VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO };\n    sci.magFilter = sci.minFilter = VK_FILTER_LINEAR; sci.maxLod = VK_LOD_CLAMP_NONE;')
+    s=once(s,'    VKCK(nvmtl_sampler_acquire(&sci, &g_dummySampler), "sampler acquire (dummy)");', '    dummyT=ga102_tick();\n    VKCK(nvmtl_sampler_acquire(&sci, &g_dummySampler), "sampler acquire (dummy)");\n    ga102_dummy_sampler_ns=ga102_tick()-dummyT;')
     s = once(s, '    (void)type; (void)user;', '    (void)type; (void)user;\n    if (sev & VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT) ga102_record(GA102_VK_ERROR,0,1);')
     start = s.index('static inline const char *nvmtl_icd_lib_path(void) {')
     end = s.index('\n#define NVMTL_ICD_LIB', start)
@@ -125,6 +152,27 @@ static int ga102_timed_{name}({params}) {{
         out.write('''
 __attribute__((visibility("default"))) const char *ga102_perf_snapshot(void) { return ga102_metrics_json(); }
 __attribute__((visibility("default"))) const char *ga102_perf_cache(void) { return ga102_owned_root(); }
+__attribute__((visibility("default"))) const char *ga102_perf_resources(void) {
+    static _Thread_local char output[2048];
+    uint64_t host_bytes=0; unsigned host_blocks=0;
+    pthread_mutex_lock(&g_pool_lock);
+    for (pool_block *block=g_pool;block;block=block->next) { host_bytes+=block->heap.size;host_blocks++; }
+    uint64_t buffer_live=g_pool_live;
+    pthread_mutex_unlock(&g_pool_lock);
+    pthread_mutex_lock(&g_desc_lock);
+    snprintf(output,sizeof output,
+        "{\\"pools\\":%u,\\"reserved_sets\\":%u,\\"allocated_sets\\":%llu,\\"freed_sets\\":%llu,\\"live_sets\\":%llu,\\"peak_sets\\":%llu,\\"allocation_failures\\":%llu,\\"free_failures\\":%llu,\\"dummy_buffer_ns\\":%llu,\\"dummy_sampled_ns\\":%llu,\\"dummy_storage_ns\\":%llu,\\"dummy_texel_ns\\":%llu,\\"dummy_sampler_ns\\":%llu,\\"dummy_heap_allocate_ns\\":%llu,\\"dummy_heap_map_ns\\":%llu,\\"dummy_heap_bytes\\":%llu,\\"host_pool_bytes\\":%llu,\\"host_pool_blocks\\":%u,\\"buffer_live\\":%llu}",
+        g_ndescPools,g_desc_pool_sets,(unsigned long long)ga102_sets_allocated,
+        (unsigned long long)ga102_sets_freed,(unsigned long long)ga102_sets_live,
+        (unsigned long long)ga102_sets_peak,(unsigned long long)ga102_set_alloc_failures,
+        (unsigned long long)ga102_set_free_failures,(unsigned long long)ga102_dummy_buffer_ns,
+        (unsigned long long)ga102_dummy_sampled_ns,(unsigned long long)ga102_dummy_storage_ns,
+        (unsigned long long)ga102_dummy_texel_ns,(unsigned long long)ga102_dummy_sampler_ns,
+        (unsigned long long)ga102_dummy_heap_allocate_ns,(unsigned long long)ga102_dummy_heap_map_ns,
+        (unsigned long long)ga102_dummy_heap_bytes,(unsigned long long)host_bytes,
+        host_blocks,(unsigned long long)buffer_live);
+    pthread_mutex_unlock(&g_desc_lock); return output;
+}
 __attribute__((visibility("default"))) const char *ga102_perf_image(unsigned kind) {
     const void *p=NULL;
     switch(kind) {

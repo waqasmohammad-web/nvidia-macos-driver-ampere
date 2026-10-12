@@ -142,6 +142,11 @@ const char *ga102_graphics_snapshot(void) {
     if (!fn) fail("performance counters unavailable");
     return fn();
 }
+const char *ga102_graphics_resources(void) {
+    const char *(*fn)(void)=dlsym(performanceImage(),"ga102_perf_resources");
+    if (!fn) fail("allocation diagnostics unavailable");
+    return fn();
+}
 void ga102_graphics_check_object(void *pointer) {
     id object=(__bridge id)pointer;
     if (!object) fail("candidate object unavailable");

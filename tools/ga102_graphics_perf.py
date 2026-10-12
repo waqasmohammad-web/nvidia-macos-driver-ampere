@@ -388,7 +388,7 @@ def main():
     run.add_argument('--dependency-manifest',type=Path,required=True,help='Reviewed canonical non-system image paths and SHA256 closure; no runtime auto-acceptance')
     run.add_argument('--pairs',type=int,choices=range(1,11),default=1); run.add_argument('--execute-reviewed',action='store_true')
     run.add_argument('--sampler-first',choices=('nearest','linear'),default='nearest',help='Use separate matched sessions for each order to control first-variant effects')
-    run.add_argument('--descriptor-pool-comparison',action='store_true',help='Explicit source-reviewed pool experiment: only nvmtl_vk.c may differ; translator inputs must match')
+    run.add_argument('--descriptor-pool-comparison','--allocation-pool-comparison',action='store_true',help='Explicit source-reviewed allocation-pool experiment: only nvmtl_vk.c may differ; translator inputs must match')
     args=p.parse_args()
     if sys.platform!='darwin': p.error('NEEDS MACOS VALIDATION: this command cannot execute on Linux')
     if args.command=='run' and not args.execute_reviewed: p.error('BLOCKED: reviewed execution authorization flag required')

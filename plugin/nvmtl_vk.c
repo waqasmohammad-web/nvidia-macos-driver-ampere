@@ -926,9 +926,12 @@ static int memtype(uint32_t bits, VkMemoryPropertyFlags want)
     return -1;
 }
 
-#define NVMTL_POOL_BLOCK (32u << 20)
+#define NVMTL_POOL_BLOCK (8u << 20)
 #define NVMTL_POOL_MAX   (4u << 20)
 #define NVMTL_POOL_KEEP  2
+// Preserve the previous 64 MiB idle host capacity while shortening individual
+// allocations. VRAM blocks retain their existing count-based policy.
+#define NVMTL_POOL_KEEP_HOST ((64u << 20) / NVMTL_POOL_BLOCK)
 static size_t g_bar1_bytes; static int g_bar1_off;
 static int bar1_on(void)
 {
@@ -6714,7 +6717,7 @@ static void pool_buffer_release(nvk_buffer *b)
     if (!blk->nlive) {
         pool_block **head = blk->vram ? &g_vpool : &g_pool;
         uint32_t empties = 0; for (pool_block *p = *head; p; p = p->next) if (!p->nlive) empties++;
-        if (empties > NVMTL_POOL_KEEP) {
+        if (empties > (blk->vram ? NVMTL_POOL_KEEP : NVMTL_POOL_KEEP_HOST)) {
             pool_block **pp = head; while (*pp && *pp != blk) pp = &(*pp)->next;
             if (*pp) { *pp = blk->next; const size_t hs = blk->heap.size; const int v = blk->vram;
                 nvmtl_vk_heap_destroy(&blk->heap); free(blk->fr); free(blk); g_pool_blocks--;
