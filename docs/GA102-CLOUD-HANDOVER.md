@@ -1,3 +1,41 @@
+# Final local allocation milestone — current continuation
+
+Published source `ad48444` completes the two local allocation investigations.
+Read `GA102-ENDGAME-ALLOCATION.md` and the latest investigation checkpoint first.
+The installed stack remains unchanged; no upstream integration or deployment is
+part of this milestone. Driver/instrumentation inputs match tested `61b5b0f`.
+
+The dummy buffer's 32 MiB host allocation accounts for approximately 9 ms.
+8 MiB host blocks preserve the 64 MiB idle budget and unchanged VRAM retention.
+Initial preparation improves by paired medians 6.720–6.836 ms (20/20 faster pairs).
+Later buffer-wave totals improve in all thirty pairs, with lower maxima, but
+per-request allocation p95 worsens due to more frequent smaller growth events.
+Do not erase that trade-off or claim universal tails/desktop improvement.
+
+Physical descriptor growth holds 1568 sets, expands to 4352 reserved sets, then
+fully retires and reuses both pools. Three 128 MiB buffer waves per process verify
+all 64 MiB copied per wave and live counts/retention. GPU boundary cases include
+the 4 MiB pooled/dedicated transition. Real captured shader validation and all
+source/namespace/cache/dependency gates pass. See normalized allocation evidence.
+
+Exact next portable commands:
+
+```sh
+python3 -S -m unittest discover -s tools -p 'test_ga102_*.py'
+python3 tools/ga102_host_pool_test.py
+python3 tools/ga102_descriptor_pool_test.py --vulkan-headers "$GA102_HEADERS/include"
+```
+
+Current Python suite: 87 PASS. C checks use extracted production functions with
+sanitizers and captured heap/Vulkan calls; they are not GPU substitutes. A real
+compiler/sanitizer runtime is required; descriptor controls require Vulkan headers.
+Native Rust is unchanged. Keep one build job/thread and real SPIRV-Tools for
+translator work; do not default to full LLVM/Mesa or wrapper validator builds.
+Allocation runners require Darwin and real qualified binaries; Linux cannot
+produce new hardware evidence. Preserve private artifacts and Swift experiments.
+
+---
+
 # GA102 cloud development handover
 
 ## Latest sampler/pipeline follow-up

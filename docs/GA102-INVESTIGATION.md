@@ -3766,3 +3766,48 @@ No Unity/Live Text application or desktop/wake qualification is claimed.
 4. Retain cold linear ABI regressions and order sensitivity. No global desktop
    bottleneck or earlier-v1 causality is established by the owned gradient fixture.
    Installed components and display/boot/security configuration remain unchanged.
+
+
+### Final local allocation qualification and smaller host blocks
+
+Starting point `a56c78f`, actual Darwin x86_64 / RTX 3080 Ti. The interrupted
+release build completed successfully and was preserved. Actual PFN measurements
+attribute the approximately 9 ms dummy setup to creation of a 32 MiB host pool
+for a 256-byte buffer: paired cold/reuse allocation medians 9.161/8.815 ms;
+mapping 0.151/0.198 ms. Other dummy resources contribute about 0.2 ms.
+
+Source `ad48444` uses 8 MiB host blocks, preserving the original 64 MiB idle host
+capacity and unchanged VRAM policy. Driver/instrumentation inputs match locally
+tested `61b5b0f`; publication adds boundary and manifest checks. Five-pair sessions
+in both sampler orders pass. Inclusive initial medians: nearest cold 14.533 →
+7.774 ms, reuse 12.514 → 6.086 ms; linear cold 15.050 → 8.214 ms, reuse 13.091 →
+6.356 ms. All twenty pairs improve, saving paired medians 6.720–6.836 ms.
+
+Five further A/B trials with cold/reuse processes exercise actual descriptor
+allocation beyond 256 sets: 1568 live / 4352 reserved, then zero live and complete
+free accounting. Repeat rounds reuse both pools. Three 128 MiB buffer waves per
+process verify every byte of 64 MiB GPU copies; live counts return and peak/kept
+host capacity falls 160/96 → 136/72 MiB. All thirty allocation-total and full-wave
+pairs improve. Maximum request stalls fall from about 10 to 3 ms, but request
+p95 worsens from about 0.4 to 2.5 ms due to more frequent smaller growth events.
+The trade-off is retained explicitly, not relabeled a universal tail benefit.
+
+GPU boundary checks pass below/at/above 4 MiB and alignment edges. All source,
+image, namespace, cache, pixel, lifetime and real SPIR-V gates pass. 87 Python
+tests and production allocator ASan/UBSan controls pass. Initial diagnostic and
+extraction compile failures were repaired and retained. See
+`GA102-ENDGAME-ALLOCATION.md` / `evidence/ga102-endgame-allocation.json`.
+No installed component, configuration, display/security/boot change occurred;
+unrelated Swift edits and historical outputs remain preserved.
+
+### NEXT-STEPS
+
+1. Exact next Cloud source command:
+   `python3 -S -m unittest discover -s tools -p 'test_ga102_*.py'`.
+2. Run `python3 tools/ga102_host_pool_test.py`, then descriptor controls with real
+   headers. Keep byte-budget retention and failure/fragmentation/lifetime checks.
+3. Investigate the per-request p95 trade-off with portable allocator experiments;
+   changed policies need later physical validation. Full set-budget saturation,
+   broad concurrent queues and real desktop performance remain unqualified.
+4. Follow the updated cloud handover. Do not manufacture GPU evidence on Linux
+   or install artifacts to continue these source investigations.
