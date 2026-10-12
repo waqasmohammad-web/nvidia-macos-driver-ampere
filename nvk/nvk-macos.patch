@@ -78,14 +78,6 @@ diff -ruN --exclude=subprojects --exclude=ci --exclude=build* --exclude=*.pyc --
  #include <clang/Config/config.h>
  #include <clang/Driver/Driver.h>
  #include <clang/CodeGen/CodeGenAction.h>
-@@ -51,6 +54,7 @@
- #include <clang/Frontend/TextDiagnosticPrinter.h>
- #include <clang/Frontend/Utils.h>
- #include <clang/Basic/TargetInfo.h>
-+#include <clang/Options/OptionUtils.h>
- 
- #include <spirv-tools/libspirv.h>
- #include <spirv-tools/libspirv.hpp>
 diff -ruN --exclude=subprojects --exclude=ci --exclude=build* --exclude=*.pyc --exclude=__pycache__ --exclude=*.bak* --exclude=*.orig --exclude=.git --exclude=open-gpu-kernel-modules --strip-trailing-cr upmesa/mesa-17ca6174/src/nouveau/compiler/meson.build rebase263/mesa/src/nouveau/compiler/meson.build
 --- a/src/nouveau/compiler/meson.build	2026-10-05 06:47:14
 +++ b/src/nouveau/compiler/meson.build	2026-10-05 07:44:54

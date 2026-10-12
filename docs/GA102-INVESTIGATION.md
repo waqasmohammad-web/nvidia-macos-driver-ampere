@@ -3214,3 +3214,60 @@ is retained in the private `mesa-clc-build-command.private.json` manifest.
 2. Preserve the now-validated regression repairs and continue remaining native
    shader-interface/placeholder failure triage.
 3. Retain supervised-only kernel/wake boundaries and original loaded components.
+
+## Real mesa_clc readiness and LLVM header compatibility fix
+
+The local macOS patch added an unguarded `clang/Options/OptionUtils.h` include,
+breaking LLVM 19 after standalone CLC configuration succeeded. The pinned Mesa
+base already includes that header under `LLVM_VERSION_MAJOR >= 22`. Removed the
+redundant patch addition, preserving the existing version guard. The complete
+revised macOS patch dry-runs successfully against fifty-one original pinned-base
+files. The repaired `mesa_clc` and `vtn_bindgen2` targets compile/link with real
+LLVM 19.1.7; LLVM 22 compilation is not claimed.
+
+The built CLC executable compiles an actual OpenCL kernel to valid SPIR-V. A
+separate ordinary exported library function produces nonempty callable helper
+definitions in both generated C/header output, avoiding reliance on kernel-only
+binding output. Private OpenCL-to-LLVM-to-SPIR-V validation also passes. Both
+libclc SPIR-V builtins targets are built/installed. Real toolchain versions and
+binary identities are recorded in
+[`evidence/ga102-mesa-clc-bootstrap.json`](evidence/ga102-mesa-clc-bootstrap.json).
+
+Pinned NVK setup now succeeds using these actual tools. The `vulkan_nouveau` target
+is being compiled with two jobs in the owned artifact tree. This advances
+experimental driver build readiness; it does not qualify NVK linking, Darwin RM
+archive production, boot compatibility or hardware behavior. Installed driver,
+kernel collections and display/power settings remain unchanged.
+
+### NEXT-STEPS
+
+1. Continue `meson compile -C <private mesa-build> vulkan_nouveau -j 2` using the
+   exact private `nvk-build-command.private.json` and CLC/toolchain PATH. Preserve
+   the first real source/linker failure and diagnose it without stub dependencies.
+2. Push the validated header compatibility patch and toolchain evidence.
+3. Continue the six remaining native test failures individually; test repairs
+   must preserve shader-interface and memory-access semantics.
+4. Keep loaded components and supervised-only kernel/wake boundaries intact.
+
+### NVK native link and CPU-only loader qualification
+
+The full native `vulkan_nouveau` target compiled and linked, including Rust NAK
+and Darwin NVRM sources. Artifact SHA256 is
+`f16166ab72e9b40e4abab8928fea9d757071fb94c43866926b50c71cd929dd20`.
+It is an x86_64 Mach-O dylib depending only on system libraries/frameworks.
+All 611 undefined NVK entrypoint references are optional weak imports, matching
+the installed reference's count; no hard undefined NVK/NVRM imports were found.
+An owned CPU-only process loads it with `RTLD_NOW`, resolves the three ICD exports
+and negotiates requested ICD versions 5/6/7 successfully to 5/5/5. No Vulkan
+instance, GPU device, command submission or installed component change occurred.
+This establishes native build/link/load readiness. Hardware correctness and the
+separate standalone framebuffer/NVRM archive/boot work remain unqualified.
+
+### NEXT-STEPS
+
+1. Preserve/push the header compatibility fix and successful NVK build evidence.
+2. Reproduce the known config-helper static-buffer/parser hazards with extracted
+   real source and CPU sanitizers; prepare source fixes without editing system
+   configuration or invoking hardware power/reset paths.
+3. Prepare explicit isolated NVK dependency selection/provenance before any
+   source-NVK GPU test. Keep the loaded driver and supervised PM boundaries.

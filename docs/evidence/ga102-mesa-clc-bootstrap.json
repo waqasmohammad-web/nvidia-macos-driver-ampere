@@ -1,0 +1,71 @@
+{
+  "schema_version": 1,
+  "source_scope": "owned offline build; no installed driver changes",
+  "mesa_base_commit": "17ca6174dcc6cb22059ac343bc29f8af7800f42e",
+  "llvm_clang_version": "19.1.7",
+  "spirv_llvm_commit": "2f18fc9e7f3a6e1776c9dd232d2292d83ef0e9a6",
+  "spirv_llvm_headers_commit": "575b6512579ebde466ed3dfc04e413439d14d95d",
+  "spirv_tools_version": "v2026.4",
+  "pkgconf_version": "3.0.8",
+  "pkgconf_tests_passed": 30,
+  "libclc_targets_built": [
+    "spirv-mesa3d-",
+    "spirv64-mesa3d-"
+  ],
+  "tool_validation": {
+    "mesa_clc_sha256": "8a8367f4676b2e3cb04f98397f85fdaf8da8268777d8005fed105ab0fb897fa1",
+    "vtn_bindgen2_sha256": "16c02dd2cdd71b5e03dea74d4b199d74b93781e03785a699f04b39b2fc492ef0",
+    "actual_kernel_compilation": true,
+    "spirv_validation": true,
+    "generated_c_and_h": true,
+    "installed_driver_changed": false
+  },
+  "library_binding_control": {
+    "real_library_function_compiled": true,
+    "spirv_validated": true,
+    "generated_helper_present_in_c_and_h": true
+  },
+  "macos_patch_fix": {
+    "change": "remove duplicate unguarded LLVM22-only OptionUtils header",
+    "llvm19_compile": "PASS",
+    "existing_llvm22_header_guard": "retained",
+    "llvm22_build": "NOT RUN",
+    "whole_patch_dry_run": {
+      "patch_applies": true,
+      "base_files": 51
+    }
+  },
+  "nvk_setup": "PASS",
+  "nvk_build": "PASS: native x86_64 dylib linked",
+  "limits": [
+    "Standalone framebuffer/NVRM archive build and boot compatibility remain unqualified.",
+    "No modified NVK library or kernel component loaded.",
+    "No sleep/wake, reboot, display mode or WindowServer experiment."
+  ],
+  "nvk_sha256": "f16166ab72e9b40e4abab8928fea9d757071fb94c43866926b50c71cd929dd20",
+  "nvk_cpu_runtime_qualification": {
+    "system_library_dependency_closure": true,
+    "dlopen_rtld_now": "PASS",
+    "hard_undefined_nvrm_nvk_imports": 0,
+    "optional_weak_nvrm_nvk_imports": 611,
+    "installed_reference_optional_weak_imports": 611,
+    "icd_version_negotiation": [
+      {
+        "requested": 5,
+        "negotiated": 5,
+        "result": 0
+      },
+      {
+        "requested": 6,
+        "negotiated": 5,
+        "result": 0
+      },
+      {
+        "requested": 7,
+        "negotiated": 5,
+        "result": 0
+      }
+    ],
+    "gpu_device_created": false
+  }
+}
