@@ -162,8 +162,20 @@ NSSet<NSString *> *nvmtl_mtlb_extern_names(NSData *raw);
 - (id)nvmtlAppleTwinOf:(id)lib;
 @end
 static nvk_queue *nvmtl_device_queue(void) {
-    static nvk_queue q; static int made = 0;
-    if (!made) { if (nvmtl_vk_queue_create(&q)) { nvlog("device queue FAILED"); return NULL; } made = 1; }
+    static nvk_queue q; static _Atomic int made;
+    static pthread_mutex_t lock = PTHREAD_MUTEX_INITIALIZER;
+    if (atomic_load_explicit(&made, memory_order_acquire)) return &q;
+    pthread_mutex_lock(&lock);
+    if (!atomic_load_explicit(&made, memory_order_relaxed)) {
+        nvk_queue pending = {0};
+        if (nvmtl_vk_queue_create(&pending)) {
+            pthread_mutex_unlock(&lock);
+            nvlog("device queue FAILED"); return NULL;
+        }
+        q = pending;
+        atomic_store_explicit(&made, 1, memory_order_release);
+    }
+    pthread_mutex_unlock(&lock);
     return &q;
 }
 static bool nvmtl_accel_armed(void)

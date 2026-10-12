@@ -2704,15 +2704,119 @@ Full candidate suite execution is next, and is not claimed by the initial probe.
 Evidence: [`evidence/ga102-post-reinstall-binding.json`](evidence/ga102-post-reinstall-binding.json).
 Private compiler logs and artifacts remain in durable local storage.
 
+### Queue initialization correction and candidate isolation boundary
+
+**Confirmed source concurrency defect:** `nvmtl_device_queue` initialized a
+shared texture-transfer queue using an unsynchronized `made` flag. Concurrent
+first callers can each clear/write the same queue and overwrite its command-pool
+handle. The production helper extracted from `44ed7c7` produced three
+ThreadSanitizer race warnings in each first-use/retry fixture process. An initial
+asserting fixture aborted on partially initialized queue reads before sanitizer
+reporting; it is retained privately. The final fixture records those reads so
+the sanitizer can report the underlying races.
+
+The correction initializes a temporary queue under a mutex and publishes it
+with release/acquire atomic ordering only after success. The established fast
+path takes one acquire load; failed construction remains retryable. No command
+submission, GPU wait, resource-retirement or memory-placement policy changes.
+Candidate passes 16 workers × 100 reads in both modes, with zero sanitizer
+warnings, exactly one successful creation and two failed creations retried in
+the fault case. The fixture executes the production initializer with a CPU-only
+delayed backend stub; it does not stress native concurrent Vulkan allocation.
+
+**Build and scoped isolated runtime PASS:** release plugin SHA256
+`d58620670530065c5716e06f6c2865dd06cacc5369f6568f84f4ba6b9e660d24`
+compiles/links. Explicitly bound candidate passed three compute smoke processes,
+three offscreen render processes and three shared-event processes, the latter
+checking all 48 iterations including 24 consumer-first submissions. Binary and
+class provenance gates passed. This exercises real candidate code with the
+installed kernel/NVK/translator. It remains undeployed, with no measured desktop
+benefit or claimed wake fix.
+
+**Isolation FAIL, correctly rejected:** the full candidate suite stopped at its
+first IOSurface compositing process. Although all sampled pixels were correct,
+IOSurface initialization implicitly loaded the installed Metal bundle beside
+the candidate, producing duplicate Objective-C classes. The exit gate failed;
+these pixels/timings do not qualify the candidate. No further mixed-plugin
+workload was launched. The runner now refuses IOSurface/composite/cross-process/
+benchmark and all windowed candidate routes before launch. Candidate-suite jobs
+requiring those paths are BLOCKED while independent supported checks continue.
+The supported set is compute, ordinary offscreen render, events and memory.
+The helper refactor's first compile also exposed an integer return in its new
+object-returning binding function; it was corrected before Swift candidate
+execution. The successful standalone binding result remains valid.
+
+67 Python regression tests PASS, including changed-binary/missing-provenance
+rejection and new prelaunch IOSurface restrictions. User-recovered Swift file
+hashes still match their exact pre-work values. Evidence:
+[`evidence/ga102-queue-initialization.json`](evidence/ga102-queue-initialization.json).
+
+### Fresh installed desktop baseline
+
+Three held-reference Metal processes each validated all twelve GPU/captured
+patterns, and three ordinary Core Animation processes each validated twelve
+captured references. The existing continuous CA stream remains NOT VERIFIED for
+full frame coverage. The continuous Metal/SCK run reproduced sustained 33.37 ms
+median / 34.33 ms p95 reported intervals, 109 steady intervals above 25 ms; the
+runner retained FAIL and stopped further repeats of that condition. This is
+capture-associated backpressure, not evidence that normal desktop delivery is
+limited to 30 Hz.
+
+Capture-independent timing: three timer runs each PASS, p95
+17.614/17.588/17.487 ms; three display-linked runs each PASS, p95
+17.602/17.501/17.553 ms. All are at the retained 3440×1440/60 Hz mode, with
+clean display error/drop deltas. These simple workload results resemble prior
+ready-session evidence and establish no post-reinstall speedup or full desktop
+responsiveness acceptance. Evidence:
+[`evidence/ga102-post-reinstall-presentation.json`](evidence/ga102-post-reinstall-presentation.json).
+
+### New user-observed sleep/wake failure
+
+The user reports system sleep followed by a black display on wake and has
+disabled automatic sleep. **USER-OBSERVED FAIL: display restoration.** No agent
+sleep/wake test, power-setting write, reboot or service restart occurred. A
+bounded read-only pmset history retains one sleep and one wake; raw metadata
+stays private. After the update, all four original NullMoth kexts are loaded,
+`debug.nvaccelfb=1`, with zero observed failure/drop counters. An original-plugin
+explicit smoke process checked eight correct GPU dispatches. Thus the current
+execution path works; this does not explain or disprove the reported wake fault.
+
+**Source gap:** NVRMFB's `setPowerState` emits WillPowerOff/DidPowerOn and always
+returns implied acknowledgement. It bypasses the superclass power worker.
+Connection-power requests return success without hardware work. NVRM and the
+NVAccel port contain no coordinated RM/NVKMS system suspend/resume callbacks.
+Pinned NVIDIA 610.57.04 explicitly coordinates KAPI notifications, PM locking
+and `nvKmsSuspend`/`nvKmsResume`; these are not replaced by a framebuffer client
+notification. [Pinned NVIDIA suspend/resume implementation](https://github.com/NVIDIA/open-gpu-kernel-modules/blob/e4a5faa2567f28c8eabe0ebb6422b6d0abcf37eb/kernel-open/nvidia-modeset/nvidia-modeset-linux.c).
+
+Apple's public framebuffer implementation queues `pendingPowerChange`, starts
+controller work and returns an asynchronous acknowledgement interval from
+`setPowerState`. Completion notifications occur later through controller work.
+[Apple IOFramebuffer source](https://github.com/apple-oss-distributions/IOGraphics/blob/main/IOGraphicsFamily/IOFramebuffer.cpp).
+This supports a protocol-delegation investigation, not an assertion that simply
+calling the superclass fixes GPU resume. The public source is a reference, not
+proof of Sequoia's exact resident implementation.
+
+A single bounded retained driver-log query completed: ten setPowerState entries
+(two off/eight on), no matching completion-unavailable or explicit NVIDIA
+suspend/resume messages. Boot/wake coverage and suppressed-message behavior
+prevent assigning cause from absence. Existing completion fault latches and mode/
+vblank state are not reset on wake; clearing them without restoring GPU state
+and verifying pending surface ownership would violate safety requirements.
+Next: stage and offline-test the narrow superclass protocol correction separately
+from a complete RM/NVKMS power lifecycle. Any kernel candidate remains AWAITING
+SUPERVISED DEPLOYMENT and blocked on known unchanged-build boot compatibility
+and verified recovery. No black-screen repair is claimed.
+
 ### NEXT-STEPS
 
-1. Finish the running three-repeat installed presentation suite; retain capture
-   backpressure separately from capture-disabled pacing and ordinary CA CPU cost.
-2. Validate and build the pending `nvmtl_device_queue` first-use race correction
-   with `python3 tools/ga102_queue_init_test.py --baseline --output <new-directory>`.
-   Preserve retry after failed queue construction; never change GPU waits.
-3. Run existing offscreen suite with `python3 tools/ga102_suite.py --profile
-   correctness --plugin <rebuilt-NVMTLDriver> --output <new-json>`, then matched
-   installed/candidate memory and IOSurface benchmarks through explicit binding.
-4. Continue with the highest-value reproduced driver defect or justified
-   performance change; supervised deployment remains a separate boundary.
+1. Finish the active installed/candidate `ga102_metal_memory --repeat 3` comparison
+   (private artifacts in `resume-20261012`; candidate hash above). Keep memory-mode
+   correctness and synthetic timing separate from desktop benefit.
+2. Prepare a standalone framebuffer PM-delegation experiment from authentic
+   `e404ab30` source; preserve superclass asynchronous acknowledgement, test it
+   offline and compile/link without the retired completion instrumentation.
+3. Resolve candidate class isolation for IOSurface before retrying those workloads;
+   never relax the single-image gate or label mixed-plugin results PASS.
+4. Review bounded shader-transform cache retention / publication for a reproduced
+   memory or concurrency defect, then build and validate a focused correction.

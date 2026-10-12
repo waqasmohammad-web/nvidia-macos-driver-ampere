@@ -17,11 +17,13 @@ class PluginBindingTests(unittest.TestCase):
         for bad in (b'no enumeration', source + source, source+b'MTLCreateSystemDefaultDevice()'):
             with self.assertRaises(ValueError): runner.isolated_source(bad)
 
-    def test_windowed_binding_is_rejected_before_launch(self):
-        with patch('sys.argv', ['runner', 'ga102_metal_present', '--plugin', '/missing/NVMTLDriver']), \
-             patch.object(runner, 'run_owned') as child, contextlib.redirect_stderr(io.StringIO()):
-            with self.assertRaises(SystemExit): runner.main()
-            child.assert_not_called()
+    def test_unisolated_binding_is_rejected_before_launch(self):
+        for probe in ('ga102_metal_present','ga102_metal_composite','ga102_metal_crossprocess','ga102_metal_benchmark'):
+            with self.subTest(probe=probe), \
+                 patch('sys.argv', ['runner', probe, '--plugin', '/missing/NVMTLDriver']), \
+                 patch.object(runner, 'run_owned') as child, contextlib.redirect_stderr(io.StringIO()):
+                with self.assertRaises(SystemExit): runner.main()
+                child.assert_not_called()
 
     def run_probe(self, marker=True, mutate=False):
         with tempfile.TemporaryDirectory() as directory:

@@ -41,7 +41,7 @@ static id<MTLDevice> bindDevice(NSString *expected) {
     if (objc_getClass("NVMTLDevice")) fail("Metal plugin already loaded before explicit binding");
     // +load forwarding changes are restricted to this process's NVMTL classes.
     void *handle = dlopen(expected.fileSystemRepresentation, RTLD_NOW | RTLD_LOCAL);
-    if (!handle) { fprintf(stderr, "FAIL: dlopen: %s\n", dlerror()); return 1; }
+    if (!handle) { fprintf(stderr, "FAIL: dlopen: %s\n", dlerror()); fail("requested image could not be loaded"); }
     Class cls = objc_getClass("NVMTLDevice");
     checkImage(cls, expected); checkSinglePlugin(expected);
     io_service_t accelerator = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("NVAccel"));

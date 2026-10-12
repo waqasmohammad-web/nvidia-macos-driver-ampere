@@ -1,0 +1,734 @@
+{
+  "date": "2026-10-12",
+  "runtime": "installed release plugin",
+  "jobs": [
+    {
+      "probe": "ga102_visual_present",
+      "options": [
+        "--capture-bridge"
+      ],
+      "acceptance": "PASS",
+      "requested_runs": 3,
+      "source_sha256": "8ad6c47a648cdc23355a5708d8ddc9364b70b82763811c15020747d7cfbc67d7",
+      "completed_runs": 3,
+      "runs": [
+        {
+          "exit_code": 0,
+          "checks": {
+            "gpu_frame_contents": "PASS",
+            "own_window_capture": "PASS",
+            "presentation_timestamps": "PASS",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 325,
+              "debug.nvaccel_iop_ok": 326,
+              "debug.nvrmfb_flip_n": 325,
+              "debug.nvrmfb_flip_us_sum": 4240491
+            },
+            "mean_flip_call_us": 13047.664615384616,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "gpu_correct_frames": 12,
+            "capture_correct_frames": 12,
+            "capture_received_frames": 12,
+            "positive_timestamps": 11,
+            "steady_reported_presentation": {
+              "above_25ms": 1,
+              "max_ms": 466.7582390000007,
+              "p50_ms": 466.7582390000007,
+              "p95_ms": 466.7582390000007,
+              "p99_ms": 466.7582390000007,
+              "samples": 1
+            },
+            "frames": 12,
+            "visible_frames": 12,
+            "capture_distinct_patterns": 12
+          }
+        },
+        {
+          "exit_code": 0,
+          "checks": {
+            "gpu_frame_contents": "PASS",
+            "own_window_capture": "PASS",
+            "presentation_timestamps": "PASS",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 305,
+              "debug.nvaccel_iop_ok": 306,
+              "debug.nvrmfb_flip_n": 305,
+              "debug.nvrmfb_flip_us_sum": 4067868
+            },
+            "mean_flip_call_us": 13337.272131147542,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "gpu_correct_frames": 12,
+            "capture_correct_frames": 12,
+            "capture_received_frames": 12,
+            "positive_timestamps": 12,
+            "steady_reported_presentation": {
+              "above_25ms": 1,
+              "max_ms": 466.78673400015214,
+              "p50_ms": 466.78673400015214,
+              "p95_ms": 466.78673400015214,
+              "p99_ms": 466.78673400015214,
+              "samples": 1
+            },
+            "frames": 12,
+            "visible_frames": 12,
+            "capture_distinct_patterns": 12
+          }
+        },
+        {
+          "exit_code": 0,
+          "checks": {
+            "gpu_frame_contents": "PASS",
+            "own_window_capture": "PASS",
+            "presentation_timestamps": "PASS",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 319,
+              "debug.nvaccel_iop_ok": 320,
+              "debug.nvrmfb_flip_n": 319,
+              "debug.nvrmfb_flip_us_sum": 4235945
+            },
+            "mean_flip_call_us": 13278.82445141066,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "gpu_correct_frames": 12,
+            "capture_correct_frames": 12,
+            "capture_received_frames": 12,
+            "positive_timestamps": 12,
+            "steady_reported_presentation": {
+              "above_25ms": 1,
+              "max_ms": 466.78345300006185,
+              "p50_ms": 466.78345300006185,
+              "p95_ms": 466.78345300006185,
+              "p99_ms": 466.78345300006185,
+              "samples": 1
+            },
+            "frames": 12,
+            "visible_frames": 12,
+            "capture_distinct_patterns": 12
+          }
+        }
+      ]
+    },
+    {
+      "probe": "ga102_ca_visual",
+      "options": [
+        "--capture-bridge"
+      ],
+      "acceptance": "PASS",
+      "requested_runs": 3,
+      "source_sha256": "f6d3b3752c35b2e272eea70415e4974e2a80476dc4c2984800bb87d75732cb08",
+      "completed_runs": 3,
+      "runs": [
+        {
+          "exit_code": 0,
+          "checks": {
+            "own_window_capture": "PASS",
+            "reference_pattern_submission": "PASS",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 373,
+              "debug.nvaccel_iop_ok": 374,
+              "debug.nvrmfb_flip_n": 373,
+              "debug.nvrmfb_flip_us_sum": 2658812
+            },
+            "mean_flip_call_us": 7128.182305630027,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "capture_correct_frames": 12,
+            "capture_received_frames": 12,
+            "frames": 12,
+            "visible_frames": 12,
+            "capture_distinct_patterns": 12
+          }
+        },
+        {
+          "exit_code": 0,
+          "checks": {
+            "own_window_capture": "PASS",
+            "reference_pattern_submission": "PASS",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 367,
+              "debug.nvaccel_iop_ok": 367,
+              "debug.nvrmfb_flip_n": 367,
+              "debug.nvrmfb_flip_us_sum": 2694425
+            },
+            "mean_flip_call_us": 7341.757493188011,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "capture_correct_frames": 12,
+            "capture_received_frames": 12,
+            "frames": 12,
+            "visible_frames": 12,
+            "capture_distinct_patterns": 12
+          }
+        },
+        {
+          "exit_code": 0,
+          "checks": {
+            "own_window_capture": "PASS",
+            "reference_pattern_submission": "PASS",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 366,
+              "debug.nvaccel_iop_ok": 367,
+              "debug.nvrmfb_flip_n": 366,
+              "debug.nvrmfb_flip_us_sum": 2664395
+            },
+            "mean_flip_call_us": 7279.767759562841,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "capture_correct_frames": 12,
+            "capture_received_frames": 12,
+            "frames": 12,
+            "visible_frames": 12,
+            "capture_distinct_patterns": 12
+          }
+        }
+      ]
+    },
+    {
+      "probe": "ga102_ca_visual",
+      "options": [
+        "--capture-bridge",
+        "--continuous"
+      ],
+      "acceptance": "NOT VERIFIED",
+      "requested_runs": 3,
+      "source_sha256": "f6d3b3752c35b2e272eea70415e4974e2a80476dc4c2984800bb87d75732cb08",
+      "completed_runs": 3,
+      "runs": [
+        {
+          "exit_code": 0,
+          "checks": {
+            "capture_id_coverage": "NOT VERIFIED",
+            "own_window_capture": "PASS",
+            "reference_pattern_submission": "PASS",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 127,
+              "debug.nvaccel_iop_ok": 128,
+              "debug.nvrmfb_flip_n": 127,
+              "debug.nvrmfb_flip_us_sum": 855335
+            },
+            "mean_flip_call_us": 6734.921259842519,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "capture_correct_frames": 0,
+            "capture_received_frames": 0,
+            "frames": 120,
+            "visible_frames": 120,
+            "capture_distinct_patterns": 0
+          }
+        },
+        {
+          "exit_code": 0,
+          "checks": {
+            "capture_id_coverage": "NOT VERIFIED",
+            "own_window_capture": "PASS",
+            "reference_pattern_submission": "PASS",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 120,
+              "debug.nvaccel_iop_ok": 119,
+              "debug.nvrmfb_flip_n": 120,
+              "debug.nvrmfb_flip_us_sum": 873165
+            },
+            "mean_flip_call_us": 7276.375,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "capture_correct_frames": 0,
+            "capture_received_frames": 0,
+            "frames": 120,
+            "visible_frames": 120,
+            "capture_distinct_patterns": 0
+          }
+        },
+        {
+          "exit_code": 0,
+          "checks": {
+            "capture_id_coverage": "NOT VERIFIED",
+            "own_window_capture": "PASS",
+            "reference_pattern_submission": "PASS",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 122,
+              "debug.nvaccel_iop_ok": 123,
+              "debug.nvrmfb_flip_n": 122,
+              "debug.nvrmfb_flip_us_sum": 855888
+            },
+            "mean_flip_call_us": 7015.475409836065,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "capture_correct_frames": 0,
+            "capture_received_frames": 0,
+            "frames": 120,
+            "visible_frames": 120,
+            "capture_distinct_patterns": 0
+          }
+        }
+      ]
+    },
+    {
+      "probe": "ga102_visual_present",
+      "options": [
+        "--capture-bridge",
+        "--continuous",
+        "--display-linked"
+      ],
+      "acceptance": "FAIL",
+      "requested_runs": 3,
+      "source_sha256": "8ad6c47a648cdc23355a5708d8ddc9364b70b82763811c15020747d7cfbc67d7",
+      "completed_runs": 1,
+      "runs": [
+        {
+          "exit_code": 0,
+          "checks": {
+            "gpu_frame_contents": "PASS",
+            "known_adjacent_reported_cadence": "FAIL",
+            "own_window_capture": "PASS",
+            "presentation_timestamps": "PASS",
+            "reported_presentation_cadence": "FAIL",
+            "system_display_activity": "PASS",
+            "visible_window_state": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 178,
+              "debug.nvaccel_iop_ok": 178,
+              "debug.nvrmfb_flip_n": 178,
+              "debug.nvrmfb_flip_us_sum": 2210806
+            },
+            "mean_flip_call_us": 12420.258426966293,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "gpu_correct_frames": 120,
+            "capture_correct_frames": 0,
+            "capture_received_frames": 0,
+            "positive_timestamps": 118,
+            "steady_reported_presentation": {
+              "above_25ms": 109,
+              "max_ms": 34.50156999997489,
+              "p50_ms": 33.37422599997808,
+              "p95_ms": 34.32602899988524,
+              "p99_ms": 34.45901300005971,
+              "samples": 109
+            },
+            "frames": 120,
+            "visible_frames": 120,
+            "capture_distinct_patterns": 0
+          }
+        }
+      ]
+    },
+    {
+      "probe": "ga102_metal_present",
+      "options": [],
+      "acceptance": "PASS",
+      "requested_runs": 3,
+      "source_sha256": "6de92ffbcb303a9499f2ae59a7d3669f19825eabac1b7e44ed1674a93501e4de",
+      "completed_runs": 3,
+      "runs": [
+        {
+          "exit_code": 0,
+          "checks": {
+            "api_frame_pacing_60hz": "PASS",
+            "command_completion": "PASS",
+            "sampled_visible_eligibility": "PASS",
+            "system_display_activity": "PASS",
+            "target_display_configuration": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 291,
+              "debug.nvaccel_iop_ok": 292,
+              "debug.nvrmfb_flip_n": 291,
+              "debug.nvrmfb_flip_us_sum": 3922103
+            },
+            "mean_flip_call_us": 13478.017182130585,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "positive_presented_times": 118,
+            "presentation_intervals": {
+              "max_ms": 17.79768400001558,
+              "p50_ms": 16.666438999891398,
+              "p95_ms": 17.61399700012589,
+              "p99_ms": 17.747122999935527,
+              "samples": 107
+            },
+            "drawable_acquisition": {
+              "max_ms": 12.715016999891304,
+              "p50_ms": 0.048939999942376744,
+              "p95_ms": 0.07199300011961896,
+              "p99_ms": 6.491759000027741,
+              "samples": 120
+            },
+            "gpu": {
+              "max_ms": 0.0061440000536094885,
+              "p50_ms": 0.005119999968883349,
+              "p95_ms": 0.0061440000536094885,
+              "p99_ms": 0.0061440000536094885,
+              "samples": 120
+            }
+          }
+        },
+        {
+          "exit_code": 0,
+          "checks": {
+            "api_frame_pacing_60hz": "PASS",
+            "command_completion": "PASS",
+            "sampled_visible_eligibility": "PASS",
+            "system_display_activity": "PASS",
+            "target_display_configuration": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 278,
+              "debug.nvaccel_iop_ok": 278,
+              "debug.nvrmfb_flip_n": 278,
+              "debug.nvrmfb_flip_us_sum": 3709110
+            },
+            "mean_flip_call_us": 13342.122302158274,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "positive_presented_times": 118,
+            "presentation_intervals": {
+              "max_ms": 17.6793099999486,
+              "p50_ms": 16.61249099993256,
+              "p95_ms": 17.587553999874217,
+              "p99_ms": 17.67469800006438,
+              "samples": 107
+            },
+            "drawable_acquisition": {
+              "max_ms": 6.116646000009496,
+              "p50_ms": 3.9461110000047483,
+              "p95_ms": 5.679487000179506,
+              "p99_ms": 5.995199999915712,
+              "samples": 120
+            },
+            "gpu": {
+              "max_ms": 0.0061440000536094885,
+              "p50_ms": 0.005119999968883349,
+              "p95_ms": 0.0061440000536094885,
+              "p99_ms": 0.0061440000536094885,
+              "samples": 120
+            }
+          }
+        },
+        {
+          "exit_code": 0,
+          "checks": {
+            "api_frame_pacing_60hz": "PASS",
+            "command_completion": "PASS",
+            "sampled_visible_eligibility": "PASS",
+            "system_display_activity": "PASS",
+            "target_display_configuration": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 292,
+              "debug.nvaccel_iop_ok": 292,
+              "debug.nvrmfb_flip_n": 292,
+              "debug.nvrmfb_flip_us_sum": 3927076
+            },
+            "mean_flip_call_us": 13448.890410958904,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "positive_presented_times": 119,
+            "presentation_intervals": {
+              "max_ms": 17.843064000089726,
+              "p50_ms": 16.656937999869115,
+              "p95_ms": 17.48687099984636,
+              "p99_ms": 17.69671199986078,
+              "samples": 108
+            },
+            "drawable_acquisition": {
+              "max_ms": 12.164341000016066,
+              "p50_ms": 0.048823000042830245,
+              "p95_ms": 0.06596999992325436,
+              "p99_ms": 11.045338999792875,
+              "samples": 120
+            },
+            "gpu": {
+              "max_ms": 0.0061440000536094885,
+              "p50_ms": 0.005119999968883349,
+              "p95_ms": 0.0061440000536094885,
+              "p99_ms": 0.0061440000536094885,
+              "samples": 120
+            }
+          }
+        }
+      ]
+    },
+    {
+      "probe": "ga102_metal_present",
+      "options": [
+        "--display-linked"
+      ],
+      "acceptance": "PASS",
+      "requested_runs": 3,
+      "source_sha256": "6de92ffbcb303a9499f2ae59a7d3669f19825eabac1b7e44ed1674a93501e4de",
+      "completed_runs": 3,
+      "runs": [
+        {
+          "exit_code": 0,
+          "checks": {
+            "api_frame_pacing_60hz": "PASS",
+            "command_completion": "PASS",
+            "sampled_visible_eligibility": "PASS",
+            "system_display_activity": "PASS",
+            "target_display_configuration": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 276,
+              "debug.nvaccel_iop_ok": 276,
+              "debug.nvrmfb_flip_n": 276,
+              "debug.nvrmfb_flip_us_sum": 3667842
+            },
+            "mean_flip_call_us": 13289.282608695652,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "positive_presented_times": 119,
+            "presentation_intervals": {
+              "max_ms": 17.75073900012103,
+              "p50_ms": 16.66672200008179,
+              "p95_ms": 17.602327999838963,
+              "p99_ms": 17.678385999943202,
+              "samples": 108
+            },
+            "drawable_acquisition": {
+              "max_ms": 1.1235780000333762,
+              "p50_ms": 0.014940000028218492,
+              "p95_ms": 0.058344999843029655,
+              "p99_ms": 0.7659170000806625,
+              "samples": 120
+            },
+            "gpu": {
+              "max_ms": 0.0061440000536094885,
+              "p50_ms": 0.005119999968883349,
+              "p95_ms": 0.0061440000536094885,
+              "p99_ms": 0.0061440000536094885,
+              "samples": 120
+            }
+          }
+        },
+        {
+          "exit_code": 0,
+          "checks": {
+            "api_frame_pacing_60hz": "PASS",
+            "command_completion": "PASS",
+            "sampled_visible_eligibility": "PASS",
+            "system_display_activity": "PASS",
+            "target_display_configuration": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 273,
+              "debug.nvaccel_iop_ok": 273,
+              "debug.nvrmfb_flip_n": 273,
+              "debug.nvrmfb_flip_us_sum": 3627208
+            },
+            "mean_flip_call_us": 13286.47619047619,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "positive_presented_times": 119,
+            "presentation_intervals": {
+              "max_ms": 17.719661999763048,
+              "p50_ms": 16.677013999924384,
+              "p95_ms": 17.5014469996313,
+              "p99_ms": 17.66982499975711,
+              "samples": 108
+            },
+            "drawable_acquisition": {
+              "max_ms": 1.4599659998566494,
+              "p50_ms": 0.014569999621016905,
+              "p95_ms": 0.05843700000696117,
+              "p99_ms": 0.8823520001897123,
+              "samples": 120
+            },
+            "gpu": {
+              "max_ms": 0.0061440000536094885,
+              "p50_ms": 0.005119999968883349,
+              "p95_ms": 0.0061440000536094885,
+              "p99_ms": 0.0061440000536094885,
+              "samples": 120
+            }
+          }
+        },
+        {
+          "exit_code": 0,
+          "checks": {
+            "api_frame_pacing_60hz": "PASS",
+            "command_completion": "PASS",
+            "sampled_visible_eligibility": "PASS",
+            "system_display_activity": "PASS",
+            "target_display_configuration": "PASS"
+          },
+          "display_correlation": {
+            "available_counters": 7,
+            "deltas": {
+              "debug.nvaccel_iop_async_drop": 0,
+              "debug.nvaccel_iop_async_refused": 0,
+              "debug.nvaccel_iop_fail": 0,
+              "debug.nvaccel_iop_flips": 280,
+              "debug.nvaccel_iop_ok": 280,
+              "debug.nvrmfb_flip_n": 280,
+              "debug.nvrmfb_flip_us_sum": 3696131
+            },
+            "mean_flip_call_us": 13200.467857142858,
+            "note": "system-wide counters, not exclusively this window; flip duration includes completion wait",
+            "visible_presentation": "candidate"
+          },
+          "metrics": {
+            "positive_presented_times": 119,
+            "presentation_intervals": {
+              "max_ms": 17.76436099999046,
+              "p50_ms": 16.67616300028385,
+              "p95_ms": 17.553417999806697,
+              "p99_ms": 17.74122000006173,
+              "samples": 108
+            },
+            "drawable_acquisition": {
+              "max_ms": 0.9519579998595873,
+              "p50_ms": 0.013965000107418746,
+              "p95_ms": 0.06446799989134888,
+              "p99_ms": 0.8465079999950831,
+              "samples": 120
+            },
+            "gpu": {
+              "max_ms": 0.0061440000536094885,
+              "p50_ms": 0.005119999968883349,
+              "p95_ms": 0.0061440000536094885,
+              "p99_ms": 0.0061440000536094885,
+              "samples": 120
+            }
+          }
+        }
+      ]
+    }
+  ],
+  "desktop_improvement": "NOT VERIFIED",
+  "physical_scanout": "NOT VERIFIED"
+}

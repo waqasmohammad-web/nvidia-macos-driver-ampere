@@ -84,6 +84,8 @@ def main():
         job = {'probe': probe, 'options': options, 'requested_runs': repeat}
         if stop_reason:
             job.update(acceptance='NOT VERIFIED', reason=stop_reason)
+        elif args.plugin and probe not in ('ga102_metal_smoketest', 'ga102_metal_render_smoketest', 'ga102_metal_events'):
+            job.update(acceptance='BLOCKED', reason='IOSurface may load installed plugin; candidate class isolation unavailable')
         elif not available:
             job.update(acceptance='BLOCKED', reason='macOS and Xcode command-line tools required')
         else:

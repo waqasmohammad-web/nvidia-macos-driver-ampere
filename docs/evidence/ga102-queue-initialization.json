@@ -1,0 +1,524 @@
+{
+  "date": "2026-10-12",
+  "source_validation": "confirmed original publication race; candidate zero TSAN warnings and retry preserved",
+  "queue_initialization": [
+    {
+      "variant": "original",
+      "mode": "first-use",
+      "exit_code": -6,
+      "race_warnings": 3,
+      "production_helper_sha256": "ef92020a417fdffd91699fe4fed2d1812d8befb3670b414241c7dd32c6994728"
+    },
+    {
+      "variant": "original",
+      "mode": "retry",
+      "exit_code": -6,
+      "race_warnings": 3,
+      "production_helper_sha256": "ef92020a417fdffd91699fe4fed2d1812d8befb3670b414241c7dd32c6994728"
+    },
+    {
+      "variant": "candidate",
+      "mode": "first-use",
+      "exit_code": 0,
+      "race_warnings": 0,
+      "production_helper_sha256": "f9561b74bb4378eb515d96acacc900db7bd0bab20e24c26289181c8990e82f5c"
+    },
+    {
+      "variant": "candidate",
+      "mode": "retry",
+      "exit_code": 0,
+      "race_warnings": 0,
+      "production_helper_sha256": "f9561b74bb4378eb515d96acacc900db7bd0bab20e24c26289181c8990e82f5c"
+    }
+  ],
+  "build": {
+    "sha256": "d58620670530065c5716e06f6c2865dd06cacc5369f6568f84f4ba6b9e660d24",
+    "source_sha256": "0ca16fd5c45a0c3e6e1774af8d7431d97c029a67d93e53d40d1f292793c2c2e5",
+    "installed": false,
+    "configuration": "x86_64/O1/NVMTL_RELEASE=1; clang17 SDK15.5"
+  },
+  "isolated_candidate_checks": [
+    {
+      "automated_core_validation": "PASS",
+      "checks": {
+        "scoped_gpu_correctness": "PASS"
+      },
+      "completed_runs": 3,
+      "desktop_smoothness": "NOT VERIFIED",
+      "execution": "PASS",
+      "installed_driver_fixed": false,
+      "negative_control": null,
+      "physical_scanout": "NOT VERIFIED",
+      "probe": "ga102_metal_smoketest",
+      "probe_source_sha256": "53d78f814549d088adbe1643d0cb25c67d5051de70096a1634c849e14851b7d2",
+      "reproducibility": "PASS",
+      "requested_runs": 3,
+      "runs": [
+        {
+          "exit_code": 0,
+          "metrics": [
+            {
+              "checked_elements": 4,
+              "probe": "compute",
+              "values": [
+                2,
+                4,
+                6,
+                8
+              ]
+            }
+          ],
+          "validation_exit_code": 0,
+          "verdict": {
+            "automated_core_validation": "PASS",
+            "checks": {
+              "scoped_gpu_correctness": "PASS"
+            },
+            "desktop_smoothness": "NOT VERIFIED",
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        },
+        {
+          "exit_code": 0,
+          "metrics": [
+            {
+              "checked_elements": 4,
+              "probe": "compute",
+              "values": [
+                2,
+                4,
+                6,
+                8
+              ]
+            }
+          ],
+          "validation_exit_code": 0,
+          "verdict": {
+            "automated_core_validation": "PASS",
+            "checks": {
+              "scoped_gpu_correctness": "PASS"
+            },
+            "desktop_smoothness": "NOT VERIFIED",
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        },
+        {
+          "exit_code": 0,
+          "metrics": [
+            {
+              "checked_elements": 4,
+              "probe": "compute",
+              "values": [
+                2,
+                4,
+                6,
+                8
+              ]
+            }
+          ],
+          "validation_exit_code": 0,
+          "verdict": {
+            "automated_core_validation": "PASS",
+            "checks": {
+              "scoped_gpu_correctness": "PASS"
+            },
+            "desktop_smoothness": "NOT VERIFIED",
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        }
+      ],
+      "runtime": {
+        "binding": "explicit process-local user-space plugin",
+        "binding_helper_source_sha256": "07ce07337d2f60435a079e3be37f5b0c80fa1f8d8da937b95d006972acb6d15e",
+        "installed_driver_changed": false,
+        "limits": "installed kernel/NVK/translator retained; offscreen coverage only",
+        "original_probe_source_sha256": "0010706a31f61f3e5657501ccca4f00e644cbba35be767ae16f43e68322ccbaa",
+        "plugin_sha256": "d58620670530065c5716e06f6c2865dd06cacc5369f6568f84f4ba6b9e660d24"
+      },
+      "schema_version": 1
+    },
+    {
+      "automated_core_validation": "PASS",
+      "checks": {
+        "scoped_gpu_correctness": "PASS"
+      },
+      "completed_runs": 3,
+      "desktop_smoothness": "NOT VERIFIED",
+      "execution": "PASS",
+      "installed_driver_fixed": false,
+      "negative_control": null,
+      "physical_scanout": "NOT VERIFIED",
+      "probe": "ga102_metal_render_smoketest",
+      "probe_source_sha256": "d072220062b69b1b784ddf3e8faec5aeeea0d295a20e99f164a5880dbe0048d6",
+      "reproducibility": "PASS",
+      "requested_runs": 3,
+      "runs": [
+        {
+          "exit_code": 0,
+          "metrics": [
+            {
+              "checked_pixels": 1,
+              "height": 16,
+              "probe": "render",
+              "rgba": [
+                64,
+                127,
+                191,
+                255
+              ],
+              "width": 16
+            }
+          ],
+          "validation_exit_code": 0,
+          "verdict": {
+            "automated_core_validation": "PASS",
+            "checks": {
+              "scoped_gpu_correctness": "PASS"
+            },
+            "desktop_smoothness": "NOT VERIFIED",
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        },
+        {
+          "exit_code": 0,
+          "metrics": [
+            {
+              "checked_pixels": 1,
+              "height": 16,
+              "probe": "render",
+              "rgba": [
+                64,
+                127,
+                191,
+                255
+              ],
+              "width": 16
+            }
+          ],
+          "validation_exit_code": 0,
+          "verdict": {
+            "automated_core_validation": "PASS",
+            "checks": {
+              "scoped_gpu_correctness": "PASS"
+            },
+            "desktop_smoothness": "NOT VERIFIED",
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        },
+        {
+          "exit_code": 0,
+          "metrics": [
+            {
+              "checked_pixels": 1,
+              "height": 16,
+              "probe": "render",
+              "rgba": [
+                64,
+                127,
+                191,
+                255
+              ],
+              "width": 16
+            }
+          ],
+          "validation_exit_code": 0,
+          "verdict": {
+            "automated_core_validation": "PASS",
+            "checks": {
+              "scoped_gpu_correctness": "PASS"
+            },
+            "desktop_smoothness": "NOT VERIFIED",
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        }
+      ],
+      "runtime": {
+        "binding": "explicit process-local user-space plugin",
+        "binding_helper_source_sha256": "07ce07337d2f60435a079e3be37f5b0c80fa1f8d8da937b95d006972acb6d15e",
+        "installed_driver_changed": false,
+        "limits": "installed kernel/NVK/translator retained; offscreen coverage only",
+        "original_probe_source_sha256": "516fb67d375c71a33614b2767044509b1ca3dd2e2068c7526b6af1eaa530f878",
+        "plugin_sha256": "d58620670530065c5716e06f6c2865dd06cacc5369f6568f84f4ba6b9e660d24"
+      },
+      "schema_version": 1
+    },
+    {
+      "automated_core_validation": "PASS",
+      "checks": {
+        "scoped_gpu_correctness": "PASS"
+      },
+      "completed_runs": 3,
+      "desktop_smoothness": "NOT VERIFIED",
+      "execution": "PASS",
+      "installed_driver_fixed": false,
+      "negative_control": null,
+      "physical_scanout": "NOT VERIFIED",
+      "probe": "ga102_metal_events",
+      "probe_source_sha256": "2175213080bcddd2f942107232d9d4dd6fea2ef6a08d36e450a5073269630223",
+      "reproducibility": "PASS",
+      "requested_runs": 3,
+      "runs": [
+        {
+          "exit_code": 0,
+          "metrics": [
+            {
+              "checked_bytes": 65536,
+              "commit_to_consumer_completion_ms_in_order": [
+                0.648088,
+                0.104927,
+                0.080725,
+                0.12464,
+                0.072877,
+                0.082213,
+                0.097278,
+                0.084637,
+                0.069665,
+                0.078815,
+                0.069099,
+                0.083967,
+                0.074877,
+                0.080992,
+                0.066345,
+                0.080672
+              ],
+              "consumer_first_iterations": 8,
+              "iterations": 16,
+              "output": "PASS"
+            }
+          ],
+          "validation_exit_code": 0,
+          "verdict": {
+            "automated_core_validation": "PASS",
+            "checks": {
+              "scoped_gpu_correctness": "PASS"
+            },
+            "desktop_smoothness": "NOT VERIFIED",
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        },
+        {
+          "exit_code": 0,
+          "metrics": [
+            {
+              "checked_bytes": 65536,
+              "commit_to_consumer_completion_ms_in_order": [
+                0.626756,
+                0.134018,
+                0.087772,
+                0.099881,
+                0.07485,
+                0.12058,
+                0.07916,
+                0.087667,
+                0.090743,
+                0.08611,
+                0.077744,
+                0.089613,
+                0.077989,
+                0.089017,
+                0.073552,
+                0.094709
+              ],
+              "consumer_first_iterations": 8,
+              "iterations": 16,
+              "output": "PASS"
+            }
+          ],
+          "validation_exit_code": 0,
+          "verdict": {
+            "automated_core_validation": "PASS",
+            "checks": {
+              "scoped_gpu_correctness": "PASS"
+            },
+            "desktop_smoothness": "NOT VERIFIED",
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        },
+        {
+          "exit_code": 0,
+          "metrics": [
+            {
+              "checked_bytes": 65536,
+              "commit_to_consumer_completion_ms_in_order": [
+                0.77198,
+                0.122871,
+                0.098142,
+                0.088701,
+                0.106439,
+                0.094464,
+                0.069257,
+                0.122817,
+                0.084167,
+                0.090851,
+                0.070347,
+                0.087671,
+                0.082524,
+                0.08748,
+                0.072897,
+                0.089813
+              ],
+              "consumer_first_iterations": 8,
+              "iterations": 16,
+              "output": "PASS"
+            }
+          ],
+          "validation_exit_code": 0,
+          "verdict": {
+            "automated_core_validation": "PASS",
+            "checks": {
+              "scoped_gpu_correctness": "PASS"
+            },
+            "desktop_smoothness": "NOT VERIFIED",
+            "installed_driver_fixed": false,
+            "physical_scanout": "NOT VERIFIED"
+          }
+        }
+      ],
+      "runtime": {
+        "binding": "explicit process-local user-space plugin",
+        "binding_helper_source_sha256": "07ce07337d2f60435a079e3be37f5b0c80fa1f8d8da937b95d006972acb6d15e",
+        "installed_driver_changed": false,
+        "limits": "installed kernel/NVK/translator retained; offscreen coverage only",
+        "original_probe_source_sha256": "f9f48f25f4a105b42384fa1d5c3bca1d3586e71646ffbf3d24fb3e6d04d4a3c7",
+        "plugin_sha256": "d58620670530065c5716e06f6c2865dd06cacc5369f6568f84f4ba6b9e660d24"
+      },
+      "schema_version": 1
+    }
+  ],
+  "rejected_mixed_plugin_composite": {
+    "automated_core_validation": "FAIL",
+    "checks": {
+      "scoped_gpu_correctness": "FAIL"
+    },
+    "completed_runs": 1,
+    "desktop_smoothness": "NOT VERIFIED",
+    "execution": "FAIL",
+    "installed_driver_fixed": false,
+    "negative_control": null,
+    "physical_scanout": "NOT VERIFIED",
+    "probe": "ga102_metal_composite",
+    "probe_source_sha256": "e7f447aa42cb6b9f3512b3833c45ac32a5ad648f9fb87f9ee62c3b2ceac0082c",
+    "reproducibility": "NOT VERIFIED",
+    "requested_runs": 3,
+    "runs": [
+      {
+        "exit_code": 1,
+        "metrics": [
+          {
+            "checked_pixels": 16,
+            "encode_to_completion": {
+              "max_ms": 0.9650160000092001,
+              "p50_ms": 0.9019999999964057,
+              "p95_ms": 0.9650160000092001,
+              "samples": 8
+            },
+            "gpu": {
+              "max_ms": 0.8253440000203227,
+              "p50_ms": 0.8017920000042977,
+              "p95_ms": 0.8253440000203227,
+              "samples": 8
+            },
+            "height": 1440,
+            "layers": 16,
+            "mode": "private",
+            "pixels": "PASS",
+            "width": 3440
+          },
+          {
+            "checked_pixels": 16,
+            "encode_to_completion": {
+              "max_ms": 1.5035690000217983,
+              "p50_ms": 1.4775409999856493,
+              "p95_ms": 1.5035690000217983,
+              "samples": 8
+            },
+            "gpu": {
+              "max_ms": 1.3414399999760462,
+              "p50_ms": 1.31481599999006,
+              "p95_ms": 1.3414399999760462,
+              "samples": 8
+            },
+            "height": 1440,
+            "layers": 16,
+            "mode": "iosurface",
+            "pixels": "PASS",
+            "width": 3440
+          },
+          {
+            "checked_pixels": 16,
+            "encode_to_completion": {
+              "max_ms": 1.8407270000011522,
+              "p50_ms": 1.7238109999766493,
+              "p95_ms": 1.8407270000011522,
+              "samples": 8
+            },
+            "gpu": {
+              "max_ms": 1.6097280000053615,
+              "p50_ms": 1.564672000029077,
+              "p95_ms": 1.6097280000053615,
+              "samples": 8
+            },
+            "height": 1440,
+            "layers": 32,
+            "mode": "private",
+            "pixels": "PASS",
+            "width": 3440
+          },
+          {
+            "checked_pixels": 16,
+            "encode_to_completion": {
+              "max_ms": 3.179313999964961,
+              "p50_ms": 2.286088000005293,
+              "p95_ms": 3.179313999964961,
+              "samples": 8
+            },
+            "gpu": {
+              "max_ms": 2.68697600000678,
+              "p50_ms": 2.0899840000083714,
+              "p95_ms": 2.68697600000678,
+              "samples": 8
+            },
+            "height": 1440,
+            "layers": 32,
+            "mode": "iosurface",
+            "pixels": "PASS",
+            "width": 3440
+          }
+        ],
+        "validation_exit_code": 1,
+        "verdict": {
+          "automated_core_validation": "FAIL",
+          "checks": {
+            "scoped_gpu_correctness": "FAIL"
+          },
+          "desktop_smoothness": "NOT VERIFIED",
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        }
+      }
+    ],
+    "runtime": {
+      "binding": "explicit process-local user-space plugin",
+      "binding_helper_source_sha256": "07ce07337d2f60435a079e3be37f5b0c80fa1f8d8da937b95d006972acb6d15e",
+      "installed_driver_changed": false,
+      "limits": "installed kernel/NVK/translator retained; offscreen coverage only",
+      "original_probe_source_sha256": "2c85bb1c53aad2e1e3441f9a539e61b2e66d478169784322ac99807a32148063",
+      "plugin_sha256": "d58620670530065c5716e06f6c2865dd06cacc5369f6568f84f4ba6b9e660d24"
+    },
+    "schema_version": 1
+  },
+  "limits": [
+    "Queue initializer backend replaced with CPU fault-injection stub for TSAN",
+    "Native concurrent texture allocation not qualified",
+    "IOSurface composite failed binary isolation; correct pixels do not establish candidate correctness",
+    "Candidate not installed; desktop improvement and wake recovery not verified"
+  ]
+}

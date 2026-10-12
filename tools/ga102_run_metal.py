@@ -36,7 +36,10 @@ except ImportError:
 ROOT = Path(__file__).resolve().parent.parent
 PROBES = ("ga102_metal_smoketest", "ga102_metal_render_smoketest", "ga102_metal_benchmark",
           "ga102_metal_memory", "ga102_metal_present", "ga102_metal_composite", "ga102_metal_crossprocess", "ga102_metal_events", "ga102_core_animation", "ga102_visual_present", "ga102_ca_visual")
-ISOLATED_PROBES = (*CORE_PROBES, 'ga102_metal_memory', 'ga102_metal_benchmark')
+# IOSurface creation can implicitly enumerate Metal devices and load the installed
+# bundle. Until class isolation exists, refuse those workloads before launch.
+ISOLATED_PROBES = ('ga102_metal_smoketest', 'ga102_metal_render_smoketest',
+                   'ga102_metal_events', 'ga102_metal_memory')
 
 
 def isolated_source(source):
@@ -137,7 +140,7 @@ def main():
     parser.add_argument("--result-json", type=Path, help="Save scoped visual-probe verdicts and numeric metrics, excluding raw logs and machine identities")
     args = parser.parse_args()
     if args.plugin and (args.probe not in ISOLATED_PROBES or args.capture_bridge):
-        parser.error('--plugin is restricted to offscreen correctness/memory/benchmark probes')
+        parser.error('--plugin requires a verified offscreen probe without IOSurface/capture')
     if args.plugin and (not args.plugin.is_file() or args.plugin.name != 'NVMTLDriver'):
         parser.error('--plugin must name an existing NVMTLDriver binary')
     if args.continuous and (args.probe not in ('ga102_ca_visual','ga102_visual_present') or not args.capture_bridge):
