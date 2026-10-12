@@ -7775,13 +7775,14 @@ diff -ruN --exclude=subprojects --exclude=ci --exclude=build* --exclude=*.pyc --
 +void nvRmSemSurfReset(struct NvRmSemSurf *semSurf, NvU64 index);
 diff -ruN --exclude=subprojects --exclude=ci --exclude=build* --exclude=*.pyc --exclude=__pycache__ --exclude=*.bak* --exclude=*.orig --exclude=.git --exclude=open-gpu-kernel-modules --strip-trailing-cr upmesa/mesa-17ca6174/src/nouveau/vulkan/nvkmd/nvrm/nvkmd_nvrm.h rebase263/mesa/src/nouveau/vulkan/nvkmd/nvrm/nvkmd_nvrm.h
 --- a/src/nouveau/vulkan/nvkmd/nvrm/nvkmd_nvrm.h	1969-12-31 16:00:00
-+++ b/src/nouveau/vulkan/nvkmd/nvrm/nvkmd_nvrm.h	2026-10-05 07:44:54
-@@ -0,0 +1,296 @@
++++ b/src/nouveau/vulkan/nvkmd/nvrm/nvkmd_nvrm.h	2026-10-12 00:00:00
+@@ -0,0 +1,284 @@
 +
 +
 +
 +#ifndef NVKMD_NVRM_H
 +#define NVKMD_NVRM_H 1
++#include "nvmtl_cfg.h"
 +
 +#include <string.h>
 +#include "nvkmd/nvkmd.h"
@@ -8041,27 +8042,14 @@ diff -ruN --exclude=subprojects --exclude=ci --exclude=build* --exclude=*.pyc --
 +static inline bool
 +nvrm610_on(const char *item)
 +{
-+   char k[64];
-+   snprintf(k, sizeof k, "NVRM_610_%s", item);
-+   const char *e = getenv(k);
-+
-+
-+   if (!e) {
-+      static char conf[8192]; static int loaded;
-+      if (!loaded) {
-+         loaded = 1;
-+         FILE *f = fopen("/Library/GPUBundles/nvmtl/nvrm610.conf", "r");
-+         if (f) { size_t n = fread(conf, 1, sizeof conf - 1, f); conf[n] = 0; fclose(f); }
-+      }
-+      char key[80]; snprintf(key, sizeof key, "%s=", item);
-+      const char *hit = strstr(conf, key);
-+      if (hit && (hit == conf || hit[-1] == '\n')) {
-+         char v = hit[strlen(key)];
-+         fprintf(stderr, "nvrm: 610 %s=%c (nvrm610.conf)\n", item, v);
-+         return v != '0';
-+      }
++   char key[64];
++   snprintf(key, sizeof key, "NVRM_610_%s", item);
++   const char *value = getenv(key);
++   if (!value) {
++      value = nvmtl_cfg_getfile(item);
++      if (value) fprintf(stderr, "nvrm: 610 %s=%c (nvrm610.conf)\n", item, value[0]);
 +   }
-+   return !(e && e[0] == '0');
++   return !value || value[0] != '0';
 +}
 +
 +static inline void
@@ -8075,8 +8063,8 @@ diff -ruN --exclude=subprojects --exclude=ci --exclude=build* --exclude=*.pyc --
 +#endif
 diff -ruN --exclude=subprojects --exclude=ci --exclude=build* --exclude=*.pyc --exclude=__pycache__ --exclude=*.bak* --exclude=*.orig --exclude=.git --exclude=open-gpu-kernel-modules --strip-trailing-cr upmesa/mesa-17ca6174/src/nouveau/vulkan/nvkmd/nvrm/nvkmd_nvrm_ctx.c rebase263/mesa/src/nouveau/vulkan/nvkmd/nvrm/nvkmd_nvrm_ctx.c
 --- a/src/nouveau/vulkan/nvkmd/nvrm/nvkmd_nvrm_ctx.c	1969-12-31 16:00:00
-+++ b/src/nouveau/vulkan/nvkmd/nvrm/nvkmd_nvrm_ctx.c	2026-10-05 15:58:51
-@@ -0,0 +1,1322 @@
++++ b/src/nouveau/vulkan/nvkmd/nvrm/nvkmd_nvrm_ctx.c	2026-10-12 00:00:00
+@@ -0,0 +1,1308 @@
 +
 +
 +
@@ -8122,23 +8110,9 @@ diff -ruN --exclude=subprojects --exclude=ci --exclude=build* --exclude=*.pyc --
 +#include <string.h>
 +static const char *nvmtl_conf_getenv(const char *name)
 +{
-+   const char *e = getenv(name);
-+   if (e) return e;
-+   static char conf[8192]; static int loaded;
-+   if (!loaded) {
-+      loaded = 1;
-+      FILE *f = fopen("/Library/GPUBundles/nvmtl/nvrm610.conf", "r");
-+      if (f) { size_t n = fread(conf, 1, sizeof conf - 1, f); conf[n] = 0; fclose(f); }
-+   }
-+   char key[96]; snprintf(key, sizeof key, "%s=", name);
-+   const char *h = strstr(conf, key);
-+   if (!h || (h != conf && h[-1] != '\n')) return NULL;
-+   static char val[64]; size_t i = 0; h += strlen(key);
-+   while (h[i] && h[i] != '\n' && i < sizeof val - 1) { val[i] = h[i]; i++; }
-+   val[i] = 0;
-+   fprintf(stderr, "nvk: %s=%s (nvrm610.conf)\n", name, val);
-+   return val;
++   return nvmtl_cfg_getenv(name);
 +}
++
 +
 +
 +#define SUBC_NVC36F 0
@@ -11817,32 +11791,62 @@ diff -ruN --exclude=subprojects --exclude=ci --exclude=build* --exclude=*.pyc --
 +#endif
 diff -ruN --exclude=subprojects --exclude=ci --exclude=build* --exclude=*.pyc --exclude=__pycache__ --exclude=*.bak* --exclude=*.orig --exclude=.git --exclude=open-gpu-kernel-modules --strip-trailing-cr upmesa/mesa-17ca6174/src/nouveau/vulkan/nvmtl_cfg.h rebase263/mesa/src/nouveau/vulkan/nvmtl_cfg.h
 --- a/src/nouveau/vulkan/nvmtl_cfg.h	1969-12-31 16:00:00
-+++ b/src/nouveau/vulkan/nvmtl_cfg.h	2026-10-05 07:44:54
-@@ -0,0 +1,26 @@
-+
++++ b/src/nouveau/vulkan/nvmtl_cfg.h	2026-10-12 00:00:00
+@@ -0,0 +1,56 @@
 +#ifndef NVMTL_CFG_H
 +#define NVMTL_CFG_H
 +#include <stdio.h>
 +#include <stdlib.h>
 +#include <string.h>
++#include <pthread.h>
++
++static char nvmtl_cfg_text[8192];
++static pthread_once_t nvmtl_cfg_once = PTHREAD_ONCE_INIT;
++
++static void nvmtl_cfg_load(void)
++{
++   FILE *f = fopen("/Library/GPUBundles/nvmtl/nvrm610.conf", "r");
++   if (f) {
++      size_t n = fread(nvmtl_cfg_text, 1, sizeof nvmtl_cfg_text - 1, f);
++      nvmtl_cfg_text[n] = 0;
++      fclose(f);
++   }
++}
++
++static inline const char *nvmtl_cfg_getfile(const char *name)
++{
++   if (!name || !*name) return NULL;
++   pthread_once(&nvmtl_cfg_once, nvmtl_cfg_load);
++   size_t length = strlen(name);
++   const char *line = nvmtl_cfg_text;
++   while (*line) {
++      const char *end = strchr(line, '\n');
++      if (!end) end = line + strlen(line);
++      if ((size_t)(end - line) > length && !memcmp(line, name, length) && line[length] == '=') {
++         static __thread char values[8][64];
++         static __thread unsigned index;
++         char *value = values[index++ % 8];
++         const char *start = line + length + 1;
++         size_t count = end - start;
++         if (count && start[count - 1] == '\r') count--;
++         if (count > 63) count = 63;
++         memcpy(value, start, count);
++         value[count] = 0;
++         return value;
++      }
++      line = *end ? end + 1 : end;
++   }
++   return NULL;
++}
++
 +static inline const char *nvmtl_cfg_getenv(const char *name)
 +{
-+   const char *e = getenv(name);
-+   if (e) return e;
-+   static char conf[8192]; static int loaded;
-+   if (!loaded) {
-+      loaded = 1;
-+      FILE *f = fopen("/Library/GPUBundles/nvmtl/nvrm610.conf", "r");
-+      if (f) { size_t n = fread(conf, 1, sizeof conf - 1, f); conf[n] = 0; fclose(f); }
-+   }
-+   char key[96]; snprintf(key, sizeof key, "%s=", name);
-+   const char *h = strstr(conf, key);
-+   if (!h || (h != conf && h[-1] != '\n')) return NULL;
-+   static char val[8][64]; static unsigned vi; char *v = val[vi++ % 8]; size_t i = 0; h += strlen(key);
-+   while (h[i] && h[i] != '\n' && i < 63) { v[i] = h[i]; i++; }
-+   v[i] = 0;
-+   fprintf(stderr, "nvk-cfg: %s=%s (nvrm610.conf)\n", name, v);
-+   return v;
++   if (!name || !*name) return NULL;
++   const char *value = getenv(name);
++   if (value) return value;
++   value = nvmtl_cfg_getfile(name);
++   if (value) fprintf(stderr, "nvk-cfg: %s=%s (nvrm610.conf)\n", name, value);
++   return value;
 +}
 +#endif
 diff -ruN --exclude=subprojects --exclude=ci --exclude=build* --exclude=*.pyc --exclude=__pycache__ --exclude=*.bak* --exclude=*.orig --exclude=.git --exclude=open-gpu-kernel-modules --strip-trailing-cr upmesa/mesa-17ca6174/src/nouveau/vulkan/nvmtl_nvk_sass.c rebase263/mesa/src/nouveau/vulkan/nvmtl_nvk_sass.c

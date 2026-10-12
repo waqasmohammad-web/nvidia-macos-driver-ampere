@@ -3271,3 +3271,29 @@ separate standalone framebuffer/NVRM archive/boot work remain unqualified.
    configuration or invoking hardware power/reset paths.
 3. Prepare explicit isolated NVK dependency selection/provenance before any
    source-NVK GPU test. Keep the loaded driver and supervised PM boundaries.
+
+### Cloud handover and NVK configuration synchronization
+
+The active two-job NVK rebuild finished successfully before handover preparation.
+The config-helper candidate uses pthread_once publication, exact line keys and
+thread-local borrowed buffers. NVRM delegates its duplicate lookup while retaining
+prefixed environment precedence. Original source fails parser controls and emits
+TSan races; candidate parser/first-use/ring tests pass without warnings. The revised
+complete patch was dry-run checked against the pinned Mesa base and rebuilt into
+a native NVK dylib. See `evidence/ga102-nvk-config.json`. No candidate GPU behavior
+or sleep/wake recovery is claimed; installed components remain unchanged.
+
+The selected Python suite passes 72 tests with site packages disabled. Native
+Rust tests and pure C config extraction are suitable cloud candidates; initial
+Linux qualification remains pending. See `GA102-CLOUD-HANDOVER.md` for dependency,
+resource and platform gates. Two recovered unfinished Swift presentation edits
+remain preserved locally, outside the published baseline.
+
+### NEXT-STEPS
+
+1. Select dev/ga102-3080ti-diagnostics in cloud; run bash .codex/cloud-setup.sh.
+2. Run the handover's small native parse/volatile/memcpy groups with one job/thread;
+   establish the current full baseline only after resource checks.
+3. Repair remaining buffer/texture semantic regressions with negative controls.
+4. Keep source-NVK GPU provenance and PM deployment/wake validation for macOS
+   and the physical card under the existing supervision boundaries.

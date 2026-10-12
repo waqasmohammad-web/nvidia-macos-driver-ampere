@@ -1,0 +1,58 @@
+{
+  "scope": "CPU extracted production config helper; owned fixture only",
+  "results": [
+    {
+      "variant": "original",
+      "sanitizer": "thread",
+      "mode": "parser",
+      "exit_code": 1,
+      "race_warnings": 0,
+      "source_sha256": "4c32e9ebfe1f9a7b7df313c5880029a1499c2a67211dd1208a9b75c308deb743"
+    },
+    {
+      "variant": "original",
+      "sanitizer": "thread",
+      "mode": "first-use",
+      "exit_code": -6,
+      "race_warnings": 2,
+      "source_sha256": "4c32e9ebfe1f9a7b7df313c5880029a1499c2a67211dd1208a9b75c308deb743"
+    },
+    {
+      "variant": "original",
+      "sanitizer": "thread",
+      "mode": "ring",
+      "exit_code": -6,
+      "race_warnings": 4,
+      "source_sha256": "4c32e9ebfe1f9a7b7df313c5880029a1499c2a67211dd1208a9b75c308deb743"
+    },
+    {
+      "variant": "candidate",
+      "sanitizer": "thread",
+      "mode": "parser",
+      "exit_code": 0,
+      "race_warnings": 0,
+      "source_sha256": "2368c7e9e743b168640e11660ff2cd07d3608a45dc047ddc03062808dd08fbf0"
+    },
+    {
+      "variant": "candidate",
+      "sanitizer": "thread",
+      "mode": "first-use",
+      "exit_code": 0,
+      "race_warnings": 0,
+      "source_sha256": "2368c7e9e743b168640e11660ff2cd07d3608a45dc047ddc03062808dd08fbf0"
+    },
+    {
+      "variant": "candidate",
+      "sanitizer": "thread",
+      "mode": "ring",
+      "exit_code": 0,
+      "race_warnings": 0,
+      "source_sha256": "2368c7e9e743b168640e11660ff2cd07d3608a45dc047ddc03062808dd08fbf0"
+    }
+  ],
+  "native_nvk_rebuild_exit_code": 0,
+  "native_nvk_sha256": "0ada68cfd6e7b81da6e9ff2b6a7c5673f8e86cad6afaeed948c408a4f75d4a6e",
+  "hardware_validation": "NOT VERIFIED",
+  "installed_components_changed": false,
+  "linux_validation": "Pending hosted qualification"
+}
