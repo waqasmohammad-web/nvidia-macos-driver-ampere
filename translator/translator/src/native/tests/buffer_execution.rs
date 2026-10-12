@@ -14,13 +14,25 @@ enum Value {
     },
 }
 
+#[derive(Debug)]
+pub(super) struct Access {
+    pub opcode: Op,
+    pub set: u32,
+    pub offset: u64,
+    pub bytes: u32,
+    pub volatile: bool,
+}
+
 #[derive(Default)]
-pub(super) struct Memory(pub HashMap<(u32, u32, u64), u8>);
+pub(super) struct Memory {
+    pub bytes: HashMap<(u32, u32, u64), u8>,
+    pub accesses: Vec<Access>,
+}
 const PHYSICAL: u32 = u32::MAX;
 impl Memory {
     pub fn put(&mut self, set: u32, binding: u32, offset: u64, bits: u64, bytes: u32) {
         for i in 0..bytes {
-            self.0.insert(
+            self.bytes.insert(
                 (set, binding, offset + u64::from(i)),
                 (bits >> (8 * i)) as u8,
             );
@@ -33,7 +45,7 @@ impl Memory {
         (0..bytes).fold(0, |bits, i| {
             bits | (u64::from(
                 *self
-                    .0
+                    .bytes
                     .get(&(set, binding, offset + u64::from(i)))
                     .expect("regression executor read unspecified memory"),
             ) << (8 * i))
@@ -97,6 +109,18 @@ impl<'a> Executor<'a> {
             }
             _ => panic!("unsupported executor size: {i:?}"),
         }
+    }
+    fn record_access(&mut self, i: &Instruction, set: u32, offset: u64, bytes: u32) {
+        self.memory.accesses.push(Access {
+            opcode: i.class.opcode,
+            set,
+            offset,
+            bytes,
+            volatile: i.operands.iter().any(|o| {
+                matches!(o, Operand::MemoryAccess(flags)
+                if flags.contains(spirv::MemoryAccess::VOLATILE))
+            }),
+        });
     }
     fn call(&mut self, function: Word, args: Vec<Value>) -> Option<Value> {
         let f = self
@@ -235,6 +259,12 @@ impl<'a> Executor<'a> {
                         else {
                             panic!("load pointer");
                         };
+                        self.record_access(
+                            i,
+                            set,
+                            offset,
+                            self.size(i.result_type.unwrap()) as u32,
+                        );
                         Some(Value::Scalar(self.memory.get(
                             set,
                             binding,
@@ -252,6 +282,7 @@ impl<'a> Executor<'a> {
                         else {
                             panic!("store pointer");
                         };
+                        self.record_access(i, set, offset, self.size(pointee) as u32);
                         self.memory
                             .put(set, binding, offset, scalar(1), self.size(pointee) as u32);
                         None

@@ -84,11 +84,16 @@ fn main() {
         let warm = translate();
         metal2vulkan::tools::spirv_val_bytes(&warm, &output).expect("real validation of warmup");
         let mut times = Vec::new();
+        let reference = warm.clone();
         let mut last = warm;
         for _ in 0..samples {
             let start = Instant::now();
             last = translate();
             times.push(start.elapsed().as_nanos() as u64);
+            assert_eq!(
+                last, reference,
+                "every measured shader must match the validated warmup"
+            );
             black_box(&last);
         }
         metal2vulkan::tools::spirv_val_bytes(&last, &output)

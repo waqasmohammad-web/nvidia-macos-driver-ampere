@@ -842,9 +842,7 @@ entry:
     let _ = std::fs::remove_dir_all(tmp);
 }
 
-#[test]
-fn native_generic_callback_table_cursor_is_refused_not_silently_emptied() {
-    let ll = r#"
+const GENERIC_CALLBACK_TABLE_LL: &str = r#"
 target triple = "spirv-unknown-vulkan1.2"
 @next_buffer = internal addrspace(2) global i32 1
 
@@ -871,7 +869,19 @@ entry:
 !2 = !{!3}
 !3 = !{i32 0, !"air.buffer", !"air.location_index", i32 0, ptr addrspace(2) @next_buffer, !"air.read_write", !"air.address_space", i32 1, !"air.arg_type_name", !"array_ref<void>", !"air.arg_name", !"buffers"}
 "#;
-    let parsed = crate::native::ir::LlModule::parse(ll).expect("parse callback table cursor");
+
+#[test]
+fn native_generic_callback_mixed_table_cursor_is_refused_not_silently_emptied() {
+    // The accepted table proof deliberately excludes generic cursors also used
+    // as ordinary data. Keep that unsupported case explicit instead of losing
+    // its read or silently materializing a guessed device address.
+    let ll = GENERIC_CALLBACK_TABLE_LL
+        .replace(
+            "  %slot = getelementptr",
+            "  %probe = load i32, ptr %table, align 4\n  %slot = getelementptr",
+        )
+        .replace("store i32 7,", "store i32 %probe,");
+    let parsed = crate::native::ir::LlModule::parse(&ll).expect("parse callback table cursor");
     assert!(
         crate::native::emit_tiers::requires_device_address_model(&parsed),
         "a generic callback cursor over device-pointer elements requires physical addresses"
@@ -881,7 +891,7 @@ entry:
         std::process::id()
     ));
     let _ = std::fs::create_dir_all(&tmp);
-    let error = crate::translate_sanitized_native(ll, Stage::Kernel, &tmp)
+    let error = crate::translate_sanitized_native(&ll, Stage::Kernel, &tmp)
         .err()
         .unwrap_or_else(|| {
             panic!(
@@ -896,49 +906,121 @@ entry:
 }
 
 #[test]
-#[ignore = "known defect: the device-address store is refused, not kept; see the doc comment"]
 fn native_generic_callback_table_cursor_keeps_its_store() {
-    let ll = r#"
-target triple = "spirv-unknown-vulkan1.2"
-@next_buffer = internal addrspace(2) global i32 1
-
-define void @k(ptr %buffers) {
-entry:
-  call void @callback(ptr %buffers)
-  ret void
-}
-
-define internal void @callback(ptr %state) {
-entry:
-  %alias = bitcast ptr %state to ptr
-  %table = load ptr, ptr %alias, align 8
-  %slot = getelementptr inbounds ptr addrspace(1), ptr %table, i64 1
-  %slot_alias = bitcast ptr %slot to ptr
-  %buffer = load ptr addrspace(1), ptr %slot_alias, align 8
-  store i32 7, ptr addrspace(1) %buffer, align 4
-  ret void
-}
-
-!air.kernel = !{!0}
-!0 = !{ptr @k, !1, !2}
-!1 = !{}
-!2 = !{!3}
-!3 = !{i32 0, !"air.buffer", !"air.location_index", i32 0, ptr addrspace(2) @next_buffer, !"air.read_write", !"air.address_space", i32 1, !"air.arg_type_name", !"array_ref<void>", !"air.arg_name", !"buffers"}
-"#;
+    let ll = GENERIC_CALLBACK_TABLE_LL;
     let tmp = std::env::temp_dir().join(format!(
-        "metal2vulkan_native_callback_table_cursor_store_{}",
+        "metal2vulkan_callback_store_proof_{}",
         std::process::id()
     ));
-    let _ = std::fs::create_dir_all(&tmp);
-    let spv = crate::translate_sanitized_native(ll, Stage::Kernel, &tmp)
+    // Exercise the original constant slot, runtime indices and volatile accesses.
+    let dynamic = ll.replace("  %slot = getelementptr", "  %index_ptr = getelementptr inbounds i8, ptr %state, i64 8\n  %index = load i64, ptr %index_ptr, align 8\n  %slot = getelementptr")
+        .replace("ptr %table, i64 1", "ptr %table, i64 %index");
+    let volatile = ll
+        .replace("load ptr", "load volatile ptr")
+        .replace("store i32 7", "store volatile i32 7");
+    for (source, indices, is_volatile) in [
+        (ll, &[1u64][..], false),
+        (dynamic.as_str(), &[0, 1, 2][..], false),
+        (volatile.as_str(), &[1][..], true),
+    ] {
+        let spv = crate::translate_sanitized_native_with_options(
+            source,
+            Stage::Kernel,
+            &tmp,
+            whole_workgroup_options(),
+        )
         .unwrap_or_else(|error| panic!("the translation is refused rather than emitted: {error}"));
-    let asm = disassemble(&spv).expect("disassemble");
-    let _ = std::fs::remove_dir_all(tmp);
-    assert!(
-        asm.contains("OpStore"),
-        "the AIR stores 7 through the device pointer it loads from the table, so the module must \
-         contain a store; it contains none:\n{asm}"
-    );
+        let asm = disassemble(&spv).expect("disassemble");
+        assert!(
+            asm.contains("OpStore"),
+            "the AIR store must reach the device, not disappear: {asm}"
+        );
+        tools::spirv_val_bytes(&spv, &tmp).expect("real callback SPIR-V validation");
+        let module = load_bytes(&spv).expect("module");
+        let run = |module: &Module, index: u64, check_accesses: bool| {
+            let mut memory = super::buffer_execution::Memory::default();
+            let state = 0x1234567800001000;
+            let table = 0x2345678900002000;
+            let destinations = [0x3456789a00003000, 0x456789ab00004000, 0x56789abc00005000];
+            memory.put(0, 640, 32 * 8, state, 8);
+            memory.physical(state, table, 8);
+            memory.physical(state + 8, index, 8);
+            for (slot, address) in destinations.iter().enumerate() {
+                memory.physical(table + slot as u64 * 8, *address, 8);
+                memory.physical(*address, 0xaabbccdd, 4);
+                memory.physical(*address + 4, 0x11223344, 4);
+            }
+            let mut expected = memory.bytes.clone();
+            for i in 0..4u64 {
+                expected.insert(
+                    (u32::MAX, 0, destinations[index as usize] + i),
+                    (7u32 >> (8 * i)) as u8,
+                );
+            }
+            super::buffer_execution::execute(module, &mut memory);
+            if is_volatile && check_accesses {
+                let actual = memory
+                    .accesses
+                    .iter()
+                    .filter(|a| a.set == u32::MAX)
+                    .map(|a| (a.opcode, a.offset, a.bytes, a.volatile))
+                    .collect::<Vec<_>>();
+                assert_eq!(
+                    actual,
+                    vec![
+                        (Op::Load, state, 8, true),
+                        (Op::Load, table + 8, 8, true),
+                        (Op::Store, destinations[1], 4, true)
+                    ],
+                    "each executed physical pointer read and the final store must retain Volatile"
+                );
+            }
+            (memory.bytes, expected)
+        };
+        for &index in indices {
+            let (actual, expected) = run(&module, index, true);
+            assert_eq!(
+                actual, expected,
+                "only the selected destination's four bytes may change, index {index}\n{asm}"
+            );
+        }
+        let stores = module
+            .all_inst_iter()
+            .filter(|i| i.class.opcode == Op::Store)
+            .count();
+        assert_eq!(
+            stores, 1,
+            "the original callback has exactly one observable store"
+        );
+        let mut lost_store = module.clone();
+        for f in &mut lost_store.functions {
+            for b in &mut f.blocks {
+                b.instructions.retain(|i| i.class.opcode != Op::Store);
+            }
+        }
+        tools::spirv_val_bytes(&super::buffer_execution::bytes(&lost_store), &tmp)
+            .expect("valid lost-store negative control");
+        for &index in indices {
+            let (actual, expected) = run(&lost_store, index, false);
+            assert_ne!(actual, expected, "store removal must be observable");
+        }
+        if source == ll {
+            let mut wrong_slot = module.clone();
+            let mut changed = 0;
+            for i in &mut wrong_slot.types_global_values {
+                if i.class.opcode == Op::Constant && i.operands == [Operand::LiteralBit64(8)] {
+                    i.operands = vec![Operand::LiteralBit64(16)];
+                    changed += 1;
+                }
+            }
+            assert_eq!(changed, 1, "change only the 8-byte table-slot offset");
+            tools::spirv_val_bytes(&super::buffer_execution::bytes(&wrong_slot), &tmp)
+                .expect("valid wrong-slot negative control");
+            let (actual, expected) = run(&wrong_slot, 1, false);
+            assert_ne!(actual, expected, "wrong table entry must be observable");
+        }
+    }
+    std::fs::remove_dir_all(tmp).expect("remove scratch");
 }
 
 #[test]

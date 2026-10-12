@@ -3361,3 +3361,68 @@ external private fixtures and actual RTX 3080 Ti behavior remain unqualified.
    optimized compilation, compositor pacing and stability with verified source/image
    provenance. No macOS build, physical-host access or installed-component change
    was performed in this Linux session.
+
+### Generic callback store fix and optimized compilation qualification
+
+The explicitly executed ignored callback regression reproduced a genuine emitter
+defect: its device store was refused because the preceding generic table-pointer
+load became an unmodeled placeholder. Existing typed analysis already recognizes
+non-escaping generic device-pointer tables. Field/aggregate load paths consumed
+that proof, but the raw-buffer load path accepted only address-space 1/2 pointer
+results. It now also materializes recognized address-space 0 table loads as real
+64-bit device addresses, using existing guarded loads, offset calculation and
+access flags. Other generic pointer uses retain their previous handling.
+
+The original regression is now enabled after mandatory real SPIR-V validation and
+observable memory proof. Original slot 1, runtime slots 0/1/2 and a volatile variant
+store exactly integer 7 into the selected four bytes, preserving every other byte
+and nontrivial high address halves. Executed volatile accesses check both 8-byte
+pointer reads and the 4-byte store, including shared guarded-helper reuse. Valid
+lost-store and wrong-slot SPIR-V mutations fail the memory oracle. The former
+refusal regression now supplies an actual mixed table/data use, which still fails
+explicitly rather than losing its read/store. Buffer group: 287 PASS / zero ignored.
+
+Release builds fit the existing cloud budget: Rust 1.87, optimization level 3,
+16 codegen units, incremental disabled, one job and offline locked dependencies.
+Baseline/candidate builds took 205.55/194.79 seconds, with sampled total cgroup
+memory peaks below 4.7 GiB of the 8 GiB limit. The only benchmark implementation
+difference is the original versus optimized `clamp_edges`; callback code and
+workloads are identical. No LLVM/Mesa/wrapper or macOS toolchain was rebuilt.
+
+Ten alternating paired process rounds provide **100 samples per variant per
+workload**. Timing includes the native compilation pipeline and excludes validator
+subprocesses and byte comparisons. Every measured shader equals its validated
+warmup; all twenty process outputs and source workloads match across variants.
+Warmup and final modules pass real SPIRV-Tools v2026.4 validation.
+
+| Workload | Median ms, original -> optimized | p95 ms, original -> optimized | Median reduction | CV %, original -> optimized |
+| --- | --- | --- | --- | --- |
+| 16 precise float4 operations | 3.41 -> 3.23 | 5.64 -> 5.04 | 5.45% | 30.00 -> 33.49 |
+| 64 precise float4 operations | 10.97 -> 9.55 | 11.54 -> 10.71 | 12.98% | 15.99 -> 5.83 |
+| 256 precise float4 operations | 55.71 -> 36.61 | 57.78 -> 40.60 | 34.28% | 2.22 -> 6.67 |
+| 64 precise scalar operations | 9.02 -> 7.79 | 9.41 -> 8.16 | 13.61% | 1.88 -> 2.05 |
+| 64 fast float4 operations | 10.98 -> 9.46 | 11.39 -> 10.04 | 13.81% | 2.88 -> 3.79 |
+
+The debug improvement remains meaningful in this optimized comparison. The
+primary 256-operation case improves in all ten pairs; a 20,000-resample bootstrap
+of paired process-median reductions gives a 95% interval of 33.56–35.11%. This
+interval estimates the paired-median reduction, separately from the overall
+sample-median ratio in the table. The smallest case has substantial variability;
+no general small-shader or actual desktop/FPS improvement is established. Exact
+samples, IQR/ranges, byte hashes and build settings are in
+[`evidence/ga102-callback-release.json`](evidence/ga102-callback-release.json).
+Full native suite: **2159 PASS / zero FAIL / zero ignored** (102.00 seconds).
+Python GA102 tests: 72 PASS. Actual Sequoia/RTX 3080 Ti behavior remains untested.
+
+### NEXT-STEPS
+
+1. Reproduce the now-enabled store proof:
+   `CARGO_BUILD_JOBS=1 RUST_TEST_THREADS=1 cargo test --offline --locked --manifest-path translator/translator/Cargo.toml --lib native_generic_callback -- --test-threads=1`.
+2. Reproduce optimized workloads outside Git:
+   `CARGO_BUILD_JOBS=1 CARGO_PROFILE_RELEASE_CODEGEN_UNITS=16 CARGO_PROFILE_RELEASE_INCREMENTAL=false cargo run --offline --locked --release --manifest-path translator/translator/Cargo.toml --example benchmark_saturation -- work/release-saturation 10`.
+   Compare original/optimized bounds lookup with otherwise identical source and
+   alternate process order; keep binaries and generated shaders outside Git.
+3. A later authorized hardware session must validate rendering and stability for
+   callback-bearing shaders and profile compilation/desktop pacing with verified
+   candidate image provenance. No physical-host access or installed-system changes
+   were made in this Linux work.

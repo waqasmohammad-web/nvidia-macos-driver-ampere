@@ -23,13 +23,14 @@ sections of `GA102-INVESTIGATION.md`. Two recovered Swift presentation experimen
 remain unfinished and preserved locally; they are excluded from this cloud baseline.
 Do not import private artifact directories to recover them.
 
-Linux continuation on 2026-10-12 resolved the six stale native regressions with
-semantic controls: full suite 2158 PASS / zero FAIL / one pre-existing ignored.
-The saturation type-query change improves owned Linux debug compilation workloads;
-actual desktop gains remain unqualified. Extracted config tests now pass Linux
-ASan+UBSan and TSan. See the latest investigation checkpoint and
-[`evidence/ga102-linux-translator.json`](evidence/ga102-linux-translator.json) for
-current results; the initial priorities below describe the original handover.
+Linux continuation on 2026-10-12 repaired the six stale native regressions and
+then fixed the genuine generic callback table/store refusal. Full native suite:
+2159 PASS / zero FAIL / zero ignored, with observable stores and validated negative
+controls. Optimized release saturation compilation improves the largest owned
+workload's median by 34.28% (100 samples per variant); actual desktop gains remain
+unqualified. Extracted config tests pass Linux ASan+UBSan and TSan. Read the latest
+investigation checkpoint and `evidence/ga102-callback-release.json` for current
+results; the initial priorities below describe the original handover.
 
 ## What can move
 

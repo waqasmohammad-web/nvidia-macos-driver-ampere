@@ -2180,7 +2180,13 @@ impl Emitter {
                     return Ok(());
                 }
                 if self.bda_device_pointers && !self.opaque_resource_pointers.contains(&name) {
-                    if let LlType::Ptr(1 | 2) = result_ty {
+                    // A generic pointer is a device address only when the typed
+                    // use analysis proves it is a non-escaping device-pointer
+                    // table. Other generic loads must retain their logical or
+                    // explicitly unmodeled representation.
+                    if matches!(result_ty, LlType::Ptr(1 | 2))
+                        || (result_ty == LlType::Ptr(0) && self.bda_pointer_tables.contains(&name))
+                    {
                         let addr = self.result_id(&bda_address_name(&name), &LlType::Int(64))?;
                         self.emit_raw_load(addr, &LlType::Int(64), &raw, load.align, instructions)?;
                         self.bda_address_values.insert(addr);
