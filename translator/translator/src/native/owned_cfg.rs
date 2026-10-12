@@ -6551,7 +6551,10 @@ mod tests {
 
     fn assert_owned_invalid(module: &Module, expected: &str) {
         match owned_module_failure(module) {
-            Some(OwnedModuleFailure::Invalid(error)) => assert_eq!(error, expected),
+            Some(OwnedModuleFailure::Invalid(error)) => {
+                let summary = error.split_once(" [").map_or(error.as_str(), |(summary, _)| summary);
+                assert_eq!(summary, expected);
+            }
             Some(OwnedModuleFailure::CfgConstruction(error)) => {
                 panic!("invalid value contract was misclassified as CFG construction: {error}")
             }

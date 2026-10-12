@@ -17,6 +17,23 @@ use spirv::{Decoration, Op, Scope, SelectionControl, StorageClass, Word};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
+fn assert_nan_integer_conversions_are_zeroed(module: &crate::spirv_module::Module, count: usize) {
+    let defs = module.all_inst_iter().filter_map(|instruction| {
+        Some((instruction.result_id?, instruction))
+    }).collect::<HashMap<_, _>>();
+    let checks = module.all_inst_iter().filter(|instruction| instruction.class.opcode == Op::IsNan)
+        .filter_map(|instruction| instruction.result_id).collect::<Vec<_>>();
+    assert_eq!(checks.len(), count);
+    for check in checks {
+        assert!(module.all_inst_iter().any(|instruction| {
+            if instruction.class.opcode != Op::Select { return false; }
+            let [Operand::IdRef(condition), Operand::IdRef(zero), Operand::IdRef(converted)] = instruction.operands.as_slice() else { return false; };
+            *condition == check && defs.get(zero).is_some_and(|value| value.class.opcode == Op::ConstantNull)
+                && defs.get(converted).is_some_and(|value| value.class.opcode == Op::ConvertFToU)
+        }), "NaN must select zero while finite values retain their converted result");
+    }
+}
+
 #[test]
 fn native_llvm_umax_lowers_to_compare_select() {
     let ll = r#"
@@ -406,7 +423,7 @@ declare i16 @air.pack.unorm.rgb565.v3f16(<3 x half>)
     assert_eq!(asm.matches(" FClamp ").count(), 0, "{asm}");
     assert_eq!(asm.matches(" RoundEven ").count(), 3, "{asm}");
     assert_eq!(asm.matches(" Round ").count(), 0, "{asm}");
-    assert_eq!(asm.matches("OpIsNan").count(), 0, "{asm}");
+    assert_nan_integer_conversions_are_zeroed(&load_bytes(&spv).unwrap(), 3);
     assert_eq!(asm.matches("OpShiftLeftLogical").count(), 2, "{asm}");
     assert!(asm.contains("OpUConvert"), "{asm}");
     if std::process::Command::new("spirv-val")
@@ -452,7 +469,7 @@ declare i32 @air.pack.unorm.rgb10a2.v4f32(<4 x float>)
     assert_eq!(asm.matches(" FClamp ").count(), 0, "{asm}");
     assert_eq!(asm.matches(" Fma ").count(), 4, "{asm}");
     assert_eq!(asm.matches(" Floor ").count(), 4, "{asm}");
-    assert_eq!(asm.matches("OpIsNan").count(), 0, "{asm}");
+    assert_nan_integer_conversions_are_zeroed(&load_bytes(&spv).unwrap(), 4);
     assert_eq!(asm.matches("OpShiftLeftLogical").count(), 3, "{asm}");
 
     let module = load_bytes(&spv).expect("load native spv");
@@ -1874,6 +1891,14 @@ declare float @air.fast_tanpi.f32(float)
 
 #[test]
 fn native_fast_sincos_f32_zeroes_large_arguments() {
+    if std::env::var("NVMTL_XLATE_TRIG_FLUSH").as_deref() != Ok("1") {
+        let status = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "native::tests::intrinsics::native_fast_sincos_f32_zeroes_large_arguments", "--nocapture"])
+            .env("NVMTL_XLATE_TRIG_FLUSH", "1").status().expect("isolated opt-in trig test");
+        assert!(status.success());
+        return;
+    }
+
     let ll = r#"
 target triple = "spirv-unknown-vulkan1.2"
 define void @main(float %x) {

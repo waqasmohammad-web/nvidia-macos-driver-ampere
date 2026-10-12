@@ -17,6 +17,58 @@ use spirv::{Capability, Decoration, Op, Scope, SelectionControl, StorageClass, W
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
 
+fn direct_or_guarded_load_origins(module: &crate::spirv_module::Module) -> HashMap<Word, Word> {
+    let mut origins = module.all_inst_iter().filter_map(|instruction| {
+        if instruction.class.opcode != Op::Load { return None; }
+        let Some(Operand::IdRef(pointer)) = instruction.operands.first() else { return None; };
+        Some((instruction.result_id?, *pointer))
+    }).collect::<HashMap<_, _>>();
+    let nulls = module.types_global_values.iter().filter(|instruction| {
+        instruction.class.opcode == Op::ConstantNull
+    }).filter_map(|instruction| instruction.result_id).collect::<HashSet<_>>();
+    loop {
+        let before = origins.len();
+        for instruction in module.all_inst_iter() {
+            let Some(result) = instruction.result_id else { continue; };
+            if origins.contains_key(&result) { continue; }
+            let origin = match instruction.class.opcode {
+                Op::CopyObject | Op::FunctionCall => instruction.operands.first().and_then(|operand| {
+                    if let Operand::IdRef(value) = operand { origins.get(value).copied() } else { None }
+                }),
+                Op::Phi => {
+                    let mut source = None;
+                    let mut supported = true;
+                    for operand in instruction.operands.iter().step_by(2) {
+                        let Operand::IdRef(value) = operand else { supported = false; break; };
+                        if nulls.contains(value) { continue; }
+                        let Some(origin) = origins.get(value).copied() else { supported = false; break; };
+                        if source.is_some_and(|source| source != origin) { supported = false; break; }
+                        source = Some(origin);
+                    }
+                    if supported { source } else { None }
+                }
+                Op::Function => {
+                    let function = module.functions.iter().find(|function| {
+                        function.def.as_ref().and_then(|def| def.result_id) == Some(result)
+                    }).unwrap();
+                    let returns = function.blocks.iter().flat_map(|block| &block.instructions)
+                        .filter(|instruction| instruction.class.opcode == Op::ReturnValue)
+                        .filter_map(|instruction| match instruction.operands.first() {
+                            Some(Operand::IdRef(value)) => Some(*value), _ => None,
+                        }).collect::<Vec<_>>();
+                    let sources = returns.iter().map(|value| origins.get(value).copied()).collect::<Vec<_>>();
+                    sources.first().copied().flatten().filter(|source| {
+                        sources.iter().all(|candidate| *candidate == Some(*source))
+                    })
+                }
+                _ => None,
+            };
+            if let Some(origin) = origin { origins.insert(result, origin); }
+        }
+        if origins.len() == before { return origins; }
+    }
+}
+
 #[test]
 fn native_null_rooted_pointer_recurrence_is_valid_by_construction() {
     let ll = r#"
@@ -485,16 +537,12 @@ exit:
             .then_some(instruction.result_id?)
         })
         .collect::<HashSet<_>>();
-    let loaded_i16 = module
-        .all_inst_iter()
-        .filter_map(|instruction| {
-            (instruction.class.opcode == Op::Load
-                && instruction
-                    .result_type
-                    .is_some_and(|ty| i16_types.contains(&ty)))
-            .then_some(instruction.result_id?)
-        })
-        .collect::<HashSet<_>>();
+    let load_origins = direct_or_guarded_load_origins(&module);
+    let loaded_i16 = module.all_inst_iter().filter_map(|instruction| {
+        let id = instruction.result_id?;
+        (load_origins.contains_key(&id)
+            && instruction.result_type.is_some_and(|ty| i16_types.contains(&ty))).then_some(id)
+    }).collect::<HashSet<_>>();
     assert!(
         !loaded_i16.is_empty(),
         "direct source load was replaced with zero:\n{asm}"
@@ -507,6 +555,32 @@ exit:
         "direct destination store was discarded:\n{asm}"
     );
     tools::spirv_val_bytes(&spv, &tmp).expect("spirv-val");
+    let zero = module.types_global_values.iter().find(|instruction| {
+        instruction.class.opcode == Op::ConstantNull
+            && instruction.result_type.is_some_and(|ty| i16_types.contains(&ty))
+    }).and_then(|instruction| instruction.result_id).expect("guarded-load zero");
+    let mut lost_read = module.clone();
+    for function in &mut lost_read.functions {
+        for block in &mut function.blocks {
+            for instruction in &mut block.instructions {
+                if instruction.class.opcode == Op::Load
+                    && instruction.result_type.is_some_and(|ty| i16_types.contains(&ty))
+                {
+                    *instruction = Instruction::new(Op::CopyObject, instruction.result_type,
+                        instruction.result_id, vec![Operand::IdRef(zero)]);
+                }
+            }
+        }
+    }
+    let lost_origins = direct_or_guarded_load_origins(&lost_read);
+    assert!(!lost_read.all_inst_iter().any(|instruction| {
+        instruction.class.opcode == Op::Store
+            && matches!(instruction.operands.get(1), Some(Operand::IdRef(value))
+                if loaded_i16.contains(value) && lost_origins.contains_key(value))
+    }), "the provenance check must reject copied zeros in place of real reads");
+    let bytes = lost_read.assemble().iter().flat_map(|word| word.to_le_bytes()).collect::<Vec<_>>();
+    tools::spirv_val_bytes(&bytes, &tmp).expect("valid lost-read buffer-array control");
+
     let _ = std::fs::remove_dir_all(tmp);
 }
 
@@ -578,7 +652,7 @@ entry:
     });
     let nulls = ids(Op::ConstantNull, &|_| true);
     let mut address_of = HashMap::<Word, Word>::new();
-    let mut loaded_from = HashMap::<Word, Word>::new();
+    let mut loaded_from = direct_or_guarded_load_origins(&module);
     let zeros = ids(Op::Constant, &|instruction| {
         matches!(instruction.operands.first(), Some(Operand::LiteralBit32(0)))
     });
@@ -13641,79 +13715,80 @@ exit:
     ));
     let _ = std::fs::create_dir_all(&tmp);
     let spv = crate::translate_sanitized_native(ll, Stage::Kernel, &tmp).expect("translate");
-    let asm = disassemble(&spv).expect("disassemble");
-
-    let mut defs: HashMap<String, (String, String, Vec<String>)> = HashMap::new();
-    let mut type_decl: HashMap<String, String> = HashMap::new();
-    for line in asm.lines() {
-        let words: Vec<&str> = line.split_whitespace().collect();
-        let [result, "=", opcode, rest @ ..] = words.as_slice() else {
-            continue;
-        };
-        if opcode.starts_with("OpType") {
-            type_decl.insert(result.to_string(), format!("{opcode} {}", rest.join(" ")));
-            continue;
+    fn address_backedge_has_load(module: &crate::spirv_module::Module) -> bool {
+        let address_type = module.types_global_values.iter().find(|instruction| {
+            instruction.class.opcode == Op::TypeInt
+                && instruction.operands == vec![Operand::LiteralBit32(64), Operand::LiteralBit32(0)]
+        }).and_then(|instruction| instruction.result_id).expect("64-bit address type");
+        let header = module.functions.iter().flat_map(|function| &function.blocks)
+            .find(|block| block.instructions.iter().any(|instruction| instruction.class.opcode == Op::LoopMerge))
+            .expect("loop header");
+        let phi = header.instructions.iter().find(|instruction| {
+            instruction.class.opcode == Op::Phi && instruction.result_type == Some(address_type)
+        }).expect("loop-carried address phi");
+        let Operand::IdRef(backedge) = phi.operands[2] else { panic!("backedge value"); };
+        let defs = module.all_inst_iter().filter_map(|instruction| {
+            Some((instruction.result_id?, instruction))
+        }).collect::<HashMap<_, _>>();
+        let mut pending = vec![backedge];
+        let mut seen = HashSet::new();
+        while let Some(id) = pending.pop() {
+            if !seen.insert(id) || Some(id) == phi.result_id { continue; }
+            let Some(instruction) = defs.get(&id) else { continue; };
+            if instruction.class.opcode == Op::Load {
+                assert_eq!(instruction.result_type, Some(address_type), "child address load width");
+                return true;
+            }
+            match instruction.class.opcode {
+                Op::FunctionCall => {
+                    let Some(Operand::IdRef(callee)) = instruction.operands.first() else { continue; };
+                    let function = module.functions.iter().find(|function| {
+                        function.def.as_ref().and_then(|def| def.result_id) == Some(*callee)
+                    }).expect("guarded helper definition");
+                    pending.extend(function.blocks.iter().flat_map(|block| &block.instructions)
+                        .filter(|instruction| instruction.class.opcode == Op::ReturnValue)
+                        .filter_map(|instruction| match instruction.operands.first() {
+                            Some(Operand::IdRef(value)) => Some(*value), _ => None,
+                        }));
+                }
+                Op::Phi => pending.extend(instruction.operands.iter().step_by(2).filter_map(|operand| {
+                    if let Operand::IdRef(value) = operand { Some(*value) } else { None }
+                })),
+                _ => pending.extend(instruction.operands.iter().filter_map(|operand| {
+                    if let Operand::IdRef(value) = operand { Some(*value) } else { None }
+                })),
+            }
         }
-        let [ty, operands @ ..] = rest else {
-            continue;
-        };
-        let operands = operands
-            .iter()
-            .filter(|word| word.starts_with('%'))
-            .map(|word| word.to_string())
-            .collect();
-        defs.insert(
-            result.to_string(),
-            (opcode.to_string(), ty.to_string(), operands),
-        );
+        false
     }
-    let address_type = type_decl
-        .iter()
-        .find(|(_, decl)| decl.as_str() == "OpTypeInt 64 0")
-        .map(|(id, _)| id.clone())
-        .expect("a 64-bit integer type");
-
-    let backedge = defs
-        .values()
-        .find(|(opcode, ty, operands)| {
-            opcode == "OpPhi" && *ty == address_type && operands.len() == 4
+    let module = load_bytes(&spv).expect("load translated module");
+    assert!(address_backedge_has_load(&module), "backedge must retain the loaded child address");
+    let address_zero = module.types_global_values.iter().find(|instruction| {
+        instruction.class.opcode == Op::ConstantNull && instruction.result_type.is_some_and(|ty| {
+            module.types_global_values.iter().any(|decl| decl.result_id == Some(ty)
+                && decl.class.opcode == Op::TypeInt
+                && decl.operands == vec![Operand::LiteralBit32(64), Operand::LiteralBit32(0)])
         })
-        .map(|(_, _, operands)| operands[2].clone())
-        .expect("a 64-bit loop-carried address phi");
-
-    let mut pending = vec![backedge];
-    let mut seen: HashSet<String> = HashSet::new();
-    let mut loaded_address = false;
-    while let Some(id) = pending.pop() {
-        if !seen.insert(id.clone()) {
-            continue;
+    }).and_then(|instruction| instruction.result_id).expect("64-bit null address");
+    let mut missing_child = module.clone();
+    for function in &mut missing_child.functions {
+        for block in &mut function.blocks {
+            for instruction in &mut block.instructions {
+                if instruction.class.opcode == Op::Load && instruction.result_type == defs_type(&module, address_zero) {
+                    *instruction = Instruction::new(Op::CopyObject, instruction.result_type,
+                        instruction.result_id, vec![Operand::IdRef(address_zero)]);
+                }
+            }
         }
-        let Some((opcode, ty, operands)) = defs.get(&id) else {
-            continue;
-        };
-        let declared = type_decl.get(ty).cloned().unwrap_or_default();
-        assert!(
-            !declared.starts_with("OpTypePointer") && declared != "OpTypeBool",
-            "the loop-carried address cone reached {id} = {opcode} typed {declared}, \
-             which is not an address"
-        );
-        if opcode == "OpLoad" {
-            assert_eq!(
-                declared, "OpTypeInt 64 0",
-                "the child address must be loaded 64 bits wide, saw {id} = OpLoad {declared}"
-            );
-            loaded_address = true;
-            continue;
-        }
-        if opcode == "OpPhi" {
-            continue;
-        }
-        pending.extend(operands.iter().cloned());
     }
-    assert!(
-        loaded_address,
-        "the backedge address must derive from a 64-bit load of the child address"
-    );
+    assert!(!address_backedge_has_load(&missing_child), "zeroed child reads must fail the regression");
+    let bytes = missing_child.assemble().iter().flat_map(|word| word.to_le_bytes()).collect::<Vec<_>>();
+    tools::spirv_val_bytes(&bytes, &tmp).expect("valid lost-read negative control");
+    fn defs_type(module: &crate::spirv_module::Module, id: Word) -> Option<Word> {
+        module.types_global_values.iter().find(|instruction| instruction.result_id == Some(id))
+            .and_then(|instruction| instruction.result_type)
+    }
+
 }
 
 #[test]

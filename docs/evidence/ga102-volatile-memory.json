@@ -85,5 +85,30 @@
       "failed": 0
     },
     "volatile_memcpy_limit": "No volatile copy lowering is implemented; affected source inputs are rejected instead of silently dropped."
+  },
+  "native_regression_repairs": {
+    "loop_header_selection": "typed loop-header identification; guarded return provenance",
+    "lost_child_read_negative_control": "PASS: valid zero-read mutant rejected",
+    "fresh_process_pointer_checks_passed": 20,
+    "owned_texel_error_tests": "classification and diagnostic summary retained; appended details permitted",
+    "buffer_array_group": {
+      "passed": 4,
+      "failed": 0
+    },
+    "latest_full_suite_before_buffer_array_repairs": {
+      "passed": 2146,
+      "failed": 11,
+      "ignored": 1
+    },
+    "buffer_group_after_lost_read_control": {
+      "passed": 284,
+      "failed": 2,
+      "ignored": 1
+    },
+    "intrinsics_group": {
+      "passed": 68,
+      "failed": 0
+    },
+    "intrinsics_scope": "NaN-zero selection provenance and isolated opt-in trig environment; no production math changes"
   }
 }

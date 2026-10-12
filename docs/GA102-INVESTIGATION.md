@@ -3135,3 +3135,82 @@ CPU artifact. Ordinary memcpy behavior remains covered by the group tests.
 2. Repair loop-header/guarded-return provenance in the unstable pointer regression.
 3. Continue individual native-failure triage and source PM diagnostics. The
    supervised-only kernel/wake boundaries remain in force.
+
+### Stable native provenance regressions and real compiler dependencies
+
+The pointer regression now selects the 64-bit phi in an actual loop header, then
+follows guarded helper returns to the child-address load. It passes in twenty
+fresh processes with independent hash-map seeds. A valid SPIR-V negative control
+replacing child loads with zero fails the provenance check as intended. Owned
+texel tests retain invalid/error-classification and exact diagnostic-summary
+checks while permitting appended diagnostic details. The native suite recorded
+2146 PASS / 11 FAIL / one ignored before the next buffer-array repairs.
+
+Two buffer-array regressions now follow direct loads, copy/guard phis and helper
+returns rather than requiring all loads to be inline. Both previously failed
+stored-value/two-hop checks pass; four buffer-array tests pass as a group. No
+emitter behavior was changed for those test repairs. Remaining failures will be
+retained and assessed individually.
+
+Pinned LLVM/Clang 19.1.7 built with two jobs; selected libraries, headers and tools
+are installed into the private artifact prefix. The actual Clang compiles a
+bounded OpenCL kernel to LLVM bitcode. The required SPIR-V optimizer/link libraries
+also built; packaging the complete real toolchain is underway. Matching
+SPIRV-LLVM-Translator source commit `2f18fc9e7f3a6e1776c9dd232d2292d83ef0e9a6`
+and its pinned headers `575b6512579ebde466ed3dfc04e413439d14d95d` are prepared.
+No mesa_clc/NVK build success is claimed yet; no system toolchain or active driver
+was changed.
+
+### NEXT-STEPS
+
+1. Finish private SPIRV-Tools packaging and pkgconf build/test/install. Configure
+   the matching SPIRV-LLVM translator against the real LLVM build-tree package.
+2. Build libclc SPIR-V builtins and real mesa_clc, then resume the pinned NVK build.
+3. Validate the buffer-provenance inspector with a lost-load negative control and
+   rerun the native buffer group; triage remaining failures without blanket skips.
+4. Preserve the loaded driver and the supervised-only kernel/wake boundaries.
+
+### Native groups and compiler bootstrap checkpoint
+
+The buffer-provenance inspector passes a valid lost-read negative control; the
+buffer group records 284 PASS / two FAIL / one ignored. The remaining failures
+expect an old typed-zero placeholder path and forbid guarded helper calls. They
+are not reclassified without semantic checks. All sixty-eight intrinsic tests
+pass after checking NaN-to-zero conversion dataflow and testing the opt-in trig
+flush in a child process with explicit environment, avoiding global environment
+mutation. Finite packing checks and normal production math remain unchanged.
+
+Private pkgconf 3.0.8 passes thirty tests. SPIRV-Tools packages and the matching
+SPIRV-LLVM translator now build/install. Corrected stale generated package prefix
+metadata and explicitly set Darwin library search paths in the private CMake
+recipe; no system paths/binaries were modified. The real pipeline compiles OpenCL
+to LLVM bitcode, translates it to SPIR-V, then passes `spirv-val --target-env
+opencl2.2`. Building the pinned libclc `spirv-mesa3d-` / `spirv64-mesa3d-` targets
+is the next active dependency phase. Exact private command manifests retain the
+resume commands. No real mesa_clc or NVK binary is claimed yet.
+
+### NEXT-STEPS
+
+1. Finish the active libclc build/install; configure a standalone real mesa_clc
+   build using the private LLVM, SPIRV-LLVM, SPIRV-Tools and libclc dependencies.
+2. Resume pinned NVK setup after mesa_clc validates a real source kernel.
+3. Continue remaining native failure triage with valid negative controls; retain
+   unresolved shader-interface and placeholder-path assertions as failures.
+4. Keep the existing loaded driver and supervised-only PM/wake restrictions.
+
+### mesa_clc bootstrap build in progress
+
+Both pinned libclc SPIR-V targets built and installed. Standalone Mesa CLC setup
+now succeeds against real private LLVM 19.1.7, LLVMSPIRVLib 19.1.0.0 and SPIRV-Tools
+dependencies. The actual `mesa_clc` and `vtn_bindgen2` targets are being compiled
+with two jobs. This clears configuration dependency blockers; executable/kernel
+validation and NVK build readiness remain to be established. Exact resume command
+is retained in the private `mesa-clc-build-command.private.json` manifest.
+
+### NEXT-STEPS
+
+1. Finish `meson compile -C <private mesa-clc-build> mesa_clc vtn_bindgen2 -j 2`;
+   validate a real OpenCL kernel with the built tools before retrying NVK setup.
+2. Preserve the now-validated regression repairs and continue remaining native
+   shader-interface/placeholder failure triage.
+3. Retain supervised-only kernel/wake boundaries and original loaded components.
