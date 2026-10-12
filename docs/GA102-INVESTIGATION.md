@@ -3531,3 +3531,30 @@ Further cache/pipeline source changes would be speculative without that profile.
 3. No physical-host access, installed-component change, macOS build or display
    operation occurred. Further meaningful desktop qualification is hardware-bound;
    this Linux phase ends with the measured bounded fix rather than more diagnostics.
+
+### First new GA102 hardware session: runbook prepared, execution pending
+
+[`GA102-HARDWARE-VALIDATION-RUNBOOK.md`](GA102-HARDWARE-VALIDATION-RUNBOOK.md)
+pins candidate `acb7241` and baseline `8fd5960`, separates Cloud preparation from
+Mac read-only inventory/builds and GPU execution, and specifies final artifact,
+source, actual function image and dependency provenance. No Mac command/build or
+hardware access occurred; execution awaits explicit user approval.
+
+Existing namespace correctness harnesses remain useful but cannot yet attribute
+this graphics timing experiment: composite uses a constexpr sampler; ordinary
+translation counters do not count the sampler ABI; ICD pointer attribution and
+per-operation timings/cache counters are absent. Release initialization strips
+AIR-cache/ICD overrides, so the existing isolated-cache flag is not sufficient.
+The runbook blocks launches under its no-production-cache-write plan until
+reviewed owned-cache routing and sampler/ICD provenance exist. It defines a bounded
+runtime-sampler gradient oracle, first-miss/local-hit/device-reuse sequence, paired
+owned-cold/persistent-reuse processes, failure stops and required evidence.
+Cloud namespace/provenance/core regression suite: 72 PASS. No new harness or
+current Darwin candidate binary is claimed.
+
+### NEXT-STEPS
+
+Await user approval of the runbook. Before any timing execution, prepare/review
+the specified copied-source cache routing and sampler/pipeline instrumentation
+with exact invocations and negative controls. Retain installed kernel/RM/NVK
+unchanged; no deployment, display or recovery operation is authorized here.
