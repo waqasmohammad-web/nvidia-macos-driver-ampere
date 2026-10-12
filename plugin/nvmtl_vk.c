@@ -2835,6 +2835,10 @@ static NSData *nvmtl_address_shader_g0(const void *data, size_t len, uint32_t fl
 static NSData *nvmtl_address_shader_g_uncached(const void *data, size_t len, uint32_t flags, uint32_t *info);
 static NSData *nvmtl_address_shader_g(const void *data, size_t len, uint32_t flags, uint32_t *info) {
     static NSMutableDictionary *cache; static pthread_mutex_t lk = PTHREAD_MUTEX_INITIALIZER;
+    static size_t retainedBytes;
+    // Count key, transformed module and alignment metadata payload. Foundation
+    // object overhead is additional. A count-only cap can retain huge modules.
+    const size_t maxBytes = 64u * 1024u * 1024u;
     NSMutableData *key = [NSMutableData dataWithBytes:&flags length:sizeof flags];
     [key appendBytes:data length:len];
     pthread_mutex_lock(&lk);
@@ -2847,9 +2851,21 @@ static NSData *nvmtl_address_shader_g(const void *data, size_t len, uint32_t fla
     uint32_t got[4] = {0};
     NSData *d = nvmtl_address_shader_g_uncached(data, len, flags, got);
     if (info) memcpy(info, got, sizeof got);
+    if (key.length > maxBytes - sizeof got || d.length > maxBytes - sizeof got - key.length)
+        return d; // Preserve the result, but do not retain an oversized entry.
+    const size_t cost = key.length + d.length + sizeof got;
     pthread_mutex_lock(&lk);
-    if (!cache || cache.count >= 4096) cache = [NSMutableDictionary new];
+    if (!cache) cache = [NSMutableDictionary new];
+    NSArray *previous = cache[key];
+    if (previous) {
+        retainedBytes -= key.length + (previous[0] == (id)[NSNull null] ? 0 : [previous[0] length]) + sizeof got;
+        [cache removeObjectForKey:key];
+    }
+    if (cache.count >= 4096 || retainedBytes > maxBytes - cost) {
+        [cache removeAllObjects]; retainedBytes = 0;
+    }
     cache[key] = @[d ?: (id)[NSNull null], [NSData dataWithBytes:got length:sizeof got]];
+    retainedBytes += cost;
     pthread_mutex_unlock(&lk);
     return d;
 }

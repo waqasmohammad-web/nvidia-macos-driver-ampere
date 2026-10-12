@@ -2895,15 +2895,68 @@ conversion, literal forwarding lookup conversion, and rejection when the
 namespace marker is missing even with correct GPU records. Evidence:
 [`evidence/ga102-namespaced-isolation.json`](evidence/ga102-namespaced-isolation.json).
 
+### Bounded shader-transform memo retention
+
+`nvmtl_address_shader_g` memoized up to 4096 complete input-byte keys, lowered
+modules and alignment metadata, with no byte cap. CPU fixtures executing the
+production memo helper retained 72 MiB of output across only six entries, and
+a single 65 MiB result stayed cached. These are constructed retention controls,
+not evidence of that memory consumption in WindowServer or real shader mixes.
+
+The source now retains at most 64 MiB of counted key/module/metadata payload
+and 4096 entries. Oversized entries return the actual lowering result without
+retaining it. Batch eviction preserves the prior clear-on-cap strategy. A
+concurrent replacement subtracts the previous entry before charging the new
+one, with all dictionary/accounting updates under the existing mutex. Input
+keys, lowering flags, returned bytes, alignment metadata and negative-result
+cache behavior are unchanged. Foundation/allocator overhead, transient decoded
+values and results retained by callers are additional to this cache budget.
+
+**CPU retention/ownership PASS:** candidate maximum tracked cached output in the
+six-entry fixture is 60 MiB, versus 72 MiB originally; a 65 MiB oversized result
+leaves zero cached output versus 65 MiB originally, and is recomputed on reuse.
+ASan/UBSan validates flag/input separation, negative caching and 4096-entry
+eviction. TSan validates 16 workers × 100 memo calls with correct result bytes
+and metadata and no race warning. Lowering is a deterministic CPU stub here,
+so shader semantics are not established by those fixture assertions.
+
+**Actual rebuilt candidate GPU correctness PASS:** namespaced release plugin
+SHA256 `4e2ee35c636b6edf36a294682458b5e1a7e06cbadb9453a9a39b09104a3f00e9`
+passed the complete five-probe correctness suite, three independent repetitions
+each: compute, offscreen pixels, layered private/IOSurface compositing, shared
+events and bidirectional cross-process surfaces. Class/method/device provenance
+checks passed in every process. No installed graphics component was changed.
+
+The correction bounds process-local driver memory retention; it is not a
+measured desktop-speed improvement. A working set above the cap can incur
+additional CPU lowering after eviction; no cache-size tuning claim is made.
+Source rollback restores the former count-only memo policy. Evidence:
+[`evidence/ga102-shader-transform-retention.json`](evidence/ga102-shader-transform-retention.json).
+
+### Build readiness continuation
+
+The recovered tools lacked Rust and Mesa dependencies. Installed the official
+checksum-verified rustup bootstrap into task-owned CARGO/RUSTUP homes using
+`--no-modify-path` and a minimal profile. Rust 1.99.0 is available without shell
+profile or system/security changes. Task-owned Python 3.12 tooling supplies
+Meson/Ninja/Mako/PyYAML/packaging. A copied, lockfile-pinned translator source
+release build is running with two compiler jobs and private logs. No rebuilt
+translator has been executed or installed yet.
+
+Resolved the short Mesa base to official commit
+`17ca6174dcc6cb22059ac343bc29f8af7800f42e` and downloaded its source archive
+from Mesa's GitLab. The complete NVK patch applies to the extracted official source, with real
+pinned vendor headers linked. Isolated Meson setup and bindgen bootstrap are
+in progress. This pursues NVK source-build readiness independently of the
+still-missing Darwin NVRM archive recipe; a successful NVK build is not yet claimed.
+
 ### NEXT-STEPS
 
-1. Reproduce shader-transform cache retained payload beyond an appropriate bound;
-   test exact key/flag separation, eviction, oversized results and concurrency
-   before keeping a source correction.
-2. Build any validated correction with `python3 build/build_isolated_plugin.py
-   --vulkan-headers <include-directory> --output <new-directory>`, then run
-   `python3 tools/ga102_suite.py --profile correctness --namespaced-plugin
-   --plugin <new-binary> --output <new-json>`. Keep timing evidence scoped.
-3. Continue RM/NVKMS wake lifecycle design offline; the PM protocol candidate
-   needs qualified baseline boot/recovery and supervised validation. Do not
-   execute sleep/wake, clear completion latches or revive retired deployment.
+1. Complete the active isolated translator build; verify its exports/dependencies
+   and run meaningful existing CPU translation tests before candidate integration.
+2. Finish pinned Mesa source/patch preparation and attempt isolated Meson setup;
+   resolve actual dependencies without inventing stubs or altering live drivers.
+3. Once NVK source builds are available, reproduce the documented config-parser
+   comment/race defects against production code, then test a focused correction.
+4. Maintain the PM candidate as offline only; coordinated RM/NVKMS lifecycle and
+   supervised boot/recovery/wake qualification remain outstanding.
