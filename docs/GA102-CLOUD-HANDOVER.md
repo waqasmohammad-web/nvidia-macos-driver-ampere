@@ -32,6 +32,15 @@ unqualified. Extracted config tests pass Linux ASan+UBSan and TSan. Read the lat
 investigation checkpoint and `evidence/ga102-callback-release.json` for current
 results; the initial priorities below describe the original handover.
 
+Latest Linux runtime audit confirms saturation optimization reaches cold native
+NVMTL translations, while warm caches bypass it. Published sampler ABI reflection
+reuse preserves byte-identical validated output on owned fixtures: 200 samples
+per variant/workload show 1–3% fragment median savings and 9.98% in an unused-
+sampler storage-write case. These are small compilation gains, not desktop
+acceleration. Next meaningful qualification is synchronous NVK graphics pipeline
+creation/cache reuse on verified candidate images and actual hardware. See the
+latest investigation and `evidence/ga102-runtime-translation.json`.
+
 ## What can move
 
 | Workflow | Hosted Linux suitability / dependencies |

@@ -3426,3 +3426,108 @@ Python GA102 tests: 72 PASS. Actual Sequoia/RTX 3080 Ti behavior remains unteste
    callback-bearing shaders and profile compilation/desktop pacing with verified
    candidate image provenance. No physical-host access or installed-system changes
    were made in this Linux work.
+
+### Runtime path audit and bounded sampler translation improvement (Linux)
+
+Source audit at `8fd5960` establishes the candidate path; it does not establish
+which binaries a physical desktop has loaded. `NVMTLLibraryLoad.m` loads the
+bundled/fallback `libnvmtl_translate.dylib`, sets capabilities to 3, and calls the
+wrapper C ABI. Ordinary, function-constant, linked and sampler translations enter
+the native constructed translator. The saturation lookup optimization therefore
+applies to cold translations containing those operations, including sampler
+variants. It does not accelerate SPIR-V/pipeline cache hits or NVK's backend.
+`build/build_xlate.sh` defaults to a separate `$HOME/nvmtl-build/bindless` checkout;
+a later build must explicitly select the intended source and verify loaded image
+hashes rather than assume these commits affect an installed stack.
+
+| Runtime layer | Existing reuse and remaining work |
+| --- | --- |
+| Metallib/AIR | Lazy entry indexing; bounded 128 MiB strong index cache; AIR text disk cache and process cache of 128 entries/16 MiB. Extraction and reflection are distinct costs. |
+| Ordinary/functions/links | SPIR-V disk keys incorporate input, stage and translator content tag (`c3`); FC/link inputs have their own keys. Hits bypass Rust compilation. Reflection also has a disk path. |
+| Compute specialization | `nvmtl_translate_variant` persists sampler/threadgroup variants in `variant1` SPIR-V cache. |
+| Graphics sampler specialization | `nvmtlBindSamplerPipeline` normalizes sampler keys and consults per-pipeline and device-wide caches. On a miss it synchronously translates vertex/fragment stages and creates a render pipeline while holding the pipeline monitor. This particular `nvmtl_translate_samplers` helper has no SPIR-V disk cache; the global cache clears at 1024 entries. |
+| Address lowering/NVK | Address-lowering results have bounded process reuse. `nvmtl_vk.c` creates shader modules and graphics/compute pipelines through the selected Vulkan ICD, using `VK_NULL_HANDLE` application pipeline caches. Mesa disk caching is configured separately; a null application cache does **not** prove absent driver caching. The repository carries a Darwin NVK patch, not a complete standalone Mesa source checkout. |
+
+References: `plugin/NVMTLLibraryLoad.m` (`nvmtl_xlate_ready`,
+`nvmtl_spvcache_path`, `nvmtl_compile_library_entry`, `nvmtl_translate_variant`,
+`nvmtl_translate_samplers`); `plugin/NVMTLObjects.m` (`nvmtl_sampvar_*`,
+`nvmtlBindSamplerPipeline`); `plugin/nvmtl_vk.c` (`nvmtl_vk_initialize`, pipeline
+creation); `translator/wrapper/src/lib.rs`; `nvk/nvk-macos.patch`.
+
+Repeated work is plausible when new processes/pipeline states encounter variant
+misses, cache eviction or concurrent misses across distinct pipeline objects.
+The source does not prove their desktop frequency. No cache key, eviction policy,
+Foundation concurrency or GPU pipeline lifetime was changed without that evidence.
+
+The bounded confirmed issue is duplicate reflection in the actual sampler ABI:
+reflection of specialized AIR was immediately followed by an identical default
+reflection to select formatless storage-image options. A shared helper now derives
+those options from the existing reflection. Input specialization, sampler-index
+filtering, capabilities, storage-image options, fallback errors and memory semantics
+are preserved. This removes one reflection even when no declared sampler matches;
+the existing translation fallback is unchanged.
+
+The optimized Linux wrapper builds with Rust 1.87, opt-level 3, 16 codegen units,
+incremental disabled and one job. Baseline build: 237 s; candidate wrapper-only
+rebuild: 6.99 s. No LLVM/Mesa/macOS build was attempted. The explicit C ABI harness
+uses existing fragment sampling, vertex-position and storage-write Rust fixtures;
+there are no generated amplification shaders or private compositor substitutes.
+Two runs each alternate ten paired baseline/candidate batches, with 100 timed
+calls per variant/workload/run after five warmups. Timing covers the ABI call,
+including reflection and translation; output copying/freeing and validation are
+outside timing. Builds/tests were not concurrent with measurements.
+
+| Owned workload | Median ms, baseline -> candidate | p95 ms, baseline -> candidate | Median reduction | CV %, baseline -> candidate |
+| --- | --- | --- | --- | --- |
+| Fragment nearest/pixel | 1.363 -> 1.329 | 1.779 -> 1.602 | 2.45% | 10.27 -> 9.52 |
+| Fragment linear/pixel | 2.076 -> 2.051 | 2.186 -> 2.314 | 1.21% | 4.23 -> 4.47 |
+| Fragment linear/normalized | 0.994 -> 0.965 | 1.127 -> 1.108 | 2.84% | 6.11 -> 5.81 |
+| Vertex, unused bound sampler | 0.846 -> 0.823 | 0.941 -> 0.917 | 2.70% | 5.05 -> 5.78 |
+| Storage write, unused bound sampler | 1.242 -> 1.118 | 1.379 -> 1.188 | 9.98% | 8.99 -> 4.33 |
+
+Each aggregate contains **200 samples per variant**, retaining both trials and
+raw samples in [`evidence/ga102-runtime-translation.json`](evidence/ga102-runtime-translation.json).
+The largest reduction is a storage-image fallback case, not a compositor shader.
+Fragment savings are only 25–33 microseconds in these fixtures; linear/pixel p95
+worsens. This is a small measured miss-path improvement, not general latency/FPS
+or desktop acceleration evidence.
+
+All measured outputs equal the validated warmups, and baseline/candidate modules
+are byte-identical. Real SPIRV-Tools v2026.4 validates Vulkan 1.2 outputs, including
+all capability settings 0/1/2/3. Nearest/linear and pixel/normalized programs must
+differ; unsupported active sampler state, malformed constant keys and malformed AIR
+must fail identically. An undeclared sampler must leave output unchanged; real
+validation must reject corrupted SPIR-V magic. Native texture regressions: 148
+PASS / zero FAIL / zero ignored. Python GA102 suite: 72 PASS. The full wrapper
+unit suite was not run: it requires source-built SPIRV-Tools and unavailable
+private fixtures. Direct ABI regression coverage uses the external real validator
+without skipping tests or changing their assertions.
+
+The next substantial path to qualify is **synchronous NVK pipeline creation on
+graphics variant misses**, together with its cache reuse. Historical owned-compute
+[`evidence/ga102-mesa-pipeline-ab.json`](evidence/ga102-mesa-pipeline-ab.json) shows
+pipeline p95 18.575 ms owned-cold / 17.526 ms owned-reuse despite improved median
+reuse. Those eight small kernels and three processes per condition do not isolate
+NVK compilation, initialization or a desktop bottleneck; cache files are not hit
+counters. No current hardware profile identifies the dominant desktop cost.
+Further cache/pipeline source changes would be speculative without that profile.
+
+### NEXT-STEPS
+
+1. Reproduce ABI regression/measurement with baseline `8fd5960` and this candidate
+   built using identical release settings and explicit source checkouts. Preserve
+   each shared library outside Git, then run:
+   `python3 tools/ga102_runtime_translation_test.py --baseline work/runtime-wrapper-baseline.so --candidate work/runtime-wrapper-candidate.so --output work/runtime-abi-recheck --rounds 10 --samples 10`.
+   Put real `spirv-val` on PATH; an absent validator is a failure. Build only with
+   `cargo build --offline --locked --release --manifest-path translator/wrapper/Cargo.toml --lib --target-dir translator/translator/target` and one job.
+2. The most useful subsequent step requires a separately authorized RTX 3080 Ti /
+   Sequoia session: verify isolated candidate translator/plugin/ICD image hashes,
+   then use owned offscreen composite workloads to separate AIR extraction,
+   reflection/translation, sampler variant hit/miss, address lowering and Vulkan
+   pipeline creation, with identical cold/reuse workloads and pixel correctness.
+   Correlate these costs with frame pacing before changing caches or claiming
+   desktop gains. Existing `tools/air_cache_tests/mesa_pipeline_probe.swift` is a
+   compute reference only; representative graphics execution is still required.
+3. No physical-host access, installed-component change, macOS build or display
+   operation occurred. Further meaningful desktop qualification is hardware-bound;
+   this Linux phase ends with the measured bounded fix rather than more diagnostics.

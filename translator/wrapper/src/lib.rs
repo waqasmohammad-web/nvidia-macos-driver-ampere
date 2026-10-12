@@ -45,8 +45,12 @@ fn apply_tg(mut o: metal2vulkan::passes::TransformOptions) -> metal2vulkan::pass
 }
 
 fn formatless_options(ll: &str, st: Stage, caps: u32) -> Option<metal2vulkan::passes::TransformOptions> {
-    use metal2vulkan::reflect::{ResourceAccess as A, ResourceKind as K};
     let refl = metal2vulkan::reflect_sanitized(ll, st, metal2vulkan::passes::TransformOptions::default()).ok()?;
+    formatless_options_reflected(&refl, caps)
+}
+
+fn formatless_options_reflected(refl: &metal2vulkan::reflect::ShaderReflection, caps: u32) -> Option<metal2vulkan::passes::TransformOptions> {
+    use metal2vulkan::reflect::{ResourceAccess as A, ResourceKind as K};
     let mut idx: Vec<usize> = refl.bindings.iter().filter(|b| {
         (b.kind == K::StorageImage || (matches!(b.kind, K::TextureArray | K::EmbeddedArgBufferTexture) && b.access == Some(A::Storage)))
             && b.texture_shape.as_ref().is_some_and(|t| matches!(t.component, metal2vulkan::meta::TextureComponent::Float))
@@ -586,7 +590,9 @@ pub unsafe extern "C" fn nvmtl_translate_samplers(
         let ll=specialized.as_ref();
         let reflection=metal2vulkan::reflect_sanitized(ll,st,metal2vulkan::passes::TransformOptions::default())?;
         let states:std::collections::BTreeMap<u32,metal2vulkan::reflect::RuntimeSamplerState>=serde_json::from_value(j["samplers"].clone()).map_err(|e|e.to_string())?;
-        let mut opts=formatless_options(ll,st,CAPS.load(Ordering::Relaxed)).unwrap_or_default();
+        // Both decisions use the same specialized AIR and default reflection options.
+        // Reuse that reflection instead of parsing/lowering the module a second time.
+        let mut opts=formatless_options_reflected(&reflection,CAPS.load(Ordering::Relaxed)).unwrap_or_default();
         let mut used=0;
         for (idx,state) in states {
             if reflection.bindings.iter().any(|b| b.kind==metal2vulkan::reflect::ResourceKind::Sampler && b.metal_index==idx) {
