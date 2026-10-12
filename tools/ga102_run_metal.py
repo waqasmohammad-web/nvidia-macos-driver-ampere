@@ -123,6 +123,7 @@ def main():
     parser.add_argument("--repeat", type=int, choices=range(1, 4), default=1)
     parser.add_argument("--isolated-cache", action="store_true")
     parser.add_argument('--plugin', type=Path, help='Explicit process-local plugin binding for offscreen probes only; never installs a component')
+    parser.add_argument('--namespaced-plugin', action='store_true', help='Require the private class namespace built by build_isolated_plugin.py; allows offscreen IOSurface tests')
     parser.add_argument("--surface-comparison", action="store_true", help="Benchmark matching BGRA8 targets at 3440x1440 only")
     parser.add_argument("--graphics-copy-queue", action="store_true", help="Attempt test-process-only NVRM_610_CECHAN=0; verify engine selection in logs (installed builds may differ)")
     parser.add_argument("--negative-control", choices=("static", "timestamps", "hidden"))
@@ -139,7 +140,9 @@ def main():
     parser.add_argument("--capture-bridge", action="store_true", help="Capture only the owned visual window via ScreenCaptureKit in this Python process; never requests permission")
     parser.add_argument("--result-json", type=Path, help="Save scoped visual-probe verdicts and numeric metrics, excluding raw logs and machine identities")
     args = parser.parse_args()
-    if args.plugin and (args.probe not in ISOLATED_PROBES or args.capture_bridge):
+    if args.namespaced_plugin and not args.plugin: parser.error('--namespaced-plugin requires --plugin')
+    isolated_probes = (*CORE_PROBES, 'ga102_metal_memory', 'ga102_metal_benchmark') if args.namespaced_plugin else ISOLATED_PROBES
+    if args.plugin and (args.probe not in isolated_probes or args.capture_bridge):
         parser.error('--plugin requires a verified offscreen probe without IOSurface/capture')
     if args.plugin and (not args.plugin.is_file() or args.plugin.name != 'NVMTLDriver'):
         parser.error('--plugin must name an existing NVMTLDriver binary')
@@ -191,6 +194,13 @@ def main():
     if args.plugin:
         plugin_hash = hashlib.sha256(args.plugin.read_bytes()).hexdigest()
         env['GA102_PLUGIN_IMAGE'] = str(args.plugin.resolve())
+        env.pop('GA102_PLUGIN_NAMESPACE', None)
+        if args.namespaced_plugin:
+            proof_path=args.plugin.parent/'isolation-proof.json'
+            proof=json.loads(proof_path.read_text()) if proof_path.is_file() else {}
+            if proof.get('binary_sha256')!=plugin_hash or proof.get('class_prefix')!='NVMTLGA102_' or not proof.get('c_symbols_hidden'):
+                parser.error('namespaced plugin requires matching isolation build proof')
+            env['GA102_PLUGIN_NAMESPACE']='NVMTLGA102_'
         source_bytes = isolated_source(source_bytes)
     compile_input = scratch / f'{args.probe}.swift'
     compile_input.write_bytes(source_bytes)
@@ -269,6 +279,7 @@ def main():
             # into public reports; print only probe-owned result lines here.
             lines = output.read_text(errors="replace").splitlines()
             if args.plugin and (lines.count('binding_verified: true') != 1 or
+                                args.namespaced_plugin and lines.count('binding_namespace_verified: true') != 1 or
                                 hashlib.sha256(args.plugin.read_bytes()).hexdigest() != plugin_hash):
                 print('FAIL: explicit plugin provenance missing or binary changed', flush=True)
                 code = probe_exit_code = 1
@@ -376,6 +387,7 @@ def main():
                 report['runtime'] = {'binding': 'explicit process-local user-space plugin',
                     'plugin_sha256': plugin_hash, 'binding_helper_source_sha256': binding_hash,
                     'original_probe_source_sha256': original_source_hash,
+                    'class_namespace': 'NVMTLGA102_' if args.namespaced_plugin else 'single driver image',
                     'installed_driver_changed': False,
                     'limits': 'installed kernel/NVK/translator retained; offscreen coverage only'}
             if args.probe in ('ga102_visual_present', 'ga102_ca_visual'):

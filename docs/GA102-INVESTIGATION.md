@@ -2808,15 +2808,102 @@ from a complete RM/NVKMS power lifecycle. Any kernel candidate remains AWAITING
 SUPERVISED DEPLOYMENT and blocked on known unchanged-build boot compatibility
 and verified recovery. No black-screen repair is claimed.
 
+### Offline framebuffer power-protocol candidate
+
+Prepared `build/experimental/ga102-framebuffer-pm.patch`; the production
+framebuffer file is unchanged. The experiment replaces its unconditional
+notification/implied-ack stub with `super::setPowerState(ordinal, device)`,
+letting IOFramebuffer own pending controller work and acknowledgement. It
+does not implement RM power transitions, change flip waits or clear surface
+fault/lifetime state. Expected benefit is restoring framework power-protocol
+participation, not a demonstrated display-wake repair.
+
+`tools/ga102_pm_protocol_test.py` applies the actual patch to an owned copy and
+compiles the extracted callback with a CPU-only superclass stub under ASan/UBSan.
+Original callback fails the forwarding control; candidate passes nine exact
+ordinal/device/return-value cases, including asynchronous acknowledgement and
+error values, without issuing premature completion notifications. This tests
+forwarding only; real IOGraphics execution and GPU restoration are untested.
+
+Built the full experimental framebuffer from the authentic `e404ab30` source
+using the preserved pinned vendor/compile/link recipe. Only the PM callback
+source differs; the retired completion instrumentation is excluded. Candidate
+SHA256 `c16184bb0e77f4cdfe419d9b790c84388e100eed3f50051860e3279e356916d1`.
+The undefined-import set matches the original. Candidate and byte-verified
+original rollback bundles are staged in durable local artifacts.
+**AWAITING SUPERVISED DEPLOYMENT**, with unchanged-source boot compatibility and
+Recovery qualification still missing. No kernel or auxiliary collection was
+loaded/replaced/built for deployment. No candidate wake cycle was executed.
+
+Rollback must use the current original bundle and the current pre-deployment
+auxiliary collection with verified hashes, required ownership/modes and tested
+Recovery access. Prior pre-reinstall collection backups are not assumed current.
+A separate approved maintenance window must first qualify unchanged-build boot
+compatibility and recovery. If a future experiment fails, restore those exact
+originals from the tested recovery route. No deployment command is enabled here.
+Evidence: [`evidence/ga102-wake-protocol-candidate.json`](evidence/ga102-wake-protocol-candidate.json).
+
+### Memory correctness and ordinary compositor cost
+
+Three installed and three explicitly bound candidate memory processes each
+checked shared/managed/private modes, all 1,048,576 elements per mode. All
+eighteen mode executions PASS. GPU median per pass (installed / candidate):
+shared 0.2294 / 0.2289 ms; managed and private 0.0123 / 0.0123 ms. This preserves
+the earlier shared-memory cost finding and establishes no performance benefit
+from the queue initializer correction. Source/candidate execution is separated
+from the installed stack. Evidence:
+[`evidence/ga102-memory-post-reinstall.json`](evidence/ga102-memory-post-reinstall.json).
+
+Three ordinary Core Animation runs with 32 translucent rounded/shadowed layers
+measured WindowServer at 43.3/42.8/42.7% of one core during animation, versus
+about 16–20% in their idle phases. These process-wide correlations resemble the
+previous 44–45% observation. Client timers/presentation-tree motion do not
+qualify composited frame timing, physical scanout or complete desktop fluidity.
+Evidence: [`evidence/ga102-ca-cpu-post-reinstall.json`](evidence/ga102-ca-cpu-post-reinstall.json).
+
+### IOSurface candidate isolation established with private classes
+
+The prior single-image rejection remains valid. Rather than accept duplicate
+classes, `build/build_isolated_plugin.py` creates an owned source snapshot with
+all 62 Objective-C classes and one private protocol in an `NVMTLGA102_` namespace.
+Literal class lookup strings are rewritten consistently; C definitions are
+hidden and the resource-device global is explicitly renamed. Original sources
+are untouched. The transformation is reversible byte-for-byte in the regression
+test and changes no GPU algorithm or lifetime/synchronization operation.
+
+The optional runner/suite `--namespaced-plugin --plugin <binary>` requires a
+matching namespace build proof. This mode permits the known installed bundle
+to autoload under its separate original classes, while checking every candidate
+class image, the selected device method images, and a candidate buffer's exact
+device identity at exit. Unknown driver images, changed candidate bytes, wrong
+class ownership or absent independent namespace proof markers fail acceptance.
+The ordinary unnamespaced route retains its single-image gate and IOSurface
+refusal. All windowed/capture candidate routes remain prohibited in the harness.
+
+**PASS, namespaced candidate offscreen runtime:** candidate SHA256
+`167d176d8b70507a9dce7926373dc67436d5cddcb41731749928c1c5cfbfedf5`
+passed all four full-size private/IOSurface compositing cases, including 32
+sampled blended layers. Three independent cross-process tests passed 24
+bidirectional surface roundtrips and 786432 checked bytes. Both participants
+use the explicit namespace; child failures/provenance failures propagate to the
+parent verdict. No duplicate-class warnings occur in the successful path.
+These are real rebuilt user-space candidate executions with retained installed
+RM/NVK/translator, not an installed-driver or desktop-speed qualification.
+
+Seven focused isolation tests pass, including whole-source reversible namespace
+conversion, literal forwarding lookup conversion, and rejection when the
+namespace marker is missing even with correct GPU records. Evidence:
+[`evidence/ga102-namespaced-isolation.json`](evidence/ga102-namespaced-isolation.json).
+
 ### NEXT-STEPS
 
-1. Finish the active installed/candidate `ga102_metal_memory --repeat 3` comparison
-   (private artifacts in `resume-20261012`; candidate hash above). Keep memory-mode
-   correctness and synthetic timing separate from desktop benefit.
-2. Prepare a standalone framebuffer PM-delegation experiment from authentic
-   `e404ab30` source; preserve superclass asynchronous acknowledgement, test it
-   offline and compile/link without the retired completion instrumentation.
-3. Resolve candidate class isolation for IOSurface before retrying those workloads;
-   never relax the single-image gate or label mixed-plugin results PASS.
-4. Review bounded shader-transform cache retention / publication for a reproduced
-   memory or concurrency defect, then build and validate a focused correction.
+1. Reproduce shader-transform cache retained payload beyond an appropriate bound;
+   test exact key/flag separation, eviction, oversized results and concurrency
+   before keeping a source correction.
+2. Build any validated correction with `python3 build/build_isolated_plugin.py
+   --vulkan-headers <include-directory> --output <new-directory>`, then run
+   `python3 tools/ga102_suite.py --profile correctness --namespaced-plugin
+   --plugin <new-binary> --output <new-json>`. Keep timing evidence scoped.
+3. Continue RM/NVKMS wake lifecycle design offline; the PM protocol candidate
+   needs qualified baseline boot/recovery and supervised validation. Do not
+   execute sleep/wake, clear completion latches or revive retired deployment.

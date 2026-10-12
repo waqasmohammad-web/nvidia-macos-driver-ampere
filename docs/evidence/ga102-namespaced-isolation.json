@@ -1,0 +1,361 @@
+{
+  "date": "2026-10-12",
+  "isolation_build": {
+    "schema_version": 1,
+    "class_prefix": "NVMTLGA102_",
+    "class_mapping": {
+      "NVMTLAccelerationStructure": "NVMTLGA102_AccelerationStructure",
+      "NVMTLAccelerationStructureCommandEncoder": "NVMTLGA102_AccelerationStructureCommandEncoder",
+      "NVMTLArgument": "NVMTLGA102_Argument",
+      "NVMTLArgumentEncoder": "NVMTLGA102_ArgumentEncoder",
+      "NVMTLBinaryArchive": "NVMTLGA102_BinaryArchive",
+      "NVMTLBlitCommandEncoder": "NVMTLGA102_BlitCommandEncoder",
+      "NVMTLBuffer": "NVMTLGA102_Buffer",
+      "NVMTLBufferArgument": "NVMTLGA102_BufferArgument",
+      "NVMTLCIBinding": "NVMTLGA102_CIBinding",
+      "NVMTLCIStitchBinding": "NVMTLGA102_CIStitchBinding",
+      "NVMTLCIStructType": "NVMTLGA102_CIStructType",
+      "NVMTLCommandBuffer": "NVMTLGA102_CommandBuffer",
+      "NVMTLCommandQueue": "NVMTLGA102_CommandQueue",
+      "NVMTLComputeCommandEncoder": "NVMTLGA102_ComputeCommandEncoder",
+      "NVMTLComputePipelineReflection": "NVMTLGA102_ComputePipelineReflection",
+      "NVMTLComputePipelineState": "NVMTLGA102_ComputePipelineState",
+      "NVMTLComputeVariant": "NVMTLGA102_ComputeVariant",
+      "NVMTLCounter": "NVMTLGA102_Counter",
+      "NVMTLCounterSampleBuffer": "NVMTLGA102_CounterSampleBuffer",
+      "NVMTLCounterSet": "NVMTLGA102_CounterSet",
+      "NVMTLDeferredRenderCommandEncoder": "NVMTLGA102_DeferredRenderCommandEncoder",
+      "NVMTLDepthStencilState": "NVMTLGA102_DepthStencilState",
+      "NVMTLDevice": "NVMTLGA102_Device",
+      "NVMTLDynamicLibrary": "NVMTLGA102_DynamicLibrary",
+      "NVMTLEmbeddedPlan": "NVMTLGA102_EmbeddedPlan",
+      "NVMTLEvent": "NVMTLGA102_Event",
+      "NVMTLFence": "NVMTLGA102_Fence",
+      "NVMTLForwardInstaller": "NVMTLGA102_ForwardInstaller",
+      "NVMTLFunction": "NVMTLGA102_Function",
+      "NVMTLFunctionConstantInit": "NVMTLGA102_FunctionConstantInit",
+      "NVMTLFunctionHandle": "NVMTLGA102_FunctionHandle",
+      "NVMTLGLBinding": "NVMTLGA102_GLBinding",
+      "NVMTLGLFunctionReflection": "NVMTLGA102_GLFunctionReflection",
+      "NVMTLGLPointerType": "NVMTLGA102_GLPointerType",
+      "NVMTLGLTexBinding": "NVMTLGA102_GLTexBinding",
+      "NVMTLHeap": "NVMTLGA102_Heap",
+      "NVMTLIndirectCommand": "NVMTLGA102_IndirectCommand",
+      "NVMTLIndirectCommandBuffer": "NVMTLGA102_IndirectCommandBuffer",
+      "NVMTLIntersectionFunctionTable": "NVMTLGA102_IntersectionFunctionTable",
+      "NVMTLLazyAirs": "NVMTLGA102_LazyAirs",
+      "NVMTLLibrary": "NVMTLGA102_Library",
+      "NVMTLMeshBinds": "NVMTLGA102_MeshBinds",
+      "NVMTLMeshInfo": "NVMTLGA102_MeshInfo",
+      "NVMTLParallelRenderCommandEncoder": "NVMTLGA102_ParallelRenderCommandEncoder",
+      "NVMTLPointerType": "NVMTLGA102_PointerType",
+      "NVMTLQueueReservation": "NVMTLGA102_QueueReservation",
+      "NVMTLRenderCommandEncoder": "NVMTLGA102_RenderCommandEncoder",
+      "NVMTLRenderPipelineReflection": "NVMTLGA102_RenderPipelineReflection",
+      "NVMTLRenderPipelineState": "NVMTLGA102_RenderPipelineState",
+      "NVMTLResSet": "NVMTLGA102_ResSet",
+      "NVMTLResidencySet": "NVMTLGA102_ResidencySet",
+      "NVMTLSamplerState": "NVMTLGA102_SamplerState",
+      "NVMTLSharedEvent": "NVMTLGA102_SharedEvent",
+      "NVMTLStageInArgument": "NVMTLGA102_StageInArgument",
+      "NVMTLStructMember": "NVMTLGA102_StructMember",
+      "NVMTLStructType": "NVMTLGA102_StructType",
+      "NVMTLSubmissionPart": "NVMTLGA102_SubmissionPart",
+      "NVMTLTexture": "NVMTLGA102_Texture",
+      "NVMTLTextureArgument": "NVMTLGA102_TextureArgument",
+      "NVMTLTextureReferenceType": "NVMTLGA102_TextureReferenceType",
+      "NVMTLType": "NVMTLGA102_Type",
+      "NVMTLVertexAttribute": "NVMTLGA102_VertexAttribute",
+      "NVMTLVisibleFunctionTable": "NVMTLGA102_VisibleFunctionTable"
+    },
+    "source_sha256": {
+      "nvmtl_visibility_sum_spv.h": "978a002c34c91235dac75b7673ac2c49f1114de994f28e9d440332a16618e627",
+      "NVMTLDevice_contract.m": "152683557601a4ee44fb148c5f1b48cebd98417223a949816808fc63db91da03",
+      "NVMTLObjects.h": "283a35d5f7ee621224ee954fba5a6ac2cbd9eb0240f622eb23377828ad160c96",
+      "NVMTLLibraryLoad.m": "4835d79207ab7a5e691a4d7b54168078c68793ba85f26a4270a3174bd0c9e90e",
+      "NVMTLForward.m": "a196e3bd3c0dd0340609a2164dfbca1851786d6bfacdc7885f505808920fb3bd",
+      "nvmtl_vk.c": "8e4a43e1786fbe2f18214f1ecfe64cf8d8a234413f1eb7b8ba8a586ff5fbe342",
+      "nvmtl_sampler_state.h": "223f23b62c4549529acb6a1f76ea6f878a33886f8f05d6f0581c2495a038f8a9",
+      "nvmtl_sample_depth_contract.h": "faf44f6839bfa95c0919c82b31acb451d05bf5583f1f84da69f0fab354576e49",
+      "NVMTLDevice.m": "0ca16fd5c45a0c3e6e1774af8d7431d97c029a67d93e53d40d1f292793c2c2e5",
+      "NVMTLEmbedded.m": "510080ad5e7cd2282b0680b9941e1f0f64149fb2cc3c8a402e3d62640d25340d",
+      "nvmtl_physical_bounds.h": "bf3afe460229160d82b6948531d65c6f0f8f53662969f7414646f3c4ab552b5a",
+      "NVMTLVendorCompiler.m": "33f8d290b8b3fdca3e881905774edf63a3331ec73d35e0bd8c0cb3c0123c309f",
+      ".gitignore": "e02859e139035b6fd876d3057c589eb83324b578ccbe860a3327e7511191c6a3",
+      "nvmtl_sampler_desc.h": "4cac887dab4f5e1bbf1b8792ed4a3a26a7042f13fb509f82150308a5a249f00c",
+      "nvmtl_sample_positions.h": "ac3d8d6d7e0de5c569b2561fc63244f325df8f12ceb437f14e47cb4b5939c4e1",
+      "NVMTLObjects.m": "64ecadde0335174d5a5e6a9e5647d73abebed83e8779dd11fda098dd7fd3401c",
+      "nvmtl_readonly_metadata.h": "b3b2eb8d0bc675ae67d41ad2403808e4392ad7530809c695b86624ee00265718",
+      "nvmtl_mesa_cache.h": "1f7936fa2e909675ae7ad2612a7e672b0ed31d295ecced383de09a66d8d45cb1",
+      "nvconv.metal": "8b8d604d4a68d8995d84ffa3441ce21b273406dcfac0c5e57c126b9a34f2950e",
+      "NVMTLGL.m": "e422c99adf1bfee9f098bc62a4f9e51cc094f53da98c71b77a71285f6f34caa8",
+      "nvmtl_vk.h": "a5ae04747966a0a6e26be044c8e5a8180fbb252e7ac45d6abdec7d9b8120d4d0",
+      "nvconv_lib.h": "ad00db5fab28566cf276c2a17894156ed296cc5b6ef51512b67b05174e5034d3",
+      "NVMTLEventSync.m": "cfb21b90b7a10651b73d2e7c5751cead2bf9b60bcf63b15fd788bb067faa3e81",
+      "nvmtl_air_text_cache.h": "c7da65466cff275913db41016bf23a0b6b2592e55f38dd62d266fecdd2413823",
+      "nvmtl_log_failure.h": "b3b83317d4ffa540bd3d1fbfeb11e6c98bb92c7c5c23c34260888dfd332c2260",
+      "nvmtl_independent_helpers.h": "389c1770e4058f149a9c5a786fbddd513e39216a9908dd2b1e1118a10ac43f2a"
+    },
+    "binary_sha256": "167d176d8b70507a9dce7926373dc67436d5cddcb41731749928c1c5cfbfedf5",
+    "installed": false,
+    "runtime_executed": false,
+    "c_symbols_hidden": true,
+    "limits": "experimental namespace build; GPU correctness/provenance require separate execution"
+  },
+  "composite": {
+    "automated_core_validation": "PASS",
+    "checks": {
+      "scoped_gpu_correctness": "PASS"
+    },
+    "completed_runs": 1,
+    "desktop_smoothness": "NOT VERIFIED",
+    "execution": "PASS",
+    "installed_driver_fixed": false,
+    "negative_control": null,
+    "physical_scanout": "NOT VERIFIED",
+    "probe": "ga102_metal_composite",
+    "probe_source_sha256": "e7f447aa42cb6b9f3512b3833c45ac32a5ad648f9fb87f9ee62c3b2ceac0082c",
+    "reproducibility": "NOT VERIFIED",
+    "requested_runs": 1,
+    "runs": [
+      {
+        "exit_code": 0,
+        "metrics": [
+          {
+            "checked_pixels": 16,
+            "encode_to_completion": {
+              "max_ms": 0.959140000077241,
+              "p50_ms": 0.8997859999908542,
+              "p95_ms": 0.959140000077241,
+              "samples": 8
+            },
+            "gpu": {
+              "max_ms": 0.8038400001169066,
+              "p50_ms": 0.7975680000527063,
+              "p95_ms": 0.8038400001169066,
+              "samples": 8
+            },
+            "height": 1440,
+            "layers": 16,
+            "mode": "private",
+            "pixels": "PASS",
+            "width": 3440
+          },
+          {
+            "checked_pixels": 16,
+            "encode_to_completion": {
+              "max_ms": 1.5123529999527818,
+              "p50_ms": 1.4778000002024783,
+              "p95_ms": 1.5123529999527818,
+              "samples": 8
+            },
+            "gpu": {
+              "max_ms": 1.338368000006085,
+              "p50_ms": 1.311744000076942,
+              "p95_ms": 1.338368000006085,
+              "samples": 8
+            },
+            "height": 1440,
+            "layers": 16,
+            "mode": "iosurface",
+            "pixels": "PASS",
+            "width": 3440
+          },
+          {
+            "checked_pixels": 16,
+            "encode_to_completion": {
+              "max_ms": 1.8522870000197145,
+              "p50_ms": 1.7792020000797493,
+              "p95_ms": 1.8522870000197145,
+              "samples": 8
+            },
+            "gpu": {
+              "max_ms": 1.6035839998949086,
+              "p50_ms": 1.565695999943273,
+              "p95_ms": 1.6035839998949086,
+              "samples": 8
+            },
+            "height": 1440,
+            "layers": 32,
+            "mode": "private",
+            "pixels": "PASS",
+            "width": 3440
+          },
+          {
+            "checked_pixels": 16,
+            "encode_to_completion": {
+              "max_ms": 3.210968000075809,
+              "p50_ms": 2.2780730000704352,
+              "p95_ms": 3.210968000075809,
+              "samples": 8
+            },
+            "gpu": {
+              "max_ms": 2.678784000181622,
+              "p50_ms": 2.080768000041644,
+              "p95_ms": 2.678784000181622,
+              "samples": 8
+            },
+            "height": 1440,
+            "layers": 32,
+            "mode": "iosurface",
+            "pixels": "PASS",
+            "width": 3440
+          }
+        ],
+        "validation_exit_code": 0,
+        "verdict": {
+          "automated_core_validation": "PASS",
+          "checks": {
+            "scoped_gpu_correctness": "PASS"
+          },
+          "desktop_smoothness": "NOT VERIFIED",
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        }
+      }
+    ],
+    "runtime": {
+      "binding": "explicit process-local user-space plugin",
+      "binding_helper_source_sha256": "fa170baac2d89c5e53331bf4b22fc6d1f82fdee7b834c293f35e46acf89b6bc7",
+      "class_namespace": "NVMTLGA102_",
+      "installed_driver_changed": false,
+      "limits": "installed kernel/NVK/translator retained; offscreen coverage only",
+      "original_probe_source_sha256": "2c85bb1c53aad2e1e3441f9a539e61b2e66d478169784322ac99807a32148063",
+      "plugin_sha256": "167d176d8b70507a9dce7926373dc67436d5cddcb41731749928c1c5cfbfedf5"
+    },
+    "schema_version": 1
+  },
+  "crossprocess": {
+    "automated_core_validation": "PASS",
+    "checks": {
+      "scoped_gpu_correctness": "PASS"
+    },
+    "completed_runs": 3,
+    "desktop_smoothness": "NOT VERIFIED",
+    "execution": "PASS",
+    "installed_driver_fixed": false,
+    "negative_control": null,
+    "physical_scanout": "NOT VERIFIED",
+    "probe": "ga102_metal_crossprocess",
+    "probe_source_sha256": "692ede3449f866c9a777321beda2805196a13a2d2ea0ca1b225999e149838b22",
+    "reproducibility": "PASS",
+    "requested_runs": 3,
+    "runs": [
+      {
+        "exit_code": 0,
+        "metrics": [
+          {
+            "checked_bytes": 262144,
+            "cpu_producer_frames": 4,
+            "frames": 8,
+            "gpu_producer_frames": 4,
+            "output": "PASS",
+            "processes": 2,
+            "roundtrip_ms_in_order": [
+              17.585724,
+              11.721833,
+              10.881677,
+              6.826293,
+              8.450768,
+              6.716405,
+              7.792197,
+              6.173577
+            ]
+          }
+        ],
+        "validation_exit_code": 0,
+        "verdict": {
+          "automated_core_validation": "PASS",
+          "checks": {
+            "scoped_gpu_correctness": "PASS"
+          },
+          "desktop_smoothness": "NOT VERIFIED",
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        }
+      },
+      {
+        "exit_code": 0,
+        "metrics": [
+          {
+            "checked_bytes": 262144,
+            "cpu_producer_frames": 4,
+            "frames": 8,
+            "gpu_producer_frames": 4,
+            "output": "PASS",
+            "processes": 2,
+            "roundtrip_ms_in_order": [
+              17.135379,
+              8.94182,
+              10.72359,
+              11.284987,
+              8.27083,
+              6.180833,
+              7.258965,
+              6.229173
+            ]
+          }
+        ],
+        "validation_exit_code": 0,
+        "verdict": {
+          "automated_core_validation": "PASS",
+          "checks": {
+            "scoped_gpu_correctness": "PASS"
+          },
+          "desktop_smoothness": "NOT VERIFIED",
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        }
+      },
+      {
+        "exit_code": 0,
+        "metrics": [
+          {
+            "checked_bytes": 262144,
+            "cpu_producer_frames": 4,
+            "frames": 8,
+            "gpu_producer_frames": 4,
+            "output": "PASS",
+            "processes": 2,
+            "roundtrip_ms_in_order": [
+              17.185011,
+              9.139497,
+              5.776568,
+              12.452368,
+              7.729999,
+              14.02902,
+              11.399168,
+              12.073426
+            ]
+          }
+        ],
+        "validation_exit_code": 0,
+        "verdict": {
+          "automated_core_validation": "PASS",
+          "checks": {
+            "scoped_gpu_correctness": "PASS"
+          },
+          "desktop_smoothness": "NOT VERIFIED",
+          "installed_driver_fixed": false,
+          "physical_scanout": "NOT VERIFIED"
+        }
+      }
+    ],
+    "runtime": {
+      "binding": "explicit process-local user-space plugin",
+      "binding_helper_source_sha256": "fa170baac2d89c5e53331bf4b22fc6d1f82fdee7b834c293f35e46acf89b6bc7",
+      "class_namespace": "NVMTLGA102_",
+      "installed_driver_changed": false,
+      "limits": "installed kernel/NVK/translator retained; offscreen coverage only",
+      "original_probe_source_sha256": "c1ac0b949f695225e0a08b474d0c6d720dcbc35159624066c8542658e8ac3cd7",
+      "plugin_sha256": "167d176d8b70507a9dce7926373dc67436d5cddcb41731749928c1c5cfbfedf5"
+    },
+    "schema_version": 1
+  },
+  "limits": [
+    "Renamed experimental build; source algorithms unchanged by namespace conversion",
+    "Installed original may load only under its own distinct classes; candidate class images and resource device ownership are checked",
+    "WindowServer/kernel/NVK/translator remain installed releases",
+    "Offscreen synthetic coverage only; desktop integration not verified"
+  ]
+}

@@ -15,6 +15,10 @@ static void fail(const char *reason) { fprintf(stderr, "FAIL: %s\n", reason); ff
 static NSString *canonical(const char *path) {
     return [[@(path) stringByStandardizingPath] stringByResolvingSymlinksInPath];
 }
+static bool namespacedBinding;
+static NSString *installedImage(void) {
+    return canonical("/Library/GPUBundles/NVMTLDriver.bundle/Contents/MacOS/NVMTLDriver");
+}
 static void checkImage(Class cls, NSString *expected) {
     const char *image = cls ? class_getImageName(cls) : NULL;
     if (!image || ![canonical(image) isEqual:expected]) fail("object class is not owned by requested plugin");
@@ -31,18 +35,36 @@ static void checkSinglePlugin(NSString *expected) {
     for (uint32_t i = 0; i < _dyld_image_count(); ++i) {
         const char *path = _dyld_get_image_name(i);
         if (path && [[canonical(path) lastPathComponent] isEqual:@"NVMTLDriver"]) {
-            if (![canonical(path) isEqual:expected]) fail("another Metal driver image was loaded");
-            ++count;
+            if ([canonical(path) isEqual:expected]) ++count;
+            else if (!namespacedBinding || ![canonical(path) isEqual:installedImage()])
+                fail("another Metal driver image was loaded");
         }
     }
     if (count != 1) fail("expected exactly one explicit driver image");
+    if (namespacedBinding) {
+        unsigned number=0; Class *classes=objc_copyClassList(&number);
+        if (!classes) fail("class inventory unavailable");
+        unsigned owned=0;
+        for (unsigned i=0;i<number;++i) {
+            const char *name=class_getName(classes[i]);
+            if (name && !strncmp(name,"NVMTLGA102_",11)) { checkImage(classes[i],expected); ++owned; }
+        }
+        free(classes);
+        if (owned < 60) fail("incomplete candidate class namespace");
+        Class original=objc_getClass("NVMTLDevice");
+        if (original) checkImage(original,installedImage());
+    }
 }
 static id<MTLDevice> bindDevice(NSString *expected) {
-    if (objc_getClass("NVMTLDevice")) fail("Metal plugin already loaded before explicit binding");
+    const char *namespace=getenv("GA102_PLUGIN_NAMESPACE");
+    if (namespace && strcmp(namespace,"NVMTLGA102_")) fail("unsupported candidate namespace");
+    namespacedBinding=namespace!=NULL;
+    const char *deviceName=namespacedBinding ? "NVMTLGA102_Device":"NVMTLDevice";
+    if (objc_getClass(deviceName)) fail("Metal plugin already loaded before explicit binding");
     // +load forwarding changes are restricted to this process's NVMTL classes.
     void *handle = dlopen(expected.fileSystemRepresentation, RTLD_NOW | RTLD_LOCAL);
     if (!handle) { fprintf(stderr, "FAIL: dlopen: %s\n", dlerror()); fail("requested image could not be loaded"); }
-    Class cls = objc_getClass("NVMTLDevice");
+    Class cls = objc_getClass(deviceName);
     checkImage(cls, expected); checkSinglePlugin(expected);
     io_service_t accelerator = IOServiceGetMatchingService(kIOMainPortDefault, IOServiceMatching("NVAccel"));
     if (!accelerator) fail("NVAccel service unavailable");
@@ -61,8 +83,18 @@ static id<MTLDevice> bindDevice(NSString *expected) {
 
 #ifdef GA102_BINDING_ONLY
 static NSString *boundImage;
+static id<MTLDevice> boundDevice;
 static void verifyAtExit(void) { @autoreleasepool {
     checkSinglePlugin(boundImage);
+    checkImage([boundDevice class],boundImage);
+    checkMethod(boundDevice,@selector(newComputePipelineStateWithFunction:error:),boundImage);
+    if (namespacedBinding) {
+        Class bufferClass=objc_getClass("NVMTLGA102_Buffer");
+        id buffer=[boundDevice newBufferWithLength:16 options:MTLResourceStorageModeShared];
+        if (!buffer || [buffer class]!=bufferClass || [buffer device]!=boundDevice)
+            fail("candidate resource device identity changed");
+        puts("binding_namespace_verified: true");
+    }
     puts("binding_verified: true"); fflush(stdout);
 }}
 // Swift takes the retained object. The image stays resident until process exit.
@@ -71,6 +103,7 @@ void *ga102_bound_device(void) { @autoreleasepool {
     if (!path || !*path) fail("explicit plugin path missing");
     boundImage = canonical(path);
     id device = bindDevice(boundImage);
+    boundDevice=device;
     if (atexit(verifyAtExit)) fail("provenance exit check unavailable");
     return (__bridge_retained void *)device;
 }}

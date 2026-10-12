@@ -1,0 +1,53 @@
+{
+  "date": "2026-10-12",
+  "user_observed_display_wake": "FAIL",
+  "agent_sleep_wake_experiment": false,
+  "power_protocol_fixture": {
+    "scope": "CPU-only callback contract; real superclass replaced with stub",
+    "patch_sha256": "b50f88232af8136ed21794c4f19b6373ec3c6ac4584b4bb7a4359b6383125a2b",
+    "results": [
+      {
+        "variant": "original",
+        "exit_code": 1,
+        "callback_sha256": "e0d8327c11cf6be1dca4bd6ba3265d22e7fe258f72ca609dbd9d04eda9822e5e"
+      },
+      {
+        "variant": "candidate",
+        "exit_code": 0,
+        "callback_sha256": "67449cbf5d8966ea67113581a8432ae76b015cbbbb54d71c771758d60e3b5286"
+      }
+    ],
+    "wake_recovery": "NOT VERIFIED"
+  },
+  "candidate": {
+    "compiled_and_linked": true,
+    "installed": false,
+    "runtime_executed": false,
+    "source_revision": "e404ab30b94d6588bdf63b3724d59f1e713ad963",
+    "vendor_revision": "e4a5faa2567f28c8eabe0ebb6422b6d0abcf37eb",
+    "patch_sha256": "b50f88232af8136ed21794c4f19b6373ec3c6ac4584b4bb7a4359b6383125a2b",
+    "binary_sha256": "c16184bb0e77f4cdfe419d9b790c84388e100eed3f50051860e3279e356916d1",
+    "changed_source_files": [
+      "kexts/NVRMFB/fb/nvrm-fb.cpp"
+    ],
+    "status": "AWAITING SUPERVISED DEPLOYMENT; unchanged-build boot compatibility/recovery still unqualified",
+    "limits": "isolated PM callback delegation experiment; no RM/NVKMS suspend/resume implementation; not a confirmed wake fix",
+    "rollback_binary_sha256": "a2a3cf961df1aae872d500142b8c146ecd660a369f364d843f42c3fb4bd21e71",
+    "added_undefined_imports": [],
+    "removed_undefined_imports": [],
+    "candidate_bundle_packaged": true,
+    "rollback_bundle_byte_verified": true
+  },
+  "source_scope": "superclass IOFramebuffer protocol delegation only; pinned original framebuffer, no retired instrumentation",
+  "rollback_requirements": [
+    "Keep current original bundle and pre-deployment auxiliary collection on tested recovery media",
+    "Verify current Sequoia System/Data access and required recovery utilities before publication",
+    "Only supervised installation/collection rebuild/reboot or sleep-wake validation with separate authorization",
+    "Restore exact original bundle with required root:wheel ownership/modes and original pre-deployment collection on failure"
+  ],
+  "limits": [
+    "Known local unchanged-source framebuffer boot compatibility remains unqualified",
+    "Complete NVIDIA RM/NVKMS suspend/resume coordination is absent",
+    "No candidate kernel executed; compile/link and stub tests do not prove wake recovery"
+  ]
+}

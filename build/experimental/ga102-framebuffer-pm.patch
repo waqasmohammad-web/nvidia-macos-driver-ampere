@@ -1,0 +1,15 @@
+--- a/kexts/NVRMFB/fb/nvrm-fb.cpp
++++ b/kexts/NVRMFB/fb/nvrm-fb.cpp
+@@ -2401,9 +2401,9 @@
+ IOReturn NVRMNVDAFramebuffer::setPowerState(unsigned long ordinal, IOService *device)
+ {
+     FBLOG("setPowerState %lu", (unsigned long)ordinal);
+-    if (ordinal) handleEvent(kIOFBNotifyDidPowerOn);
+-    else         handleEvent(kIOFBNotifyWillPowerOff);
+-    return kIOPMAckImplied;
++    // IOFramebuffer owns the controller work, asynchronous acknowledgement and
++    // completion notifications. A notification alone does not restore hardware.
++    return super::setPowerState(ordinal, device);
+ }
+ IOReturn NVRMNVDAFramebuffer::setAttribute(IOSelect attribute, uintptr_t value)
+ {

@@ -72,8 +72,10 @@ def main():
                         help='Use 3 for reproducibility; controls always run once')
     parser.add_argument('--output', type=Path, required=True)
     parser.add_argument('--plugin', type=Path, help='Use explicit process-local plugin binding for the correctness profile only')
+    parser.add_argument('--namespaced-plugin', action='store_true', help='Use a verified private class namespace for the explicit plugin')
     args = parser.parse_args()
     if args.plugin and args.profile != 'correctness': parser.error('--plugin requires --profile correctness')
+    if args.namespaced_plugin and not args.plugin:parser.error('--namespaced-plugin requires --plugin')
     if args.output.exists(): parser.error('--output must name a new file')
     scratch = Path(tempfile.mkdtemp(prefix='ga102-suite-'))
     print(f'Private suite scratch: {scratch}', flush=True)
@@ -84,7 +86,7 @@ def main():
         job = {'probe': probe, 'options': options, 'requested_runs': repeat}
         if stop_reason:
             job.update(acceptance='NOT VERIFIED', reason=stop_reason)
-        elif args.plugin and probe not in ('ga102_metal_smoketest', 'ga102_metal_render_smoketest', 'ga102_metal_events'):
+        elif args.plugin and not args.namespaced_plugin and probe not in ('ga102_metal_smoketest', 'ga102_metal_render_smoketest', 'ga102_metal_events'):
             job.update(acceptance='BLOCKED', reason='IOSurface may load installed plugin; candidate class isolation unavailable')
         elif not available:
             job.update(acceptance='BLOCKED', reason='macOS and Xcode command-line tools required')
@@ -93,6 +95,7 @@ def main():
             command = [sys.executable, str(ROOT / 'tools/ga102_run_metal.py'), probe,
                        '--isolated-cache', '--repeat', str(repeat), '--result-json', str(artifact), *options]
             if args.plugin: command += ['--plugin', str(args.plugin.resolve())]
+            if args.namespaced_plugin:command += ['--namespaced-plugin']
             print(f'Running {probe} {" ".join(options)} ({repeat} run(s))', flush=True)
             with (scratch / f'job-{index}.log').open('w') as log:
                 code = subprocess.run(command, stdout=log, stderr=subprocess.STDOUT).returncode
