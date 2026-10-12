@@ -16,8 +16,8 @@ ROOT=Path(__file__).resolve().parents[1]
 PREFIX='NVMTLGA102_'
 
 
-def snapshot(directory):
-    files=[f for f in (ROOT/'plugin').iterdir() if f.is_file()]
+def snapshot(directory, source_root=ROOT):
+    files=[f for f in (source_root/'plugin').iterdir() if f.is_file()]
     names=set()
     for f in files:
         if f.suffix in ('.m','.h','.c'):
@@ -41,13 +41,34 @@ def snapshot(directory):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--vulkan-headers',type=Path,required=True)
+    parser.add_argument('--vulkan-headers',type=Path)
     parser.add_argument('--translator',type=Path,help='Explicit CPU translator dylib for this private build; defaults to installed release')
+    parser.add_argument('--source-root',type=Path,default=ROOT,help='Pinned production worktree; harness transformation stays at this builder revision')
+    parser.add_argument('--graphics-performance',action='store_true',help='Test-only owned caches, fail-closed dependencies and path counters/timers')
+    parser.add_argument('--icd',type=Path,help='Explicit retained NVK dylib, required for performance profile')
+    parser.add_argument('--air-runtime',type=Path,help='Explicit AIR runtime directory, required for performance profile')
+    parser.add_argument('--prepare-only',action='store_true',help='Generate owned source/proof without compiling or loading anything (Linux-compatible)')
     args=parser.parse_args()
-    if not (args.vulkan_headers/'vulkan/vulkan_core.h').is_file():parser.error('Vulkan include directory required')
+    if args.graphics_performance and not all([args.translator,args.icd,args.air_runtime]):
+        parser.error('performance profile requires explicit --translator, --icd and --air-runtime')
+    source_identity={}
+    if args.graphics_performance:
+        root=str(args.source_root.resolve())
+        status=subprocess.run(['git','-C',root,'status','--porcelain','--untracked-files=all','--','plugin','translator',':(exclude)translator/translator/target',':(exclude)translator/wrapper/target'],check=True,capture_output=True,text=True)
+        if status.stdout.strip(): parser.error('production plugin/translator inputs must match a clean pinned worktree')
+        source_identity={key:subprocess.run(['git','-C',root,'rev-parse',revision],check=True,capture_output=True,text=True).stdout.strip()
+                         for key,revision in [('source_commit','HEAD'),('source_tree','HEAD^{tree}') ]}
+        if not args.prepare_only:
+            for dependency in [args.translator,args.icd,args.air_runtime/'libLLVM.dylib']:
+                if not dependency.is_file(): parser.error('explicit performance dependency missing: '+str(dependency))
+            translator_build=args.translator.resolve().with_name('translator-proof.json')
+            translation_proof=json.loads(translator_build.read_text())
+            if translation_proof.get('source_commit') != source_identity['source_commit'] or translation_proof.get('binary_sha256') != hashlib.sha256(args.translator.read_bytes()).hexdigest() or translation_proof.get('build_succeeded') is not True:
+                parser.error('translator build proof must match the pinned source and artifact')
+    if not args.prepare_only and (not args.vulkan_headers or not (args.vulkan_headers/'vulkan/vulkan_core.h').is_file()):parser.error('Vulkan include directory required')
     args.output.mkdir(parents=True,exist_ok=False)
     source=args.output/'source';source.mkdir()
-    mapping,hashes=snapshot(source)
+    mapping,hashes=snapshot(source,args.source_root.resolve())
     library_source=source/'NVMTLLibraryLoad.m'
     library=library_source.read_text()
     declaration='static nvmtl_translate_fn xlate;'
@@ -112,6 +133,21 @@ unsigned long ga102_isolated_lowering_calls(void) {
     return atomic_load_explicit(&gGA102LowerCalls, memory_order_relaxed);
 }
 ''')
+    performance=None
+    if args.graphics_performance:
+        try:
+            from .ga102_perf_instrumentation import instrument
+        except ImportError:
+            from ga102_perf_instrumentation import instrument
+        performance=instrument(source,args.translator.resolve(),args.icd.resolve())
+    if args.prepare_only:
+        proof={'schema_version':2,'class_prefix':PREFIX,'class_mapping':mapping,
+               'source_sha256':hashes,'performance':performance,'prepared_only':True,
+               'binary_sha256':None,'runtime_executed':False,'installed':False}
+        proof.update(source_identity)
+        (args.output/'preparation-proof.json').write_text(json.dumps(proof,indent=2)+'\n')
+        print('READY: source preparation only; NEEDS MACOS VALIDATION: compilation and runtime')
+        return
     binary=args.output/'NVMTLDriver'
     cmd=['xcrun','clang','-arch','x86_64','-bundle','-fobjc-arc','-O1','-DNVMTL_RELEASE=1',
          '-fvisibility=hidden','-Wno-protocol','-Wno-incomplete-implementation',
@@ -120,7 +156,7 @@ unsigned long ga102_isolated_lowering_calls(void) {
     with (args.output/'build.private.log').open('w') as log:
         subprocess.run(cmd,stdout=log,stderr=subprocess.STDOUT,check=True,timeout=90)
     for name in ['libnvmtl_translate.dylib','air-runtime']:
-        target=args.translator.resolve() if name=='libnvmtl_translate.dylib' and args.translator else Path('/Library/GPUBundles/NVMTLDriver.bundle/Contents/MacOS')/name
+        target=args.translator.resolve() if name=='libnvmtl_translate.dylib' and args.translator else args.air_runtime.resolve() if name=='air-runtime' and args.air_runtime else Path('/Library/GPUBundles/NVMTLDriver.bundle/Contents/MacOS')/name
         if not target.exists():raise FileNotFoundError('installed CPU translator/runtime dependency absent')
         (args.output/name).symlink_to(target)
     proof={'schema_version':1,'class_prefix':PREFIX,'class_mapping':mapping,
@@ -131,6 +167,17 @@ unsigned long ga102_isolated_lowering_calls(void) {
            'lowering_call_counter':True,
            'translator_sha256':hashlib.sha256((args.output/'libnvmtl_translate.dylib').read_bytes()).hexdigest(),
            'limits':'experimental namespace build; GPU correctness/provenance require separate execution'}
+    if performance:
+        proof['schema_version']=2
+        proof['performance']=performance
+        proof['translator_build_proof_sha256']=hashlib.sha256(translator_build.read_bytes()).hexdigest()
+        proof['icd_path']=str(args.icd.resolve())
+        proof['icd_sha256']=hashlib.sha256(args.icd.read_bytes()).hexdigest()
+        proof['air_runtime_path']=str((args.air_runtime/'libLLVM.dylib').resolve())
+        proof['air_runtime_sha256']=hashlib.sha256((args.air_runtime/'libLLVM.dylib').read_bytes()).hexdigest()
+        proof.update(source_identity)
+        if subprocess.run(['git','-C',str(args.source_root.resolve()),'diff','--quiet','HEAD','--','plugin','translator'],check=False).returncode:
+            raise ValueError('pinned production plugin/translator source must be clean')
     (args.output/'isolation-proof.json').write_text(json.dumps(proof,indent=2)+'\n')
     (args.output/'command.private.json').write_text(json.dumps(cmd,indent=2)+'\n')
     print(json.dumps({'binary_sha256':proof['binary_sha256'],'renamed_classes_and_protocols':len(mapping),'installed':False}))

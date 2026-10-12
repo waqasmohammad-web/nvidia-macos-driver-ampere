@@ -3558,3 +3558,44 @@ Await user approval of the runbook. Before any timing execution, prepare/review
 the specified copied-source cache routing and sampler/pipeline instrumentation
 with exact invocations and negative controls. Retain installed kernel/RM/NVK
 unchanged; no deployment, display or recovery operation is authorized here.
+
+### Optional isolated runtime-sampler graphics harness prepared on Linux
+
+The release initializer's environment-clearing policy is preserved. Only copied
+namespace sources in the optional `--graphics-performance` profile receive
+token-verified private AIR/SPIR-V/index/reflection/Mesa routing, explicit
+translator/ICD selection and fail-closed extraction/loader handling. Production
+plugin source and installed components remain unchanged. The transformer times
+actual ordinary/reflection/sampler/lowering ABI calls and Vulkan graphics creation
+and records the real local/device hit/miss/build branches under existing locks.
+
+Owned Metal/Swift source now binds sampler index 3 with nearest/linear states and
+requires miss, local reuse and equivalent-PSO device reuse with full 32x32 pixel
+checks. The runner uses one common metallib, successful source-pinned translator
+build proofs, original/transformed input hashes, actual function/IMP images and
+a reviewed non-system dependency manifest. A captured real-SPIR-V qualification
+pair precedes separate capture-free cold/reuse timing roots; unexpected counters,
+pixels, cache conditions or dependencies cannot pass by relabeling the result.
+Internal sampler reflection remains inside the sampler ABI span; Mesa persistence
+is not a driver-hit counter. No current desktop or performance claim is made.
+
+**READY, portable:** 79 Python tests; actual C metrics/cache policy under
+ASan+UBSan with four workers x1000 increments and cache negatives; actual-source
+transform/constructor preservation and fail-closed acceptance controls. Existing
+Linux sampler ABI re-passes real SPIR-V validation and byte-equality/state
+controls. **NEEDS MACOS VALIDATION:** every new Apple-framework compilation and
+actual GPU/persistent-cache/path assertion. **BLOCKED:** meaningful performance
+comparison until that qualification succeeds. No Mac command/access, build,
+installed cache/component write or hardware test request occurred. Evidence:
+[`evidence/ga102-graphics-harness-preparation.json`](evidence/ga102-graphics-harness-preparation.json).
+
+### NEXT-STEPS
+
+Review the rewritten [`GA102-HARDWARE-VALIDATION-RUNBOOK.md`](GA102-HARDWARE-VALIDATION-RUNBOOK.md).
+Cloud preparation command: `python3 build/build_isolated_plugin.py --prepare-only
+--graphics-performance --source-root <clean-pinned-worktree> --output work/new-profile
+--translator <future-explicit-dylib> --icd <retained-explicit-icd> --air-runtime
+<retained-explicit-runtime>`. Preparation proof cannot authorize execution.
+Future Mac build-only source qualification needs a separate authorized session;
+do not request physical testing until the cold/reuse and sampler-path contract
+can be supported by actual qualification evidence.

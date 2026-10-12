@@ -41,6 +41,15 @@ acceleration. Next meaningful qualification is synchronous NVK graphics pipeline
 creation/cache reuse on verified candidate images and actual hardware. See the
 latest investigation and `evidence/ga102-runtime-translation.json`.
 
+The optional isolated graphics harness is now source-prepared with runtime-bound
+nearest/linear samplers, token-verified owned cache routing and actual-path/ABI/
+Vulkan counters. Portable qualification: 79 Python tests plus real C ASan+UBSan
+controls and actual Linux sampler ABI/SPIR-V checks. Production source remains
+unchanged. Apple compilation, GPU output, cold/reuse and hit claims NEED MACOS
+VALIDATION; meaningful performance remains BLOCKED until qualification. Read
+`GA102-HARDWARE-VALIDATION-RUNBOOK.md` and
+`evidence/ga102-graphics-harness-preparation.json`. No physical testing requested.
+
 ## What can move
 
 | Workflow | Hosted Linux suitability / dependencies |

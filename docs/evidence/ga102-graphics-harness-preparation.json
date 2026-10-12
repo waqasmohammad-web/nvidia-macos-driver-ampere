@@ -1,0 +1,85 @@
+{
+  "status": {
+    "portable": "READY",
+    "darwin_compilation_and_gpu": "NEEDS MACOS VALIDATION",
+    "performance_claims": "BLOCKED until actual Mac qualification"
+  },
+  "production_plugin_changed": false,
+  "mac_access_or_execution": false,
+  "python_ga102_tests_passed": 79,
+  "portable_C": "Actual metrics/cache/capture header compiled and executed with ASan+UBSan; four workers x 1000 atomic increments; token/permission/symlink/disabled-cache negatives fail closed. Capture byte fixture tests I/O only, never shader validity.",
+  "transformer": "Generated namespaced copies of actual production sources; constructor remains identical; exact-site mismatch and duplicate application rejected.",
+  "real_spirv_validation": {
+    "library_sha256": {
+      "baseline": "da1246baf5db7d6315b381537ae2ad34477fff7a9ed045ba53a05ddb437b6cef",
+      "candidate": "8afd40a65cd14579ab6873161cdf5e83aba7d10c5d23442e3ab37b680515ee51"
+    },
+    "byte_identical": true,
+    "controls": [
+      "caps=0:fragment-nearest",
+      "caps=0:fragment-linear",
+      "caps=0:fragment-normalized",
+      "caps=0:vertex-unused-sampler",
+      "caps=0:storage-write-unused-sampler",
+      "caps=1:fragment-nearest",
+      "caps=1:fragment-linear",
+      "caps=1:fragment-normalized",
+      "caps=1:vertex-unused-sampler",
+      "caps=1:storage-write-unused-sampler",
+      "caps=2:fragment-nearest",
+      "caps=2:fragment-linear",
+      "caps=2:fragment-normalized",
+      "caps=2:vertex-unused-sampler",
+      "caps=2:storage-write-unused-sampler",
+      "caps=3:fragment-nearest",
+      "caps=3:fragment-linear",
+      "caps=3:fragment-normalized",
+      "caps=3:vertex-unused-sampler",
+      "caps=3:storage-write-unused-sampler",
+      "identical explicit invalid-state/constant error",
+      "identical explicit invalid-state/constant error",
+      "undeclared sampler does not change output",
+      "identical explicit malformed AIR error",
+      "real validator rejects malformed SPIR-V header"
+    ],
+    "workloads": [
+      {
+        "name": "fragment-nearest",
+        "spirv_sha256": "7250ff6617995120c3ae9fabab7906d9bc08b6e1d86d7af5cc2e4fdc94968c6a"
+      },
+      {
+        "name": "fragment-linear",
+        "spirv_sha256": "a016ebdb1db25a025116f92adbc09327c36b93c3ae5e641d8c141860217161d9"
+      },
+      {
+        "name": "fragment-normalized",
+        "spirv_sha256": "d2266849f578ccaeae36ee7a2d5ce6d498224a06aa46f971284a17f8d108d43a"
+      },
+      {
+        "name": "vertex-unused-sampler",
+        "spirv_sha256": "0453ccd55b39d64a0fc5e60129f647b856a52f3ca2577728e086cb21143dd741"
+      },
+      {
+        "name": "storage-write-unused-sampler",
+        "spirv_sha256": "a418f1cb8e443c6a1baeb425c17c8b227a41216c770ad8d4bf6b5b65f130df60"
+      }
+    ],
+    "scope": "Existing owned textual AIR through Linux native sampler ABI; no Apple compilation or new GPU fixture qualification. Tiny recheck sample timings are not performance evidence."
+  },
+  "limits": [
+    "Objective-C/Swift/Metal source not compiled on Linux.",
+    "No actual GPU output, cold/warm branch or NVK execution claimed.",
+    "Internal sampler reflection is included in sampler ABI time; cannot independently attribute it here.",
+    "Effective Mesa environment/files do not establish driver cache hit rates."
+  ],
+  "harness_source_sha256": {
+    "build/build_isolated_plugin.py": "0014488c0c10208f37deed9b75e60995aa77e7a055313a9a62c9dbe62fa0f1e6",
+    "build/ga102_perf_instrumentation.py": "b54c04cc01870142f58570086d452557cd99238bbf5123feffbfeb4ef878c499",
+    "tools/ga102_graphics_perf.py": "17350a7b181c660558ec9c3004d8eced6323ebb1c2ac85f162e46d9373a48ad2",
+    "tools/ga102_isolated_plugin_probe.m": "1277b7f1962bc6d99ac4ac58aa454fee9c1aee9eb93cde59c177cf34c6a7b5ab",
+    "tools/ga102_perf/metrics.h": "a14048f37e60658d897d0eaa8c777618533ea7d176d3979a5e42f2a220722638",
+    "tools/ga102_perf/runtime_sampler.metal": "80e129a4a8db655a7d8eaa1160efb9228222255bbc45c85ed8ea1d5a0263921c",
+    "tools/ga102_perf/graphics.swift": "c6f7c5146815f28b8d6a82e7b1a8f070bd57148ca538ca454b1ef58aaf16c4c7",
+    "tools/test_ga102_graphics_perf.py": "39cc328c9e99fc0294c98f1ac8c3077ae0f864d48977d9d4ae9a79a577eaeef3"
+  }
+}

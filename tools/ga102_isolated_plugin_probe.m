@@ -130,6 +130,62 @@ void *ga102_bound_device(void) { @autoreleasepool {
     if (atexit(verifyAtExit)) fail("provenance exit check unavailable");
     return (__bridge_retained void *)device;
 }}
+#ifdef GA102_PERFORMANCE
+// Optional owned graphics probe only; production binding routes are unchanged.
+static void *performanceImage(void) {
+    void *h=dlopen(boundImage.fileSystemRepresentation,RTLD_NOW|RTLD_NOLOAD);
+    if (!h || !namespacedBinding) fail("namespaced performance image required");
+    return h;
+}
+const char *ga102_graphics_snapshot(void) {
+    const char *(*fn)(void)=dlsym(performanceImage(),"ga102_perf_snapshot");
+    if (!fn) fail("performance counters unavailable");
+    return fn();
+}
+void ga102_graphics_check_object(void *pointer) {
+    id object=(__bridge id)pointer;
+    if (!object) fail("candidate object unavailable");
+    checkImage([object class],boundImage);
+    SEL selectors[]={@selector(newLibraryWithData:error:),@selector(newRenderPipelineStateWithDescriptor:error:),
+        @selector(newSamplerStateWithDescriptor:),@selector(newFunctionWithName:),
+        @selector(setRenderPipelineState:),@selector(setFragmentTexture:atIndex:),
+        @selector(setFragmentSamplerState:atIndex:),@selector(drawPrimitives:vertexStart:vertexCount:),
+        @selector(commit),@selector(renderCommandEncoderWithDescriptor:)};
+    for (unsigned i=0;i<sizeof selectors/sizeof selectors[0];++i)
+        if ([object respondsToSelector:selectors[i]]) checkMethod(object,selectors[i],boundImage);
+}
+const char *ga102_graphics_provenance(void) { @autoreleasepool {
+    void *h=performanceImage();
+    const char *(*image)(unsigned)=dlsym(h,"ga102_perf_image");
+    const char *(*cache)(void)=dlsym(h,"ga102_perf_cache");
+    if (!image || !cache) fail("performance provenance unavailable");
+    const char *translator=getenv("GA102_PLUGIN_TRANSLATOR"),*icd=getenv("GA102_TEST_ICD"),*llvm=getenv("GA102_TEST_LLVM");
+    const char *root=getenv("GA102_TEST_CACHE");
+    if (!translator || !icd || !llvm || !root) fail("explicit performance dependencies required");
+    NSMutableArray *images=[NSMutableArray new];
+    for (unsigned i=0;i<6;++i) {
+        const char *actual=image(i),*expected=i<3?translator:i<5?icd:llvm;
+        // A persistent index/AIR cache hit need not load LLVM in this process.
+        if (i==5 && !actual) { [images addObject:[NSNull null]]; continue; }
+        if (!actual || ![canonical(actual) isEqual:canonical(expected)]) fail("performance function belongs to another image");
+        [images addObject:canonical(actual)];
+    }
+    if (![canonical(cache()) isEqual:canonical(root)]) fail("effective cache root changed");
+    const char *mesa=getenv("MESA_SHADER_CACHE_DIR");
+    if (!mesa || ![canonical(mesa) isEqual:[canonical(root) stringByAppendingPathComponent:@"mesa"]]) fail("effective Mesa path changed");
+    checkMethod(boundDevice,@selector(newRenderPipelineStateWithDescriptor:error:),boundImage);
+    checkMethod(boundDevice,@selector(newSamplerStateWithDescriptor:),boundImage);
+    checkSinglePlugin(boundImage);
+    NSMutableArray *inventory=[NSMutableArray new];
+    for(uint32_t i=0;i<_dyld_image_count();++i) {
+        const char *path=_dyld_get_image_name(i); if(path)[inventory addObject:canonical(path)];
+    }
+    NSData *data=[NSJSONSerialization dataWithJSONObject:@{@"images":images,@"cache":canonical(root),@"mesa":canonical(mesa),@"inventory":inventory,@"namespace_verified":@YES} options:0 error:NULL];
+    if (!data) fail("performance provenance JSON failed");
+    static char *last; free(last); last=strdup([[NSString alloc] initWithData:data encoding:NSUTF8StringEncoding].UTF8String);
+    if (!last) fail("performance provenance allocation failed"); return last;
+}}
+#endif
 #else
 static double elapsed(uint64_t start) { return (clock_gettime_nsec_np(CLOCK_MONOTONIC_RAW)-start)/1e6; }
 int main(int argc, char **argv) { @autoreleasepool {
