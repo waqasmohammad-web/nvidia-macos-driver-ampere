@@ -1,0 +1,53 @@
+{
+  "raw_log_sha256": "9cf2b80c2459e109d0f3d2bcd00626dfe0d8f889b1d2e26d8679270491092579",
+  "derivation": "Remove exactly one known stderr failure line from the result stream, then require a single complete JSON object and whitespace-only remainder; original log untouched",
+  "stderr_marker_count": 1,
+  "derived_sha256": "4e95414e77e9af3875ef4bb9fe026a55a76f132287862edea56a36a2a9bf4003",
+  "workload_source_sha256": "c7d46b86434ffa67c8f5288a6c78904e933b1edfdacec665a44dafedf64377a2",
+  "executable_sha256": "296dbee8c63b5573a6abb6916baf27c0a68caca6700fdcb27b6a3afc85960e15",
+  "attempted": 3408,
+  "completed": 3407,
+  "command_errors": 0,
+  "outstanding": 1,
+  "timer_skips": 0,
+  "positive_presented_times": 3402,
+  "presentation": {
+    "max_ms": 84.01978399979271,
+    "p50_ms": 16.761351999775798,
+    "p95_ms": 33.45726599991394,
+    "p99_ms": 49.99525299990637,
+    "samples": 3391
+  },
+  "late_intervals": 398,
+  "gpu": {
+    "max_ms": 0.4075520000696997,
+    "p50_ms": 0.3194880000592093,
+    "p95_ms": 0.36345599983178545,
+    "p99_ms": 0.37887999997110455,
+    "samples": 3407
+  },
+  "commit_to_completed_callback": {
+    "max_ms": 2.8395300000738644,
+    "p50_ms": 0.6566459996975027,
+    "p95_ms": 0.7434760000251117,
+    "p99_ms": 0.7952189998832182,
+    "samples": 3407
+  },
+  "cpu_draw_intervals": {
+    "max_ms": 100.84071599976596,
+    "p50_ms": 16.684780000105093,
+    "p95_ms": 33.42043399970862,
+    "p99_ms": 50.01396600027874,
+    "samples": 3407
+  },
+  "preflight_ready": true,
+  "visibility_states": 58,
+  "visibility_all_eligible": true,
+  "verdict": "FAIL",
+  "trace_collection": "NOT VERIFIED",
+  "late_trace_count": 0,
+  "failure": "3408 of 3600 required attempts before deadline; no selective rerun",
+  "rollback_performed": false,
+  "reboot_performed": false,
+  "original_control_executed": false
+}
