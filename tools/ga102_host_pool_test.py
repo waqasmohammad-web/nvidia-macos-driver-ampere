@@ -2,6 +2,7 @@
 """Sanitized production pool growth/free/rollback with captured heap operations."""
 from pathlib import Path
 import re
+import argparse
 import subprocess
 import tempfile
 
@@ -9,7 +10,10 @@ ROOT=Path(__file__).resolve().parents[1]
 
 
 def main():
-    source=(ROOT/'plugin/nvmtl_vk.c').read_text()
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--source',type=Path,default=ROOT/'plugin/nvmtl_vk.c')
+    args=parser.parse_args()
+    source=args.source.read_text()
     def region(first,last):return source[source.index(first):source.index(last,source.index(first))]
     defines='\n'.join(re.search(r'^#define '+name+r'\s+[^\n]+',source,re.M)[0]
                       for name in ['NVMTL_POOL_BLOCK','NVMTL_POOL_MAX','NVMTL_POOL_KEEP'])
@@ -73,6 +77,31 @@ int main(void) {
         assert(!g_pool_live && !g_pool_bytes && host_bytes()<=(64u<<20));
     }
     drain();
+    // Keep a sentinel live so idle-block reset cannot mask bridge coalescing.
+    for(unsigned i=0;i<8;i++)assert(!pool_buffer_create(1u<<20,&buffer[i]));
+    pool_block *block=buffer[0].pool;
+    pool_buffer_release(&buffer[0]);pool_buffer_release(&buffer[2]);pool_buffer_release(&buffer[1]);
+    uint64_t blocks_before=g_pool_blocks;
+    assert(!pool_buffer_create(3u<<20,&buffer[8]));
+    assert(buffer[8].pool==block && buffer[8].poff==0 && g_pool_blocks==blocks_before);
+    pool_buffer_release(&buffer[8]);
+    // Return the tail in descending order; no stranded holes remain below used.
+    for(unsigned i=8;i-- >3;)pool_buffer_release(&buffer[i]);
+    assert(!block->used && !block->nfr);drain();
+    // Deterministic varied-size churn with live-range non-overlap checks.
+    unsigned state=7;memset(buffer,0,sizeof buffer);
+    for(unsigned step=0;step<5000;step++) {
+        state=state*1664525u+1013904223u;unsigned slot=(state>>16)%128;
+        if(buffer[slot].pool) {pool_buffer_release(&buffer[slot]);memset(&buffer[slot],0,sizeof buffer[slot]);}
+        else {
+            size_t size=(1u+((state>>8)%64))*4096u;
+            assert(!pool_buffer_create(size,&buffer[slot]));
+            for(unsigned j=0;j<128;j++)if(j!=slot&&buffer[j].pool==buffer[slot].pool) {
+                assert(buffer[j].poff+buffer[j].alloc<=buffer[slot].poff || buffer[slot].poff+buffer[slot].alloc<=buffer[j].poff);
+            }
+        }
+    }
+    for(unsigned i=0;i<128;i++) {if(buffer[i].pool)pool_buffer_release(&buffer[i]);}drain();
     assert(!pool_buffer_create(NVMTL_POOL_MAX,&buffer[0]));
     assert(buffer[0].size==NVMTL_POOL_MAX && buffer[0].alloc>=NVMTL_POOL_MAX);
     pool_buffer_release(&buffer[0]);drain();

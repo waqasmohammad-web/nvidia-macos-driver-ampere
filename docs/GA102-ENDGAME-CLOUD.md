@@ -92,3 +92,46 @@ options and framebuffer-only state. Incompatible wrappers are not promised alias
 coherence. Normal retention is per-thread, not a global 32 MiB budget; uncertain
 GPU resources intentionally remain retained until process termination. Steady
 allocation waves, desktop presentation and other applications remain unmeasured.
+
+## Allocation p95 investigation and coalescing candidate
+
+Reanalysis of the published 128-request waves finds **exactly** 4/2/2 requests
+above 1 ms per baseline cold/reuse wave, and 16/8/8 per 8 MiB wave, in every
+one of five trials. Thus warm-wave incidence crosses the 5% quantile boundary:
+2/128 = 1.5625% versus 8/128 = 6.25%. These are real retained Local samples,
+not Cloud allocation measurements. Uniform fully released waves do not require
+fragmentation to explain this percentile shift. Their maximum and total stall
+improve while p95 necessarily includes a growth event more often.
+
+Actual source inspection found a separate reuse defect: `pool_block_give` returns
+when it finds its first adjacent hole and fails to join a second neighbor. It can
+also skip idle reset on that early-return path. New code consumes every adjacent
+range, returns an enlarged tail to the bump allocator and resets fully idle blocks
+first. It preserves 8 MiB host blocks, 64 MiB idle capacity and all VRAM sizing.
+The retained 8 MiB block control allocates eight 1 MiB ranges, frees ranges 0/2/1
+with a sentinel still live, then requests 3 MiB. Baseline needlessly grows another
+block; candidate reuses offset zero in the existing block. The same assertion
+fails baseline and passes candidate under ASan/UBSan. 5,000 deterministic varied-
+size allocation/free operations verify that live ranges never overlap, in addition
+to existing growth, rollback, trimming and VRAM controls. This establishes CPU
+range-reuse correctness, not measured GPU latency or resolution of wave p95.
+
+Do not raise idle block count when experimenting with variable block sizes:
+retention must use bytes. A first-8/later-16 MiB policy would reduce growth incidence
+but could increase individual stalls and peak capacity. First-8/later-32 MiB risks
+moving the original 9 ms stall later. Background preallocation also competes with
+submission and can relocate spikes; it needs demand prediction, cancellation and
+lock-contention evidence. No adaptive policy is enabled here. Measure realistic
+working sets and per-frame allocation clustering before choosing a percentile
+trade-off. Existing growth holds `g_pool_lock` across allocation/mapping, so one
+slow growth can block unrelated allocator threads; changing lock scope requires
+reservation/publication/trim lifetime redesign and concurrency qualification.
+
+Required Local allocator comparison: baseline `65b3ed5`, surface-only commit,
+and coalescing commit separately. Repeat the existing physical waves/boundaries
+and descriptor-growth qualification, then keep sentinel buffers live while freeing
+alternating adjacent ranges and requesting combined spans. Verify exact copied
+bytes, live-range/accounting return, peak and retained capacity; report per-request
+p50/p95/p99/max, >1 ms incidence and whole-frame totals. Include multithreaded
+mixed-size creation, CPU upload, render and event-dependent readback before a
+policy is considered suitable for application workloads.

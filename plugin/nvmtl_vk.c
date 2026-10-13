@@ -6687,17 +6687,30 @@ static int pool_block_take(pool_block *blk, size_t len, size_t *off)
 }
 static void pool_block_give(pool_block *blk, size_t off, size_t len)
 {
-    if (off + len == blk->used) { blk->used = off; }
-    else {
-        for (uint32_t i = 0; i < blk->nfr; i++) {
-            if (blk->fr[i].off + blk->fr[i].len == off) { blk->fr[i].len += len; return; }
-            if (off + len == blk->fr[i].off) { blk->fr[i].off = off; blk->fr[i].len += len; return; }
-        }
-        if (blk->nfr == blk->cfr) { uint32_t c = blk->cfr ? blk->cfr * 2 : 64; pool_range *n = realloc(blk->fr, c * sizeof *n); if (!n) return; blk->fr = n; blk->cfr = c; }
-        blk->fr[blk->nfr].off = off; blk->fr[blk->nfr].len = len; blk->nfr++;
+    // Reset even when the final free touches an existing hole. The old early
+    // return left fully idle blocks fragmented until a later allocation.
+    if (!blk->nlive) { blk->used = 0; blk->nfr = 0; return; }
+    // A returned range can bridge multiple holes. Consume every neighbor,
+    // including the swapped-in entry, before publishing the combined range.
+    for (uint32_t i = 0; i < blk->nfr; ) {
+        pool_range r = blk->fr[i];
+        if (r.off + r.len == off || off + len == r.off) {
+            if (r.off < off) off = r.off;
+            len += r.len;
+            blk->fr[i] = blk->fr[--blk->nfr];
+            i = 0; // unsorted holes may now touch the enlarged range
+        } else i++;
     }
-    if (!blk->nlive) { blk->used = 0; blk->nfr = 0; }
+    if (off + len == blk->used) { blk->used = off; return; }
+    if (blk->nfr == blk->cfr) {
+        uint32_t c = blk->cfr ? blk->cfr * 2 : 64;
+        pool_range *n = realloc(blk->fr, c * sizeof *n);
+        if (!n) return; // lost free space is safer than overlapping live ranges
+        blk->fr = n; blk->cfr = c;
+    }
+    blk->fr[blk->nfr++] = (pool_range){ off, len };
 }
+
 static int vpool_on(void)
 {
     static int on = -1;
