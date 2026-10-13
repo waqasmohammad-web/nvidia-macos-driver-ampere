@@ -1,0 +1,37 @@
+{
+  "state": "original_restored_on_disk",
+  "two_targets": [
+    "NVMTLDriver.bundle",
+    "nvmtl/libvulkan_nouveau.dylib"
+  ],
+  "candidate_preserved_in_job": true,
+  "unchanged_dependency_checks": 34,
+  "changed_dependencies": 0,
+  "on_disk_original_identities": {
+    "authenticated_archive_sha256": "6e568e28ee34c3b41f4dfda980fd8feb50fdd0a69cf6d0f6e54338873b8ec2e7",
+    "original_release_files_checked": 15,
+    "expected_original_images": [
+      {
+        "component": "NVMTLDriver",
+        "target_relative_path": "NVMTLDriver.bundle/Contents/MacOS/NVMTLDriver",
+        "sha256": "853cc88e3e414815384d7d60bc01dd4d5cb67708c20d10472f59506a60a9c5cb",
+        "uuid": "E672B810-6E4F-352B-81C7-61B8A7A89ED0"
+      },
+      {
+        "component": "libnvmtl_translate.dylib",
+        "target_relative_path": "NVMTLDriver.bundle/Contents/MacOS/libnvmtl_translate.dylib",
+        "sha256": "0ad9ab8b8fa1c28519a033c1e7e5367692463de5c81b8651c78ea8d382b3fd57",
+        "uuid": "9C9EF855-568D-3F52-A930-0C9480D4844E"
+      },
+      {
+        "component": "libvulkan_nouveau.dylib",
+        "target_relative_path": "nvmtl/libvulkan_nouveau.dylib",
+        "sha256": "372c257b551cc0c4591239003151f6ac3cb80a947765b5639acfdb5a80e74ebc",
+        "uuid": "132E6A91-D8E4-3487-A980-54455B5B700D"
+      }
+    ],
+    "rollback_tool_sha256": "cb75c8b372f6c289bdc04fdb15f13b3048e087a3aa98f4e8ba6e72e4e3c3196d"
+  },
+  "reboot_consumed": false,
+  "windowserver_requires_post_reboot_verification": true
+}

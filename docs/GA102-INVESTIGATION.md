@@ -3943,3 +3943,18 @@ No new desktop speedup or candidate-specific browser/startup causality establish
 NEXT-STEPS: `sudo -n id -u`; obtain owner approval for original userland rollback and
 restart after initial candidate block; full official OS15 arm has a separate change
 inventory/complete recovery procedure/approval gate. No broad optimization campaign.
+
+### Original userland control authorized and restored — 13 October 2026
+
+Owner accepted the frozen candidate failure at4dc3a0f and explicitly authorized
+original-only rollback plus one reboot despite failed qualification. Failed logs,
+hashes, workloads and independent candidate archives verified unchanged. Recovery
+USB/data identity and all recovery entries pass. Existing rollback source matches
+598c4b3;15 target files match authenticated original1.11 archive. Original two targets
+restored; candidate preserved in jobrollback/original;34 retained hashes unchanged.
+Fresh-process original MetalUUIDs and17/34/51/68 oraclePASS. No kernel/KC/EFI/security/
+firmware/display changes. SeeGA102-ORIGINAL-ROLLBACK.md for exact post-reboot gates.
+NEXT-STEPS after the one authorized restart: `sudo -n id -u`, original active-image
+probe and independent WindowServerUUID/inode/kernel/dependency verification, then
+unchanged sustained/browser/warm-activation controls. Do not issue a second reboot
+or install1.15. The original control and final comparison are still pending.
