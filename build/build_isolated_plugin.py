@@ -45,13 +45,14 @@ def main():
     parser.add_argument('--translator',type=Path,help='Explicit CPU translator dylib for this private build; defaults to installed release')
     parser.add_argument('--source-root',type=Path,default=ROOT,help='Pinned production worktree; harness transformation stays at this builder revision')
     parser.add_argument('--graphics-performance',action='store_true',help='Test-only owned caches, fail-closed dependencies and path counters/timers')
+    parser.add_argument('--disable-pool-telemetry',action='store_true',help='Explicit private timing-off control; pool trace reports unavailable, other gates remain')
     parser.add_argument('--preparation-breakdown',action='store_true',help='Diagnostic-only descriptor initialization breakdown in private logs')
     parser.add_argument('--icd',type=Path,help='Explicit retained NVK dylib, required for performance profile')
     parser.add_argument('--air-runtime',type=Path,help='Explicit AIR runtime directory, required for performance profile')
     parser.add_argument('--prepare-only',action='store_true',help='Generate owned source/proof without compiling or loading anything (Linux-compatible)')
     args=parser.parse_args()
-    if args.preparation_breakdown and not args.graphics_performance:
-        parser.error('preparation breakdown requires the isolated performance profile')
+    if (args.preparation_breakdown or args.disable_pool_telemetry) and not args.graphics_performance:
+        parser.error('diagnostic controls require the isolated performance profile')
     if args.graphics_performance and not all([args.translator,args.icd,args.air_runtime]):
         parser.error('performance profile requires explicit --translator, --icd and --air-runtime')
     source_identity={}
@@ -143,6 +144,22 @@ unsigned long ga102_isolated_lowering_calls(void) {
         except ImportError:
             from ga102_perf_instrumentation import instrument
         performance=instrument(source,args.translator.resolve(),args.icd.resolve(),preparation_breakdown=args.preparation_breakdown)
+        if args.disable_pool_telemetry:
+            try:
+                from . import ga102_pool_telemetry_control as control
+                from . import ga102_pool_instrumentation as pool_trace
+            except ImportError:
+                import ga102_pool_telemetry_control as control
+                import ga102_pool_instrumentation as pool_trace
+            vk=source/'nvmtl_vk.c'
+            vk.write_text(control.disable(vk.read_text(),(args.source_root/'plugin/nvmtl_vk.c').read_text()))
+            unit=source/'NVMTLDevice.m'
+            unit.write_text(control.disable_export(unit.read_text(),pool_trace.EXPORT))
+            performance['transformed_source_sha256']['NVMTLDevice.m']=hashlib.sha256(unit.read_bytes()).hexdigest()
+            performance['pool_telemetry_disabled_control']=True
+            performance['pool_control_transformer_sha256']=hashlib.sha256(Path(control.__file__).read_bytes()).hexdigest()
+            performance['transformed_source_sha256']['nvmtl_vk.c']=hashlib.sha256(vk.read_bytes()).hexdigest()
+
     if args.prepare_only:
         proof={'schema_version':2,'class_prefix':PREFIX,'class_mapping':mapping,
                'source_sha256':hashes,'performance':performance,'prepared_only':True,

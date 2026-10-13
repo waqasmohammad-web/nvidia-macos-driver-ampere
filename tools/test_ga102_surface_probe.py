@@ -12,7 +12,7 @@ class SurfaceAcceptanceTests(unittest.TestCase):
     def control(self, backing='family'):
         trace=dict(requests=1,failures=0,request_ns=1,lock_wait_ns=0,growths=1,growth_ns=1,fragmented_growths=0)
         return [dict(mode=mode,frame=frame,backing=0 if mode=='private' else 2 if backing=='family' else 1,
-                     checked_pixels=640*360,max_error=0,frame_start_ns=1,encode_end_ns=2,commit_ns=3,scheduled_ns=4,completed_ns=5,
+                     checked_pixels=640*360,max_error=0,cpu_checked_pixels=0 if mode=='private' else 640*360,cpu_max_error=0,frame_start_ns=1,encode_end_ns=2,commit_ns=3,scheduled_ns=4,completed_ns=5,
                      gpu_start_s=1.0,gpu_end_s=1.1,pool_before=trace.copy(),pool_after=trace.copy())
                 for mode in SURFACE_MODES for frame in range(20)]
 
@@ -42,8 +42,9 @@ class SurfaceAcceptanceTests(unittest.TestCase):
             with self.assertRaises(ValueError):validate_surfaces(rows,'family')
 
     def test_rejects_incorrect_pixels(self):
-        rows=self.control();rows[0]['max_error']=2
-        with self.assertRaises(ValueError):validate_surfaces(rows,'family')
+        for key,value in [('max_error',2),('cpu_max_error',2),('cpu_checked_pixels',0)]:
+            rows=self.control();rows[0][key]=value
+            with self.assertRaises(ValueError):validate_surfaces(rows,'family')
 
     def test_requires_monotonic_complete_trace(self):
         rows=self.control();rows[0]['pool_after']['requests']=0

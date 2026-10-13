@@ -23,7 +23,10 @@ fixture = r'''
 typedef struct __IOSurface { unsigned seed; unsigned char cpu[4]; } Surface;
 typedef Surface *IOSurfaceRef;
 typedef int IOReturn;
-enum { kIOSurfaceLockReadOnly = 1, kIOReturnSuccess = 0 };
+enum { kIOSurfaceLockReadOnly = 1 };
+#ifndef kIOReturnSuccess
+#define kIOReturnSuccess 0
+#endif
 typedef struct { unsigned w,h,bpp; unsigned char gpu[4]; } Image;
 static dispatch_semaphore_t entered, release_read;
 static unsigned uploads, gpu_seed;

@@ -1,3 +1,7 @@
+@_silgen_name("ga102_graphics_pool_trace") private func allocationTracePointer() -> UnsafePointer<CChar>
+func allocationTrace() -> [String:Any] {
+    guard let data=String(cString:allocationTracePointer()).data(using:.utf8),let value=try? JSONSerialization.jsonObject(with:data) as? [String:Any] else {fail("allocation trace")};return value
+}
 // Inserted into the owned graphics child after its ordinary qualification draws.
 // Every stress command completes and reads back; no drawable or display API.
 var growthRecords=[[String:Any]]()
@@ -38,8 +42,9 @@ for round in 0..<3 {
 // pool growth, completed-command resource retirement, range reuse and trimming.
 var bufferRecords=[[String:Any]]()
 for round in 0..<3 {
+    let outerWaveStart=tick()
     let sample: [String:Any] = autoreleasepool {
-        let before=resources(), waveStart=tick()
+        let before=resources(), traceBefore=allocationTrace(), waveStart=tick()
         var sources=[MTLBuffer](), destinations=[MTLBuffer](),allocationTimes=[UInt64]()
         let bytes=1<<20,words=bytes/4
         for index in 0..<64 {
@@ -53,7 +58,7 @@ for round in 0..<3 {
             for word in 0..<words {data[word]=UInt32(word) ^ (UInt32(index)&*1664525) ^ UInt32(round)}
             sources.append(src);destinations.append(dst)
         }
-        let held=resources()
+        let held=resources(),traceHeld=allocationTrace()
         guard let command=queue.makeCommandBuffer(),let blit=command.makeBlitCommandEncoder() else { fail("buffer copy") }
         owned(command);owned(blit)
         let copyStart=tick()
@@ -66,8 +71,8 @@ for round in 0..<3 {
             }
         }
         return ["round":round,"buffer_count":128,"bytes_verified":64*bytes,"before":before,"held":held,
-                "allocation_samples_ns":allocationTimes,"allocation_total_ns":allocationTimes.reduce(0,+),
+                "pool_trace_before":traceBefore,"pool_trace_held":traceHeld,"allocation_samples_ns":allocationTimes,"allocation_total_ns":allocationTimes.reduce(0,+),
                 "copy_ns":copyNS,"wave_ns":tick()-waveStart]
     }
-    var row=sample;row["after"]=resources();bufferRecords.append(row)
+    var row=sample;row["inclusive_wave_ns"]=tick()-outerWaveStart;row["after"]=resources();row["pool_trace_after"]=allocationTrace();bufferRecords.append(row)
 }

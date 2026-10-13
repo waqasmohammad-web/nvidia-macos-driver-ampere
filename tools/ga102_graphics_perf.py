@@ -160,6 +160,7 @@ def artifact(plugin):
         raise ValueError('compiled performance profile proof required')
     if perf.get('metrics_header_sha256') != sha(ROOT/'tools/ga102_perf/metrics.h') or perf.get('transformer_sha256') != sha(ROOT/'build/ga102_perf_instrumentation.py'):
         raise ValueError('instrumentation revision mismatch')
+    if perf.get('pool_telemetry_disabled_control') and perf.get('pool_control_transformer_sha256')!=sha(ROOT/'build/ga102_pool_telemetry_control.py'):raise ValueError('pool control transformer mismatch')
     for name,digest in perf['transformed_source_sha256'].items():
         if sha(plugin.parent/'source'/name) != digest: raise ValueError('transformed input changed')
     translator=(plugin.parent/'libnvmtl_translate.dylib').resolve()
@@ -293,6 +294,7 @@ def execute(args):
         raise ValueError('A/B requires identical retained ICD and AIR runtime')
     if proofs['baseline']['performance'].get('preparation_breakdown',False) != proofs['candidate']['performance'].get('preparation_breakdown',False):
         raise ValueError('A/B requires identical diagnostic logging settings')
+    if proofs['baseline']['performance'].get('pool_telemetry_disabled_control',False)!=proofs['candidate']['performance'].get('pool_telemetry_disabled_control',False):raise ValueError('A/B requires identical pool timing settings')
     verify_plugin_inputs(proofs['baseline']['source_sha256'],proofs['candidate']['source_sha256'],args.descriptor_pool_comparison)
     if args.descriptor_pool_comparison and proofs['baseline']['translator_build']['input_sha256'] != proofs['candidate']['translator_build']['input_sha256']:
         raise ValueError('descriptor-pool comparison requires identical translator source inputs')
