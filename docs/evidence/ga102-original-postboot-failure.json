@@ -1,0 +1,53 @@
+{
+  "environment": {
+    "macos": "15.8.1",
+    "build": "24H32",
+    "kernel": "Darwin",
+    "architecture": "x86_64",
+    "sudo_uid": 0
+  },
+  "reboot_completed": true,
+  "additional_reboot_issued": false,
+  "on_disk_original_userland_hashes_match": true,
+  "original_windowserver_images_mapped": false,
+  "loaded_nullmoth_kernel_components": [],
+  "expected_kernel_components": [
+    "NVRM",
+    "NVAccel",
+    "NVRMFB",
+    "NVRMAGDC"
+  ],
+  "retained_dependency_entries": 34,
+  "unchanged_dependency_entries": 33,
+  "changed_components": [
+    "AuxiliaryKernelExtensions.kc"
+  ],
+  "collection_rebuild_or_replacement_issued_by_agent": false,
+  "collection_change_cause": "NOT ESTABLISHED",
+  "metal_probe": "empty output; no verified Metal device or GPU oracle",
+  "original_sustained_attempt": "FAIL: RTX 3080 Ti / queue unavailable",
+  "qualified_original_timing_samples": 0,
+  "browser_and_activation_controls_executed": false,
+  "collector_error": "JSONDecodeError while reading empty Metal-probe output",
+  "gating_error": "Shell command sequence continued to workload despite failed provenance parser; workload immediately exited without timings",
+  "action": "STOP; no graphics/system repair, no further reboot",
+  "raw_failure_artifacts": {
+    "rollback/postboot-active-images.json": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "rollback/postboot-active-images.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "original/sustained-01.stdout.log": {
+      "bytes": 0,
+      "sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    "original/sustained-01.stderr.log": {
+      "bytes": 38,
+      "sha256": "c8784aad86403f1399f98647bb1a45f81fe19e1c8877a97610173a4fa478bf7b"
+    }
+  },
+  "candidate_negative_evidence_unchanged": true
+}

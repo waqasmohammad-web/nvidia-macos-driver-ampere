@@ -1,3 +1,26 @@
+# Post-reboot status: validation failed; stop
+
+The authorized reboot completed on Sequoia15.8.1/24H32. Original userland disk
+hashes remain correct, but WindowServer maps none of the expected original images.
+No NullMoth kext appears in kmutil showloaded; NVAccel/NVRMFB registry queries are
+empty. Of34 retained entries,33 match and AuxiliaryKernelExtensions.kc changed
+across reboot. No collection rebuild/replacement was issued by the agent; the cause
+is unknown. Raw private expected/current collection hashes and inventory are retained.
+
+The ordinary Metal probe has zero output. Parsing that empty output failed. A shell
+sequence incorrectly continued into the original workload after the failed gate;
+it immediately returned `FAIL: RTX 3080 Ti / queue unavailable`, with no timings.
+That gating mistake is recorded; no subsequent graphics workload was executed.
+Browser/application controls and the matched driver comparison are incomplete.
+
+STOP boundary: no additional installed component repair, security/settings change
+or reboot. Original userland and preserved ENDGAME archives remain intact. Do not
+attribute this failed kernel activation to original versus ENDGAME performance.
+The one reboot authorization is consumed. Investigate the unexpected collection
+change before any separately authorized repair. See evidence/ga102-original-postboot-failure.json.
+
+---
+
 # Original userland rollback — post-reboot checkpoint
 
 13 October 2026. The owner explicitly accepted the failed ENDGAME block as negative

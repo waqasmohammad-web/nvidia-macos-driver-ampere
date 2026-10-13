@@ -3958,3 +3958,17 @@ NEXT-STEPS after the one authorized restart: `sudo -n id -u`, original active-im
 probe and independent WindowServerUUID/inode/kernel/dependency verification, then
 unchanged sustained/browser/warm-activation controls. Do not issue a second reboot
 or install1.15. The original control and final comparison are still pending.
+
+### Original control post-reboot failure — 13 October 2026
+
+One authorized reboot completed Sequoia15.8.1/24H32. Restored original userland SHA
+matches, but none of three original images maps in WindowServer, ordinaryMetal
+probe is empty, no NullMothkext is loaded and NVAccel/NVRMFB registry is empty.
+33/34 retained entries match; AuxiliaryKernelExtensions.kc changed across reboot.
+No KC rebuild/replacement was issued; causal attribution unknown. Stop boundary.
+A provenance-parser JSONDecodeError was followed by an incorrectly ungated shell
+workload invocation, immediatelyFAILnoGPU/queue; no original timing evidence.
+No browser/activation controls, component repair or further reboot attempted.
+Failed ENDGAME logs remain byte-identical. SeeGA102-ORIGINAL-ROLLBACK.md and
+original-postboot-failure JSON. NEXT-STEPS: read-only diagnosis of unexpected
+collection change; no further installation/reboot authorization exists.
