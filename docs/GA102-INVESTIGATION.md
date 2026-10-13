@@ -3899,3 +3899,25 @@ NEXT-STEPS after authorized restart, exact first command:
 Verify WindowServer candidate mappings and unchanged kernel UUIDs, then repeat
 matched presentation and real application/stability/capture tests. Do not interpret
 pre-restart application qualification as a candidate WindowServer comparison.
+
+
+### Post-reboot integrated desktop validation — 13 October 2026
+
+WindowServer lsof inodes, vmmap paths and independent sample mapped UUIDs match
+all three installed candidate images. Original four kernel UUIDs and 31 dependency/
+configuration/collection hashes unchanged. sudo -n UID0 verified; no new component
+replacement, reboot, display or security change. See GA102-POSTBOOT-REPORT.md.
+
+Early post-login pacing FAIL: p95/p99 49.255/50.468 ms, 50/107 late intervals.
+Three steady runs PASS with p95 17.342–17.507 ms, comparable to original. A 3,600
+frame run completes all commands without errors, but p99 is 32.885 ms and 49/3,587
+intervals exceed25ms; 40 late pairs have prompt client completion. No desktop gain
+is established. Owner reports slower boot/login, fine desktop after loading.
+Safari WebKit GPU sandbox blocks driver mmap; Firefox WebGL2 context unavailable.
+CSS traces/capture limits retained. WindowServer sample identifies surface import/
+memmove/fence work, without causal A/B attribution. Both screenshots have fully
+opaque alpha and identical ICC; physical discrepancy remains unresolved.
+116 Python tests PASS. Provisional experimental retention only; original rollback
+remains available. Exact next read-only command:
+`sudo -n lsof -p $(pgrep -x WindowServer) -Ffni`. Prioritise supported sandbox loader
+integration and event-correlated cross-process publication, with original controls.

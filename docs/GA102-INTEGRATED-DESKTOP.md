@@ -1,5 +1,11 @@
 # Integrated desktop candidate — installation checkpoint
 
+Post-reboot update: all three candidate images are verified mapped in WindowServer,
+with original kernel/display components unchanged. Desktop performance improvement
+remains unproven; startup/sustained pacing and browser failures are retained in
+[GA102-POSTBOOT-REPORT.md](GA102-POSTBOOT-REPORT.md). The following records the
+earlier installation checkpoint, including its pre-restart state.
+
 Production source is verified diagnostics `92fbfd7ced2f752d105f95242da854c9bbe7d46f`.
 The modified NVMTL plugin, translator and complete source NVK were actually built
 and installed on Darwin x86_64 / macOS 15.8.1 / RTX 3080 Ti. Fresh ordinary Metal

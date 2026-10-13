@@ -1,0 +1,69 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>GA102 owned browser graphics qualification</title>
+<style>
+body { background: linear-gradient(45deg,#123,#579); color:white; font:16px system-ui; overflow:hidden }
+canvas { width:512px; height:256px; border:2px solid white }
+.panel { position:absolute; width:180px; height:90px; background:#fff4; backdrop-filter:blur(12px); border-radius:16px; box-shadow:0 4px 12px #0006; will-change:transform }
+</style>
+<h1>GA102 browser graphics test</h1><p id="status">Checking GPU texture uploads…</p>
+<canvas id="canvas" width="128" height="128"></canvas>
+<script>
+(async()=>{
+ const canvas=document.getElementById('canvas'),label=document.getElementById('status');
+ const params=new URLSearchParams(location.search),token=params.get('token');
+ const mode=params.get('mode')||'webgl';
+ const duration=Number(params.get('seconds'))*1000;
+ let result={schema_version:1,mode,correct:false,frames:0,checked_bytes:0,gl_errors:[],lost_context:false,
+   hidden_samples:0,unfocused_samples:0,interval_ms:[],duration_ms:duration,viewport:[innerWidth,innerHeight]};
+ const send=async()=>{await fetch('/result?token='+token,{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify(result)});};
+ try {
+ if(mode==='css') {
+  const panels=[];for(let i=0;i<16;i++){let d=document.createElement('div');d.className='panel';d.textContent='Composition panel '+i;d.style.left=(i%4*220)+'px';d.style.top=(260+Math.floor(i/4)*110)+'px';document.body.append(d);panels.push(d);}
+  label.textContent='CSS composition timing; pixel contents are not verified.';
+  result.navigation_to_first_frame_ms=performance.now();let start,last;
+  await new Promise(resolve=>{function frame(t){if(start===undefined)start=t;else result.interval_ms.push(t-last);last=t;
+   if(document.visibilityState!=='visible')result.hidden_samples++;if(!document.hasFocus())result.unfocused_samples++;
+   panels.forEach((d,i)=>d.style.transform='translateX('+Math.sin(t/500+i)*30+'px) rotate('+Math.sin(t/800+i)*4+'deg)');result.frames++;
+   if(t-start<duration)requestAnimationFrame(frame);else{result.observed_duration_ms=t-start;resolve();}}
+   requestAnimationFrame(frame);});
+  label.textContent='CSS callbacks completed; no GPU content-oracle claim.';await send();return;
+ }
+ const gl=canvas.getContext('webgl2',{antialias:false,alpha:false,preserveDrawingBuffer:true});
+ if(!gl)throw Error('WebGL2 context unavailable');
+ result.initial_context_lost=gl.isContextLost();result.initial_gl_error=gl.getError();
+ if(result.initial_context_lost)throw Error('WebGL2 context already lost before shader compilation');
+ canvas.addEventListener('webglcontextlost',()=>result.lost_context=true);
+ result.renderer=gl.getParameter(gl.RENDERER);result.vendor=gl.getParameter(gl.VENDOR);
+ const debug=gl.getExtension('WEBGL_debug_renderer_info');
+ if(debug)result.unmasked_renderer=gl.getParameter(debug.UNMASKED_RENDERER_WEBGL);
+ result.user_agent=navigator.userAgent;
+ function shader(type,source){let s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error(gl.getShaderInfoLog(s));return s;}
+ const p=gl.createProgram();
+ gl.attachShader(p,shader(gl.VERTEX_SHADER,'#version 300 es\n out vec2 uv; void main(){ vec2 v=vec2((gl_VertexID<<1)&2,gl_VertexID&2); uv=v; gl_Position=vec4(v*2.0-1.0,0,1); }'));
+ gl.attachShader(p,shader(gl.FRAGMENT_SHADER,'#version 300 es\n precision highp float; in vec2 uv; uniform sampler2D image; out vec4 color; void main(){color=texture(image,uv);}'));
+ gl.linkProgram(p);if(!gl.getProgramParameter(p,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(p));
+ gl.useProgram(p);gl.uniform1i(gl.getUniformLocation(p,'image'),0);gl.viewport(0,0,128,128);
+ const vao=gl.createVertexArray();gl.bindVertexArray(vao);
+ const tex=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,tex);
+ gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.NEAREST);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.NEAREST);
+ const expected=new Uint8Array(16),pixels=new Uint8Array(128*128*4);
+ function draw(frame){for(let i=0;i<16;i+=4){expected[i]=(frame*17)%256;expected[i+1]=128;expected[i+2]=73;expected[i+3]=255;}
+ gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,2,2,0,gl.RGBA,gl.UNSIGNED_BYTE,expected);gl.drawArrays(gl.TRIANGLES,0,3);}
+ for(let f=0;f<8;f++){draw(f);gl.readPixels(0,0,128,128,gl.RGBA,gl.UNSIGNED_BYTE,pixels);
+ for(let i=0;i<pixels.length;i++)if(Math.abs(pixels[i]-expected[i%4])>(i%4===3?0:1))throw Error('GPU readback mismatch at byte '+i+' frame '+f+': '+pixels[i]+' expected '+expected[i%4]);
+ result.checked_bytes+=pixels.length;}
+ result.correct=true;
+ const panels=[];for(let i=0;i<16;i++){let d=document.createElement('div');d.className='panel';d.textContent='Composition panel '+i;d.style.left=(i%4*220)+'px';d.style.top=(260+Math.floor(i/4)*110)+'px';document.body.append(d);panels.push(d);}
+ result.navigation_to_first_frame_ms=performance.now();label.textContent='Running '+duration/1000+' seconds of animation and texture uploads…';
+ let start,last;await new Promise(resolve=>{function frame(t){if(start===undefined){start=t;}else result.interval_ms.push(t-last);last=t;
+ if(document.visibilityState!=='visible')result.hidden_samples++;if(!document.hasFocus())result.unfocused_samples++;
+ draw(result.frames++);panels.forEach((d,i)=>d.style.transform='translateX('+Math.sin(t/500+i)*30+'px) rotate('+Math.sin(t/800+i)*4+'deg)');
+ const error=gl.getError();if(error!==gl.NO_ERROR)result.gl_errors.push(error);
+ if(t-start<duration&&!result.lost_context&&result.gl_errors.length===0)requestAnimationFrame(frame);else{result.observed_duration_ms=t-start;resolve();}}
+ requestAnimationFrame(frame);});
+ label.textContent='Completed. Results saved locally.';
+ }catch(e){result.failure=String(e);label.textContent=result.failure;}
+ await send();
+})();
+</script>
