@@ -3921,3 +3921,25 @@ opaque alpha and identical ICC; physical discrepancy remains unresolved.
 remains available. Exact next read-only command:
 `sudo -n lsof -p $(pgrep -x WindowServer) -Ffni`. Prioritise supported sandbox loader
 integration and event-correlated cross-process publication, with original controls.
+
+### Sequoia official 1.15.0 comparison preparation — 13 October 2026
+
+Starting diagnostics9dd7c65; installed production source92fbfd7 unchanged.
+Fresh WindowServer UUID/inode proof and four original kernel UUIDs match;34 retained
+dependency entries unchanged. Dirty Swift files, exact candidate and all existing
+failure evidence preserved. Reconnected owner-tested Recovery USB:7 manifest files
+hash-check; candidate archive independently copied/hash verified. Current Recovery
+script covers only the two userland targets, not a full official kernel upgrade.
+
+Official1.15.0 pinned56bc4f9, archive6101cf8c... hash matches GitHub asset digest;
+HighDelay pinned407e128, source-only. Exact64/22 component-file blob differences
+and salient IOSurface/browser/translation/kernel matrix retained. Streaming import,
+embedded overwrite protection, writer map lock and browser device/query paths lack
+in ENDGAME; core queued publication and sampler threadgroup apply_tg already present.
+No merge/install/KC/EFI/settings/restart changes. SeeGA102-SEQUOIA-115-COMPARISON.md.
+Frozen3600-frame Swift workload builds; new independent verdict reproduces retained
+pacing FAIL49/3587, command completionPASS, missing0/1.120 Python testsPASS.
+No new desktop speedup or candidate-specific browser/startup causality established.
+NEXT-STEPS: `sudo -n id -u`; obtain owner approval for original userland rollback and
+restart after initial candidate block; full official OS15 arm has a separate change
+inventory/complete recovery procedure/approval gate. No broad optimization campaign.

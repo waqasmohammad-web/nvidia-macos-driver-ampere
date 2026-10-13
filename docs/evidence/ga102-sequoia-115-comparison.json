@@ -1,0 +1,713 @@
+{
+  "schema": 1,
+  "refs": {
+    "candidate_source": "92fbfd7ced2f752d105f95242da854c9bbe7d46f",
+    "diagnostics": "9dd7c65e9f9cbb77f942adb4d7ddd181779cddfc",
+    "official": "56bc4f9ae3105df052eefd3ea094c782e56853c3",
+    "highdelay": "407e128651e60ea16e24bec31cd974e87c5d9bc6"
+  },
+  "environment": {
+    "kernel": "Darwin",
+    "architecture": "x86_64",
+    "macos": "15.8.1",
+    "build": "24H32",
+    "sudo_uid": 0
+  },
+  "official_release": {
+    "url": "https://github.com/nullmoth/nvidia-macos-driver/releases/tag/v1.15.0",
+    "published_at": "2026-10-13T09:26:10Z",
+    "asset_sha256": "6101cf8c37e4a500059ea8ce4d9f131ea107e35ccbeafcbb124d78a97e37e3ec",
+    "asset_bytes": 371718424
+  },
+  "official_components": [
+    {
+      "path": "Library/GPUBundles/NVMTLDriver.bundle/Contents/MacOS/NVMTLDriver",
+      "sha256": "7199b2af5acdff0831eb2d859ae1035a1a03e2ebdf602421425830ce05e13944",
+      "uuid": "1D3A2F1A-6FF6-31B3-9E10-0FA7F8A10079",
+      "matches_installed": false
+    },
+    {
+      "path": "Library/GPUBundles/NVMTLDriver.bundle/Contents/MacOS/libnvmtl_translate.dylib",
+      "sha256": "0ac92ae5416bda4f33c74e4dc4fd94f7a36a12baee05681f8373bd3743c1d46b",
+      "uuid": "03B9CD51-5351-321B-BCF4-8E2ED0B599FD",
+      "matches_installed": false
+    },
+    {
+      "path": "Library/GPUBundles/nvmtl/libvulkan_nouveau.dylib",
+      "sha256": "403d4d40ff7b53d2d3ee72b4dd8b0e3ec0a4db5def34570ac098b32b18836ddb",
+      "uuid": "0ECC3795-1E4F-3172-8453-CFFC86B5EEEB",
+      "matches_installed": false
+    },
+    {
+      "path": "Library/Extensions/NVRM.kext/Contents/MacOS/NVRM",
+      "sha256": "e15a281a0795955711dd89d77f0267365af68483834401a832a91c54898646ff",
+      "uuid": "25A363A2-542E-3657-BD9D-5EA779F160E5",
+      "matches_installed": false
+    },
+    {
+      "path": "Library/Extensions/NVAccel.kext/Contents/MacOS/NVAccel",
+      "sha256": "63eba4a8f3ff069d1819b84b9bdd5fb7c53b9f7ce772470a73a8f6a13e07b651",
+      "uuid": "BFA12BF6-7C04-3C17-8469-CCF465CD98D9",
+      "matches_installed": false
+    },
+    {
+      "path": "Library/Extensions/NVRMFB.kext/Contents/MacOS/NVRMFB",
+      "sha256": "fb126c576f2990173032a6f31e298300c95892ba8ffe32e1453003abaf348c32",
+      "uuid": "01560755-953A-3854-889A-8C9D58E8237C",
+      "matches_installed": false
+    },
+    {
+      "path": "Library/Extensions/NVRMAGDC.kext/Contents/MacOS/NVRMAGDC",
+      "sha256": "270f9ef9ac9d2482689ed4d63d422e705e439509d0e3b62fc6bc96fdc9e693ed",
+      "uuid": "3713FCA7-6969-327F-A9C1-C0E5F3C90736",
+      "matches_installed": true
+    },
+    {
+      "path": "Library/NullMoth/kexts/15/NVAccel.kext/Contents/MacOS/NVAccel",
+      "sha256": "63eba4a8f3ff069d1819b84b9bdd5fb7c53b9f7ce772470a73a8f6a13e07b651",
+      "uuid": "BFA12BF6-7C04-3C17-8469-CCF465CD98D9",
+      "matches_installed": false
+    }
+  ],
+  "preservation": {
+    "dependencies_checked": 34,
+    "original_matches_package": {
+      "NVMTLDriver.bundle": true,
+      "nvmtl/libvulkan_nouveau.dylib": true
+    },
+    "candidate_matches_package": {
+      "NVMTLDriver.bundle": true,
+      "nvmtl/libvulkan_nouveau.dylib": true
+    },
+    "independent_recovery_currently_mounted": true,
+    "changed_dependency_count": 0
+  },
+  "recovery": {
+    "present": true,
+    "owner_tested_current_data_access": true,
+    "files_checked": 7,
+    "changed_files": [],
+    "script_execution_in_recovery": "NOT VERIFIED; prior owner-tested route, syntax check only"
+  },
+  "official_component_diff": [
+    {
+      "status": "A",
+      "path": "kexts/NMDRM/Info.plist",
+      "before_git_blob": null,
+      "after_git_blob": "59c907b1070869a8ff7746ca9391737e4a9ebc15"
+    },
+    {
+      "status": "A",
+      "path": "kexts/NMDRM/build.sh",
+      "before_git_blob": null,
+      "after_git_blob": "46a2ece439926d57f00122980ac0ce6caf1721a5"
+    },
+    {
+      "status": "A",
+      "path": "kexts/NMDRM/nmdrm.cpp",
+      "before_git_blob": null,
+      "after_git_blob": "195ccbd181ea4bc5e5281ca1933010e6f95e4a19"
+    },
+    {
+      "status": "A",
+      "path": "kexts/NMHDA/Info.plist",
+      "before_git_blob": null,
+      "after_git_blob": "9a3dd095302628892570852cf7568b7edc251548"
+    },
+    {
+      "status": "A",
+      "path": "kexts/NMHDA/build.sh",
+      "before_git_blob": null,
+      "after_git_blob": "c5569b56a66ac06423a138a49286ce6ff9608695"
+    },
+    {
+      "status": "A",
+      "path": "kexts/NMHDA/nmhda.cpp",
+      "before_git_blob": null,
+      "after_git_blob": "d191b29148f019c029c1bc8f1eb836c7d6d08183"
+    },
+    {
+      "status": "A",
+      "path": "kexts/NMIntelFB/Info-virtual.plist",
+      "before_git_blob": null,
+      "after_git_blob": "a973709d940705f935b39083b44b724ceaeb704e"
+    },
+    {
+      "status": "A",
+      "path": "kexts/NMIntelFB/Info.plist",
+      "before_git_blob": null,
+      "after_git_blob": "353185821bc5d4aba6fc797fdd01195667061483"
+    },
+    {
+      "status": "A",
+      "path": "kexts/NMIntelFB/display_ids.inc",
+      "before_git_blob": null,
+      "after_git_blob": "03fc18f018be25593fd60966799822e5f5d97b1e"
+    },
+    {
+      "status": "A",
+      "path": "kexts/NMIntelFB/intelfb.cpp",
+      "before_git_blob": null,
+      "after_git_blob": "28942fc00e60f7b748144ed20ef1932b5d23d52e"
+    },
+    {
+      "status": "A",
+      "path": "kexts/NMIntelFB/nvrm_vram_abi.h",
+      "before_git_blob": null,
+      "after_git_blob": "430fcb431ad443c4ca82b041c4e8d3462c787fcf"
+    },
+    {
+      "status": "M",
+      "path": "kexts/NVRM/NVRM.cpp",
+      "before_git_blob": "c88cbfc0a42a438996f19693f6d6912e03ee98a5",
+      "after_git_blob": "bf16040acf05fc1b3dee679a93b8d9973d557d06"
+    },
+    {
+      "status": "A",
+      "path": "kexts/NVRM/accel/nmx/Info.plist",
+      "before_git_blob": null,
+      "after_git_blob": "dba68e8e114198fae2fe57a8c5cf7812e9702da3"
+    },
+    {
+      "status": "A",
+      "path": "kexts/NVRM/accel/nmx_accel_names.h",
+      "before_git_blob": null,
+      "after_git_blob": "655c51e7ddd8b1d50d5567f247fee8b8ce36fcb6"
+    },
+    {
+      "status": "M",
+      "path": "kexts/NVRM/accel/nvrm-accel.cpp",
+      "before_git_blob": "54be60b020b77cef1a427138c3a73aba6899aec0",
+      "after_git_blob": "088f6a55b72c89fef1141c8298996992003fa2b9"
+    },
+    {
+      "status": "M",
+      "path": "kexts/NVRM/fb/nvrm-fb.cpp",
+      "before_git_blob": "2712668c6f14164d4314486d4f445127876968b6",
+      "after_git_blob": "dec88e4ab6967ce2023fc18d9fbf5975dcc6a1b3"
+    },
+    {
+      "status": "M",
+      "path": "kexts/NVRM/nv-xnu.h",
+      "before_git_blob": "2652156890883c5000dff941dbc4fa7da9b2f6fa",
+      "after_git_blob": "5983b3c8e692c5f242c724402264d8917678e136"
+    },
+    {
+      "status": "M",
+      "path": "kexts/NVRM/os-nvkms-xnu.cpp",
+      "before_git_blob": "42714856aad65d4c8b84e2d50e7c3acf988b3ac7",
+      "after_git_blob": "712f34258e4ea3a68548c3c04ff593bf3d13da09"
+    },
+    {
+      "status": "M",
+      "path": "kexts/NVRM/os-xnu.cpp",
+      "before_git_blob": "f1868364e4cf9bb9cdd1962980d50c0ee466157a",
+      "after_git_blob": "ca619e6b6cacbc1cac414fe0953fe5ea1c46aa18"
+    },
+    {
+      "status": "M",
+      "path": "kexts/NVRM/os-xnu2.cpp",
+      "before_git_blob": "c09a2c5e5cc220868071430525a951394c0076a1",
+      "after_git_blob": "c1fe41e9ff30649c6d02827aee5995f8eaa944b3"
+    },
+    {
+      "status": "A",
+      "path": "kexts/NVRM/patches/610-fsp-timer-double-destroy.patch",
+      "before_git_blob": null,
+      "after_git_blob": "1660ba8696331b69b4bc7462f5625d79fe5c322e"
+    },
+    {
+      "status": "M",
+      "path": "kexts/NVRM/patches/README.md",
+      "before_git_blob": "6754b6f453321582b7175da71d7ec187c7c3c716",
+      "after_git_blob": "009a7f3da84b24cc09d327f484b0504da58ef19e"
+    },
+    {
+      "status": "M",
+      "path": "kexts/NVRMFB/fb/Info.plist",
+      "before_git_blob": "81c8adf1e091b00e3a9f3bab7bfad41fed61cfaf",
+      "after_git_blob": "1bd2586d1710e9505c97dbac6ee4a2f2932e34f6"
+    },
+    {
+      "status": "M",
+      "path": "kexts/NVRMFB/fb/nvrm-fb.cpp",
+      "before_git_blob": "aec22b74faf6fc1c4a994c8d6e0cb738cf5d56eb",
+      "after_git_blob": "ea30a2f54d6f9b0856bf138fffc3e175433ee3a9"
+    },
+    {
+      "status": "D",
+      "path": "kexts/NVRMFB/fb/nvrm-flip-wait.h",
+      "before_git_blob": "c59121d0a167ae127e0bc32b8fbbb5e24a7b410c",
+      "after_git_blob": null
+    },
+    {
+      "status": "M",
+      "path": "nvk/nvk-macos.patch",
+      "before_git_blob": "9c5c94efb4e89a775e677a77618c1f53fbb4899e",
+      "after_git_blob": "20e4537047cd44383e2bf9623002d2151027b759"
+    },
+    {
+      "status": "M",
+      "path": "plugin/NVMTLDevice.m",
+      "before_git_blob": "07932a2261badd001d6ef71ae72347191b7c87a8",
+      "after_git_blob": "f8fac339061040371efa234285f946017a54e871"
+    },
+    {
+      "status": "M",
+      "path": "plugin/NVMTLEmbedded.m",
+      "before_git_blob": "b2482dfe0db4d115b6d686cc6a6ecd775642bb46",
+      "after_git_blob": "86472d7bca08e7a4fe42164d97a045a517771580"
+    },
+    {
+      "status": "M",
+      "path": "plugin/NVMTLEventSync.m",
+      "before_git_blob": "9ad24d07467e4f3f1421bbfc8901c84b79bf7ad8",
+      "after_git_blob": "0f3f5c4d82007b56181c9f5154eea857a68f7600"
+    },
+    {
+      "status": "M",
+      "path": "plugin/NVMTLGL.m",
+      "before_git_blob": "f3015b9d4000e80ad4c2371748952d45da04fada",
+      "after_git_blob": "455385825c77ee834f61ab70d58257fa323634ff"
+    },
+    {
+      "status": "M",
+      "path": "plugin/NVMTLLibraryLoad.m",
+      "before_git_blob": "118e56cee54f42e86300cabfe649f1f03fc905eb",
+      "after_git_blob": "c06d68e9f201e36a601b2fd06902858727c66fb6"
+    },
+    {
+      "status": "M",
+      "path": "plugin/NVMTLObjects.h",
+      "before_git_blob": "e82bf12adae582d106d7a2970104d28121058ff7",
+      "after_git_blob": "41ad52ff378c2d315dcd9f70553812c2fd05cec5"
+    },
+    {
+      "status": "M",
+      "path": "plugin/NVMTLObjects.m",
+      "before_git_blob": "b03a5de4ac97fa6617f788b7310a2c85da228492",
+      "after_git_blob": "9c9eba83f499b48b3977f1979f604b633b7ea068"
+    },
+    {
+      "status": "D",
+      "path": "plugin/nvmtl_air_text_cache.h",
+      "before_git_blob": "d6218da3442cbcb84f5c5743cf90104e447b40b6",
+      "after_git_blob": null
+    },
+    {
+      "status": "A",
+      "path": "plugin/nvmtl_fd_token.h",
+      "before_git_blob": null,
+      "after_git_blob": "e36028dfeeac1dc8b85e1f8b1860450e94c9e951"
+    },
+    {
+      "status": "D",
+      "path": "plugin/nvmtl_mesa_cache.h",
+      "before_git_blob": "284d6b23dec0b47a82d0ce70af83346c204547d2",
+      "after_git_blob": null
+    },
+    {
+      "status": "M",
+      "path": "plugin/nvmtl_vk.c",
+      "before_git_blob": "dc33f5fc85d10bf88d69a9f3776f8c9f16455e6d",
+      "after_git_blob": "1812ac206a466e5a7bbfc2f0e786bfb066ad4a8d"
+    },
+    {
+      "status": "M",
+      "path": "plugin/nvmtl_vk.h",
+      "before_git_blob": "10a84e254d79c10cf1a6634a621f80fc7386ee13",
+      "after_git_blob": "8df79bef64f6eff966ca9c4f1f5a75a89c4848d8"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/Cargo.lock",
+      "before_git_blob": "5b9e72d551556876c41e1d5010c7dc634e3379bc",
+      "after_git_blob": "98a2a25227007e029128cf6130736d455e65ef92"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/Cargo.toml",
+      "before_git_blob": "2a362758a8a35b51813c820b1ffbc37a1866ff2f",
+      "after_git_blob": "fef0d0004a7c0028343faa53c8a60ff42834fb33"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/README.md",
+      "before_git_blob": "529db2a696ac79c2c1d425079e17bfd745eb67d0",
+      "after_git_blob": "8934522100252e7e8c8c69886011ed2bdcc01165"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/docs/REFLECTION.md",
+      "before_git_blob": "40a79d2744533dbd7af0bb03bed86528c613d74c",
+      "after_git_blob": "d09a42ea0e9fdbcc7e4dab45fb0b241442f58238"
+    },
+    {
+      "status": "D",
+      "path": "translator/translator/examples/benchmark_saturation.rs",
+      "before_git_blob": "4642ceb26713613ebfaab2ddbbf6361d2c32fdbb",
+      "after_git_blob": null
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/lib.rs",
+      "before_git_blob": "f03432b85d80276349baea90e400b33bcd1f1508",
+      "after_git_blob": "7ba7fe207ad034ca412cccc70351a033f0b6499c"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/emitter/body/core_inst.rs",
+      "before_git_blob": "e737e767a7f36c536cff9f693d9d90485454fd23",
+      "after_git_blob": "5594c7f9b7d1af8507d4919a81a84dc5e11f4d37"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/emitter/memory/device_addr.rs",
+      "before_git_blob": "a8689bf0474cdbbf0ee0a85d9585d6ddf0e8b735",
+      "after_git_blob": "cf56153ba3af690c027f1aee0ed92a847124e0d0"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/emitter/mod.rs",
+      "before_git_blob": "202fe21a8e7a1b21a348bd9e6850d45bc7171a1d",
+      "after_git_blob": "76a57473091a1e120cea49d43353efdd0f32af3b"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/owned_cfg.rs",
+      "before_git_blob": "d19e3248b15004a18d879451c9fcd57680d576e6",
+      "after_git_blob": "6e302fc0eada0b9bf0417ed95f8a4fa60b411fe3"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/parse.rs",
+      "before_git_blob": "520fd05179448f41cb75753da42f9193b30ecc87",
+      "after_git_blob": "aba0a1fb4533d3314f26ce7fae4451eece77da5c"
+    },
+    {
+      "status": "D",
+      "path": "translator/translator/src/native/tests/buffer_execution.rs",
+      "before_git_blob": "413b7b6b420cfe661466362a4550b7f0a8c5c99e",
+      "after_git_blob": null
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/tests/buffers.rs",
+      "before_git_blob": "b536b803c31a98ded42bec00c95638668bc3d71f",
+      "after_git_blob": "139d2895696b2e8cdcf22690b8a2f45cc9f9e790"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/tests/interface.rs",
+      "before_git_blob": "bea1f70786267de3161c88801a44e724ad71a6e8",
+      "after_git_blob": "7d1c01fef27be3d9d01b3d1ba97f3025cf00cdc3"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/tests/intrinsics.rs",
+      "before_git_blob": "8c43b2757d3d7e589292b44dbcd133f6341ffc93",
+      "after_git_blob": "f6c24a358c37ea5456f3ae4687fb99f5b8b126bf"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/tests/misc.rs",
+      "before_git_blob": "2ebc0a58eb1f38d9bb911f430a52e3d00adca2c1",
+      "after_git_blob": "c6beb681ed37c881c3dfe37a55625d12b7124bfb"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/tests/mod.rs",
+      "before_git_blob": "452dcda50785263c6708dfcbe06035451d92b267",
+      "after_git_blob": "b7f92df15cf267c7d4a1f42ff194b9f74891601f"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/tests/textures.rs",
+      "before_git_blob": "832296022cbc187ec05c5ea96891c73cabe49dcb",
+      "after_git_blob": "da75108cf890bf07f19a98483ed7c2b4e3426104"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/tir/lower.rs",
+      "before_git_blob": "e81c640b842f694d0e8c88a29958a8a1c9289512",
+      "after_git_blob": "4ad70def51417cfda4ce297481c7e8ff4184e715"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/tir/mod.rs",
+      "before_git_blob": "c26ed74b31faa1621bf4545661f7cb6ed40dee83",
+      "after_git_blob": "9b6e319065f5e08301644e28bbd277f76cdca8b1"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/passes/air_calls/mod.rs",
+      "before_git_blob": "1c678f38d23329fb459da40745e02ebf15becdea",
+      "after_git_blob": "c71386c091075d8546221824497d16ce9ad8dcf0"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/passes/stage_output/mod.rs",
+      "before_git_blob": "0115166817fe2a75583b18d94e36292bec8083c7",
+      "after_git_blob": "a888108f0312ee36fb6b4a290ad15f27dce7cb46"
+    },
+    {
+      "status": "A",
+      "path": "translator/translator/tests/fixtures/stage_output/buffer_return_alias.ll",
+      "before_git_blob": null,
+      "after_git_blob": "caafee4dc5a123e4142d6d71dbd4bd081feba6e8"
+    },
+    {
+      "status": "A",
+      "path": "translator/translator/tests/stage_output_type_alias.rs",
+      "before_git_blob": null,
+      "after_git_blob": "d822af1ba3914e4c889de21fd7308ba6c20ec22b"
+    },
+    {
+      "status": "M",
+      "path": "translator/wrapper/src/lib.rs",
+      "before_git_blob": "802fd9c23c7e71719d326dfcbc5e25cb71bc6b30",
+      "after_git_blob": "b95fce89194c59da5a5d2771be3068decabe30a2"
+    },
+    {
+      "status": "M",
+      "path": "translator/wrapper/src/wide_loads.rs",
+      "before_git_blob": "b93588dca3c839576ad4121636e4d45f4d316f93",
+      "after_git_blob": "b3569f427b4e8ea9eeae03208de0aba07a713763"
+    }
+  ],
+  "highdelay_component_diff": [
+    {
+      "status": "M",
+      "path": "kexts/NVRM/fb/Info.plist",
+      "before_git_blob": "81c8adf1e091b00e3a9f3bab7bfad41fed61cfaf",
+      "after_git_blob": "2b534b832c53fa53e4694b7eaf3b00590dfa7c55"
+    },
+    {
+      "status": "M",
+      "path": "kexts/NVRMFB/fb/Info.plist",
+      "before_git_blob": "1bd2586d1710e9505c97dbac6ee4a2f2932e34f6",
+      "after_git_blob": "9e9137c70029cf6b3584d1abeac117360f464c36"
+    },
+    {
+      "status": "M",
+      "path": "plugin/NVMTLEventSync.m",
+      "before_git_blob": "0f3f5c4d82007b56181c9f5154eea857a68f7600",
+      "after_git_blob": "25ba35b5e558967833eda0d76b84a93746436f65"
+    },
+    {
+      "status": "M",
+      "path": "plugin/NVMTLObjects.h",
+      "before_git_blob": "41ad52ff378c2d315dcd9f70553812c2fd05cec5",
+      "after_git_blob": "9649cd1e68f5dc74b6e889b1ff161b3f793bb554"
+    },
+    {
+      "status": "M",
+      "path": "plugin/nvmtl_vk.c",
+      "before_git_blob": "1812ac206a466e5a7bbfc2f0e786bfb066ad4a8d",
+      "after_git_blob": "dc5953e141dc6cb1c405eeb6850155b1415430d6"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/env_vars.rs",
+      "before_git_blob": "9a7d0ec29b1a7ac0fbb83e53b319ddf5a72af608",
+      "after_git_blob": "4b4c38f048036593d909f2f317e0f09e6c2bd3d5"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/cfg/structured_emit/multi_exit.rs",
+      "before_git_blob": "42afb3f5cb9860651690382e8dd8d3fba7d6ca82",
+      "after_git_blob": "59d29b09a4957298c3e4582b93b693b12aebc85f"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/emitter/body/core_inst.rs",
+      "before_git_blob": "5594c7f9b7d1af8507d4919a81a84dc5e11f4d37",
+      "after_git_blob": "18e0811c284dfdcafc4df1fe5334b16bd7b41ca5"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/emitter/mod.rs",
+      "before_git_blob": "76a57473091a1e120cea49d43353efdd0f32af3b",
+      "after_git_blob": "65023bed5202961a5ff4dd7b2a664444290abb49"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/emitter/pointers/phi_compare.rs",
+      "before_git_blob": "8cdc9bb25a8d4670416f2ab3da9337f5159e402c",
+      "after_git_blob": "8d78c6582b5dfdb3263c704622603f03d70f262c"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/opaque_image_select.rs",
+      "before_git_blob": "6112ec803d650f5fe4699f13dc583743e016f16a",
+      "after_git_blob": "04c67b70aa387cfdb721f233f735914e5e3a3008"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/owned_cfg.rs",
+      "before_git_blob": "6e302fc0eada0b9bf0417ed95f8a4fa60b411fe3",
+      "after_git_blob": "3d592c0f84591a0bcf099072ff1520c8319e42df"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/parse.rs",
+      "before_git_blob": "aba0a1fb4533d3314f26ce7fae4451eece77da5c",
+      "after_git_blob": "fe76a2a0fe08d685046f66d6483b8cafcd40d96c"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/reloop_nest/emit.rs",
+      "before_git_blob": "cea63a64b5491fcee771d682f7f51d45aaf5f129",
+      "after_git_blob": "b934298545b1fcde81fb29d0559c4bacc56d4ad3"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/reloop_nest/mod.rs",
+      "before_git_blob": "c707b3ce4e904b5dc1fe2e5c0093c3fe7976af65",
+      "after_git_blob": "e0320b4f655e73b7ccc770c8efa617138899c28e"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/tests/intrinsics.rs",
+      "before_git_blob": "f6c24a358c37ea5456f3ae4687fb99f5b8b126bf",
+      "after_git_blob": "cacb576969bcf8fa625ffd926d6ab77064412ea1"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/native/tests/textures.rs",
+      "before_git_blob": "da75108cf890bf07f19a98483ed7c2b4e3426104",
+      "after_git_blob": "d3bd48bdf0c25c834af9731db8d8f4c62e49f2c1"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/passes/air_calls/images/fetch_coord.rs",
+      "before_git_blob": "120f7f17edcf317eb79f1b8d9b615c64cac6d0f2",
+      "after_git_blob": "865d11adc98b08fbaa772f04ab0bc31296af11b3"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/passes/air_calls/images/sample.rs",
+      "before_git_blob": "0f2fb5ef3fb16a3b15a1e069f1e94e7c83d5d97d",
+      "after_git_blob": "9478326155b1253c3edd42959d642b947f1c516a"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/passes/air_calls/images/write_read.rs",
+      "before_git_blob": "2673461c96f9e9f47eaccaedf97ea69c05fe59f6",
+      "after_git_blob": "e556e61c121ef45ecb444fc8939afccd8a4a4785"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/passes/air_calls/rawbyte_unary.rs",
+      "before_git_blob": "a78854917b9b13f026d155014248ca33479eedb6",
+      "after_git_blob": "84a73a4849f55f1c72158a62f689dd0788550749"
+    },
+    {
+      "status": "M",
+      "path": "translator/translator/src/passes/module_cleanup.rs",
+      "before_git_blob": "7dba3d51fe34375b6e2b85bd1a2196c211cd4b03",
+      "after_git_blob": "bddc9758c0b1e6478146a022db649dc6583fa023"
+    }
+  ],
+  "license_notice_identical": true,
+  "retained_sustained_reanalysis": {
+    "verdict": "FAIL",
+    "command_completion": "PASS",
+    "reasons": [
+      "steady presentation intervals exceed 25 ms"
+    ],
+    "presentation": {
+      "p50_ms": 16.682813999977952,
+      "p95_ms": 17.477272000178345,
+      "p99_ms": 32.884675000104835,
+      "samples": 3587,
+      "maximum_ms": 50.51716999992095,
+      "late_intervals": 49,
+      "missing_frame_ids": [
+        0,
+        1
+      ]
+    },
+    "physical_scanout": "NOT VERIFIED"
+  },
+  "new_desktop_comparison_executed": false,
+  "driver_changes": false,
+  "independent_recovery_reboot_this_session": false,
+  "probe_source_sha256": "c7d46b86434ffa67c8f5288a6c78904e933b1edfdacec665a44dafedf64377a2",
+  "fresh_active_metal": {
+    "gpu_values_correct": true,
+    "images": [
+      {
+        "component": "NVMTLDriver",
+        "mapped_uuid": "9276DA1F-436C-3EC4-A881-7E54E44F0356"
+      },
+      {
+        "component": "libvulkan_nouveau.dylib",
+        "mapped_uuid": "52210F7A-4A40-350B-A222-8CA14E15F34B"
+      },
+      {
+        "component": "libnvmtl_translate.dylib",
+        "mapped_uuid": "2B2B6E56-1A23-3AA7-9557-3C31BA8D3501"
+      }
+    ]
+  },
+  "windowserver": [
+    {
+      "component": "NVMTLDriver",
+      "mapped_inode": 1474478,
+      "current_inode": 1474478,
+      "sha256": "c845d7532b842de12b436035cdcb64e4874894e70aef0a4e6182b18854b33b7b",
+      "mapped_uuid": "9276DA1F-436C-3EC4-A881-7E54E44F0356",
+      "uuid_in_independent_sample": true
+    },
+    {
+      "component": "libvulkan_nouveau.dylib",
+      "mapped_inode": 1474490,
+      "current_inode": 1474490,
+      "sha256": "ec8849463c61d559a29320fd2d340d7621b36550ed0ecd4736d9268adfe2b08b",
+      "mapped_uuid": "52210F7A-4A40-350B-A222-8CA14E15F34B",
+      "uuid_in_independent_sample": true
+    },
+    {
+      "component": "libnvmtl_translate.dylib",
+      "mapped_inode": 1474480,
+      "current_inode": 1474480,
+      "sha256": "60e239a170b56d21f2a1ddb6f74ff1f341308f42a7632c4ed04b0d1840b2284c",
+      "mapped_uuid": "2B2B6E56-1A23-3AA7-9557-3C31BA8D3501",
+      "uuid_in_independent_sample": true
+    }
+  ],
+  "loaded_kernel_components": [
+    {
+      "component": "NVRMFB",
+      "uuid": "CC151F75-1305-3928-AA0F-B8BC96EF30A3"
+    },
+    {
+      "component": "NVRMAGDC",
+      "uuid": "3713FCA7-6969-327F-A9C1-C0E5F3C90736"
+    },
+    {
+      "component": "NVRM",
+      "uuid": "A3EEEB46-9C19-3968-A257-144E56568245"
+    },
+    {
+      "component": "NVAccel",
+      "uuid": "772BE080-9CA2-3866-A26D-5E7FCAD55A5C"
+    }
+  ],
+  "python_tests": {
+    "passed": 120,
+    "excluded": 0,
+    "synthetic_verdict_controls": 4
+  },
+  "swift_workload_compilation": "PASS",
+  "official_bundle_strict_signature": "PASS",
+  "preserved_candidate_archive_sha256": "695fe45200e0742361c7e806ad26944531f323e3f075fac7ca4b4d253ab1db4d",
+  "limitations": [
+    "No new original or official desktop results",
+    "No full-stack Recovery restore executed this session",
+    "Existing Recovery script restores only two userland targets",
+    "No physical scanout or new screenshot oracle",
+    "No candidate-specific browser/boot attribution without controls"
+  ]
+}
