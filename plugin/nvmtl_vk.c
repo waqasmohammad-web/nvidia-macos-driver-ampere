@@ -5426,31 +5426,82 @@ void nvmtl_vk_queue_destroy(nvk_queue *q)
 
 size_t nvmtl_vk_allocated_bytes(void) { return g_alloc_bytes; }
 
+/* One reusable staging buffer per thread for surface uploads, instead of a new one per upload (community patch #96).
+ * The upload itself stays synchronous: #96 also deferred the fence wait to overlap uploads, but
+ * nvmtl_vk_image_destroy() frees an image and its memory at once, so an app that uploads a surface and frees it
+ * (IOSurface-backed textures do) would leave the GPU copying into freed memory. A thread keeps at most
+ * NVMTL_UPSTAGE_KEEP bytes between uploads (a 4K BGRA frame); a larger one-off upload frees its buffer afterwards. */
+#define NVMTL_UPSTAGE_KEEP (32u << 20)
+typedef struct { nvk_buffer buf; nvk_cmdbuf cb; int uncertain; } nvmtl_upstage;
+static int g_upstage_ready;
+static pthread_key_t g_upstage_key; static pthread_once_t g_upstage_once = PTHREAD_ONCE_INIT;
+static void nvmtl_upstage_free(void *p)
+{
+    nvmtl_upstage *st = p;
+    if (!st || st->uncertain) return; // retain uncertain GPU resources, including command storage
+    if (st->buf.buf) nvmtl_vk_buffer_destroy(&st->buf);
+    free(st);
+}
+static void nvmtl_upstage_key_make(void)
+{
+    g_upstage_ready = pthread_key_create(&g_upstage_key, nvmtl_upstage_free) == 0;
+    if (!g_upstage_ready) nvlog("stage: pthread_key_create FAILED");
+}
+static nvmtl_upstage *nvmtl_upstage_get(size_t size)
+{
+    pthread_once(&g_upstage_once, nvmtl_upstage_key_make);
+    if (!g_upstage_ready) return NULL;
+    nvmtl_upstage *st = pthread_getspecific(g_upstage_key);
+    if (!st) {
+        st = calloc(1, sizeof *st);
+        if (!st) return NULL;
+        if (pthread_setspecific(g_upstage_key, st)) { free(st); return NULL; }
+    }
+    if (st->uncertain) return NULL;
+    if (!st->buf.buf || st->buf.size < size) {
+        if (st->buf.buf) nvmtl_vk_buffer_destroy(&st->buf);
+        memset(&st->buf, 0, sizeof st->buf);
+        if (nvmtl_vk_buffer_create(size, 1, &st->buf)) { memset(&st->buf, 0, sizeof st->buf); return NULL; }
+    }
+    return st;
+}
+
 int nvmtl_vk_image_write(nvk_queue *q, nvk_image *img, const void *src, size_t row_bytes)
 {
     const size_t bpp = img->bpp ? img->bpp : 4;
     const uint32_t cols = nvmtl_blocks(img->w, img->bw), rows = nvmtl_blocks(img->h, img->bh);
     if (row_bytes < (size_t)cols * bpp) { nvlog("image_write: bytesPerRow %zu < %u blocks * %zu B", row_bytes, cols, bpp); return -1; }
-    nvk_buffer stage;
-    if (nvmtl_vk_stage(q, (size_t)cols * rows * bpp, &stage)) return -1;
-    uint8_t *dst = (uint8_t *)stage.map;
-    for (uint32_t y = 0; y < rows; y++)
-        memcpy(dst + (size_t)y * cols * bpp, (const uint8_t *)src + (size_t)y * row_bytes, (size_t)cols * bpp);
-    nvk_cmdbuf c; if (nvmtl_vk_cmd_begin(q, &c)) return -1;
+    const size_t tight = (size_t)cols * bpp;
+    if (!src || !rows || !tight || tight > SIZE_MAX / rows
+        || (rows > 1 && row_bytes > (SIZE_MAX - tight) / (rows - 1))) return -1;
+    nvmtl_upstage *sl = nvmtl_upstage_get(tight * (size_t)rows);
+    if (!sl) return -1;
+    uint8_t *dst = (uint8_t *)sl->buf.map;
+    if (row_bytes == tight) memcpy(dst, src, tight * (size_t)rows);   /* a 4K surface is 2160 rows of 15 KB: one pass, not 2160 calls */
+    else for (uint32_t y = 0; y < rows; y++)
+        memcpy(dst + (size_t)y * tight, (const uint8_t *)src + (size_t)y * row_bytes, tight);
+    nvk_cmdbuf *const c = &sl->cb;
+    if (nvmtl_vk_cmd_begin(q, c)) {
+        if (sl->buf.size > NVMTL_UPSTAGE_KEEP) { nvmtl_vk_buffer_destroy(&sl->buf); memset(&sl->buf, 0, sizeof sl->buf); }
+        return -1;
+    }
     VkImageSubresourceRange range = { nvmtl_barrier_aspect(img), 0, 1, 0, 1 };
     VkImageMemoryBarrier toDst = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL, 0, VK_ACCESS_TRANSFER_WRITE_BIT,
         VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,
         VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, (VkImage)img->img, range };
-    pvkCmdPipelineBarrier(c.cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &toDst);
+    pvkCmdPipelineBarrier(c->cb, VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT, 0, 0, NULL, 0, NULL, 1, &toDst);
     VkBufferImageCopy bic = { 0, 0, 0, { nvmtl_copy_aspect(img), 0, 0, 1 }, { 0, 0, 0 }, { img->w, img->h, 1 } };
-    pvkCmdCopyBufferToImage(c.cb, (VkBuffer)stage.buf, (VkImage)img->img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bic);
+    pvkCmdCopyBufferToImage(c->cb, (VkBuffer)sl->buf.buf, (VkImage)img->img, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, 1, &bic);
     VkImageMemoryBarrier toRead = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
         VK_ACCESS_TRANSFER_WRITE_BIT, VK_ACCESS_SHADER_READ_BIT,
         VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
         VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, (VkImage)img->img, range };
-    pvkCmdPipelineBarrier(c.cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &toRead);
+    pvkCmdPipelineBarrier(c->cb, VK_PIPELINE_STAGE_TRANSFER_BIT, VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT, 0, 0, NULL, 0, NULL, 1, &toRead);
     img->layout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-    return nvmtl_vk_submit_wait(&c);
+    const int rc = nvmtl_vk_submit_wait_at(c, "surface upload");
+    if (rc == -2) { sl->uncertain = 1; return rc; }
+    if (sl->buf.size > NVMTL_UPSTAGE_KEEP) { nvmtl_vk_buffer_destroy(&sl->buf); memset(&sl->buf, 0, sizeof sl->buf); }
+    return rc;
 }
 
 int nvmtl_vk_copy_buffer(nvk_queue *q, nvk_buffer *src, size_t srcOff, nvk_buffer *dst, size_t dstOff, size_t size)
@@ -5473,6 +5524,17 @@ int nvmtl_vk_image_read(nvk_queue *q, nvk_image *img, void *dst, size_t row_byte
     nvk_buffer stage;
     if (nvmtl_vk_stage(q, (size_t)cols * rows * bpp, &stage)) return -1;
     nvk_cmdbuf c; if (nvmtl_vk_cmd_begin(q, &c)) return -1;
+    // SurfaceOut also reads images last used as sampled/storage images or blit
+    // destinations. A completed fence does not change their image layout or
+    // provide the transfer-read dependency. Transition the copied subresource.
+    VkImageSubresourceRange range = { nvmtl_barrier_aspect(img), 0, 1, 0, 1 };
+    VkImageMemoryBarrier toSrc = { VK_STRUCTURE_TYPE_IMAGE_MEMORY_BARRIER, NULL,
+        VK_ACCESS_MEMORY_WRITE_BIT | VK_ACCESS_MEMORY_READ_BIT, VK_ACCESS_TRANSFER_READ_BIT,
+        (VkImageLayout)img->layout, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL,
+        VK_QUEUE_FAMILY_IGNORED, VK_QUEUE_FAMILY_IGNORED, (VkImage)img->img, range };
+    pvkCmdPipelineBarrier(c.cb, VK_PIPELINE_STAGE_ALL_COMMANDS_BIT, VK_PIPELINE_STAGE_TRANSFER_BIT,
+                         0, 0, NULL, 0, NULL, 1, &toSrc);
+    img->layout = VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL;
     VkBufferImageCopy bic = { 0, 0, 0, { nvmtl_copy_aspect(img), 0, 0, 1 }, { 0, 0, 0 }, { img->w, img->h, 1 } };
     pvkCmdCopyImageToBuffer(c.cb, img->img, VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL, stage.buf, 1, &bic);
     if (nvmtl_vk_submit_wait(&c)) return -1;

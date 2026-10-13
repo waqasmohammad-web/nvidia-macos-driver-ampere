@@ -114,6 +114,7 @@ extern id gNVMTLMainDevice;
   NSMutableArray *_scratch;
   NSMutableSet *_resources;
   NSMutableSet *_surfDirty;
+  NSMutableSet *_surfOverwrites; // recording-local contents; never publish before commit
   unsigned _nEnc, _nEnd, _nHandlers, _nStatus, _nEnqueue, _nLabel, _nPresent, _nWait;
   unsigned _nEncSealed;
   CFTimeInterval _gpuStart, _gpuEnd;
