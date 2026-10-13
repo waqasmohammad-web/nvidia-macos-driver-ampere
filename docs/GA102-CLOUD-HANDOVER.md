@@ -1,3 +1,20 @@
+# ENCORE Cloud candidate — 13 October 2026
+
+Cloud branch `dev/ga102-endgame-cloud` is based on verified `65b3ed5`.
+Read [GA102-ENDGAME-CLOUD.md](GA102-ENDGAME-CLOUD.md) for source attribution,
+separate integration/coalescing commits, portable tests, allocator p95 findings,
+new instrumentation/fixtures and exact Local qualification commands.
+
+Cloud source is a candidate, not a replacement for the hardware-qualified Local
+baseline. Queued surface publication and bounded synchronous uploads are selectively
+ported; a sanitizer-reproduced adjacent-hole defect is fixed while retaining the
+8 MiB / 64 MiB host policy. 100 Python tests and actual-source C ASan/UBSan controls
+pass. Foundation, Apple compilation, source-NVK linking and RTX qualification
+remain pending. Exact next Cloud command:
+`python3 tools/ga102_host_pool_test.py --pool-telemetry`.
+
+---
+
 # Final local allocation milestone — current continuation
 
 Published source `ad48444` completes the two local allocation investigations.

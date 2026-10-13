@@ -3,6 +3,7 @@
 from pathlib import Path
 import re
 import argparse
+import sys
 import subprocess
 import tempfile
 
@@ -12,14 +13,22 @@ ROOT=Path(__file__).resolve().parents[1]
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--source',type=Path,default=ROOT/'plugin/nvmtl_vk.c')
+    parser.add_argument('--pool-telemetry',action='store_true',help='Compile/test diagnostic snapshot instrumentation too')
     args=parser.parse_args()
     source=args.source.read_text()
+    if args.pool_telemetry:
+        sys.path.insert(0,str(ROOT))
+        from build import ga102_pool_instrumentation as trace
+        source=trace.instrument(source)
     def region(first,last):return source[source.index(first):source.index(last,source.index(first))]
     defines='\n'.join(re.search(r'^#define '+name+r'\s+[^\n]+',source,re.M)[0]
                       for name in ['NVMTL_POOL_BLOCK','NVMTL_POOL_MAX','NVMTL_POOL_KEEP'])
     host_keep=re.search(r'^#define NVMTL_POOL_KEEP_HOST\s+[^\n]+',source,re.M)
     if host_keep:defines+='\n'+host_keep[0]
     prefix=r'''
+#define _POSIX_C_SOURCE 200809L
+#include <stdatomic.h>
+#include <time.h>
 #include <assert.h>
 #include <pthread.h>
 #include <stdarg.h>
@@ -53,7 +62,11 @@ int nvmtl_vk_buffer_create_placed(size_t size,nvk_heap *heap,size_t offset,nvk_b
 '''
     structs=region('typedef struct { size_t off, len; } pool_range;','static size_t pool_align(void)')
     takegive=region('static int pool_block_take(','static int vpool_on(void)')
-    allocator=region('static int pool_buffer_create_in(int vram, size_t size, nvk_buffer *out)\n{','int nvmtl_vk_image_placed_fits(')
+    marker='static _Atomic uint64_t ga102_pool_requests' if args.pool_telemetry else 'static int pool_buffer_create_in(int vram, size_t size, nvk_buffer *out)\n{'
+    allocator=region(marker,'int nvmtl_vk_image_placed_fits(')
+    if args.pool_telemetry:
+        prefix+='static uint64_t ga102_tick(void) {struct timespec t;assert(!clock_gettime(CLOCK_MONOTONIC,&t));return (uint64_t)t.tv_sec*1000000000ull+(uint64_t)t.tv_nsec;}\n'
+        allocator+=trace.EXPORT
     code=prefix+structs+'static size_t pool_align(void) {g_pool_align=256;return g_pool_align;}\n'+takegive+allocator+r'''
 static void drain(void) {
     while(g_pool) {pool_block *b=g_pool;g_pool=b->next;nvmtl_vk_heap_destroy(&b->heap);free(b->fr);free(b);g_pool_blocks--;}
@@ -112,6 +125,8 @@ int main(void) {
     puts("PASS: production host/VRAM pool growth, fragmented free, reuse, failure rollback, trimming and full cleanup");
 }
 '''
+    if args.pool_telemetry:
+        code=code.replace('    puts("PASS:', '    assert(atomic_load(&ga102_pool_requests)>1000 && atomic_load(&ga102_pool_growths)>0 && atomic_load(&ga102_pool_failures)>=2); puts(ga102_perf_pool_trace());\n    puts("PASS:')
     with tempfile.TemporaryDirectory() as directory:
         path=Path(directory);(path/'proof.c').write_text(code)
         subprocess.run(['cc','-std=c11','-Wall','-Wextra','-Werror','-pthread','-fsanitize=address,undefined',

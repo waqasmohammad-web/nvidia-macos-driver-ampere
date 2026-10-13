@@ -35,12 +35,40 @@ def validate_stress(result):
         if row['after']['free_failures']: raise ValueError('Vulkan free failure')
 
 
+SURFACE_MODES=('queued','alias','alias_read','cross','partial','partial_alias','same','wait','cpu','abandoned','private')
+
+
+def validate_surfaces(rows, backing):
+    if backing not in ('family','private') or len(rows)!=len(SURFACE_MODES)*20:
+        raise ValueError('surface coverage incomplete')
+    expected=[(mode,frame) for mode in SURFACE_MODES for frame in range(20)]
+    if [(r['mode'],r['frame']) for r in rows]!=expected:raise ValueError('surface sequence changed')
+    for row in rows:
+        actual=0 if row['mode']=='private' else 2 if backing=='family' else 1
+        if type(row['backing']) is not int or row['backing']!=actual or row['checked_pixels']!=640*360 or type(row['max_error']) is not int or not 0<=row['max_error']<=1:
+            raise ValueError('surface backing or pixel qualification failed')
+        times=[row[k] for k in ('frame_start_ns','encode_end_ns','commit_ns','scheduled_ns','completed_ns')]
+        if any(type(t) is not int or t<=0 for t in times) or times!=sorted(times):
+            raise ValueError('surface callback timeline invalid')
+        gpu=[row[k] for k in ('gpu_start_s','gpu_end_s')]
+        if any(type(t) not in (int,float) or not perf.math.isfinite(t) or t<=0 for t in gpu) or gpu[1]<gpu[0]:
+            raise ValueError('surface GPU timestamps missing/invalid')
+        for key in ('pool_before','pool_after'):
+            if set(row[key])!={'requests','failures','request_ns','lock_wait_ns','growths','growth_ns','fragmented_growths'}:
+                raise ValueError('pool trace fields missing')
+            if any(type(v) is not int or v<0 for v in row[key].values()):raise ValueError('pool trace values invalid')
+        if any(row['pool_after'][k]<v for k,v in row['pool_before'].items()):raise ValueError('pool trace regressed')
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     for name in ('plugin','metallib','dependency-manifest','output'):parser.add_argument('--'+name,type=Path,required=True)
     parser.add_argument('--execute-reviewed',action='store_true')
+    parser.add_argument('--surface-only',action='store_true',help='Owned offscreen surface/scheduling fixture; requires newly instrumented plugin')
+    parser.add_argument('--surface-backing',choices=['family','private'],default='family')
     parser.add_argument('--boundary-only',action='store_true',help='Verify alignment and pooled/dedicated allocation thresholds instead of stress waves')
     args=parser.parse_args()
+    if args.surface_only and args.boundary_only:parser.error('choose one workload')
     if sys.platform!='darwin' or not args.execute_reviewed:parser.error('Darwin and explicit reviewed execution required')
     if any(k.startswith('DYLD_') for k in os.environ):raise ValueError('inherited DYLD override')
     paths,hashes,proof=perf.artifact(args.plugin)
@@ -58,9 +86,9 @@ def main():
     source=(perf.ROOT/'tools/ga102_perf/graphics.swift').read_text()
     marker='guard let provenanceData='
     if source.count(marker)!=1:raise ValueError('stress insertion site changed')
-    workload='buffer_boundaries.swift' if args.boundary_only else 'allocation_stress.swift'
+    workload='surface_stress.swift' if args.surface_only else 'buffer_boundaries.swift' if args.boundary_only else 'allocation_stress.swift'
     source=source.replace(marker,(perf.ROOT/'tools/ga102_perf'/workload).read_text()+'\n'+marker)
-    extra='"boundaries":boundaryRecords,' if args.boundary_only else '"growth":growthRecords,"buffers":bufferRecords,'
+    extra='"surfaces":surfaceRecords,' if args.surface_only else '"boundaries":boundaryRecords,' if args.boundary_only else '"growth":growthRecords,"buffers":bufferRecords,'
     source=source.replace('"resources":resources(),','"resources":resources(),'+extra)
     swift=args.output/'allocation.swift';swift.write_text(source)
     obj=args.output/'binding.o';exe=args.output/'allocation-probe'
@@ -80,8 +108,11 @@ def main():
         env.update(GA102_PLUGIN_IMAGE=paths['plugin'],GA102_PLUGIN_NAMESPACE='NVMTLGA102_',GA102_PLUGIN_TRANSLATOR=paths['translator'],
                    GA102_PLUGIN_LOWER_PROBE='1',GA102_TEST_ICD=paths['icd'],GA102_TEST_LLVM=paths['llvm'],GA102_TEST_CACHE=str(root),
                    GA102_TEST_TOKEN=token,GA102_TEST_CAPTURE='1',GA102_TEST_SAMPLER_FIRST='nearest')
+        if args.surface_only:
+            env['GA102_TEST_SURFACE_BACKING']=args.surface_backing
+            if args.surface_backing=='private':env['GA102_TEST_SURFACE_PRIVATE']='1'
         logpath=args.output/(condition+'.private.log')
-        with logpath.open('w') as log:rc=perf.run_owned([str(exe),str(args.metallib.resolve())],log,45,env)
+        with logpath.open('w') as log:rc=perf.run_owned([str(exe),str(args.metallib.resolve())],log,180 if args.surface_only else 45,env)
         for path,digest in hashes.items():
             if perf.sha(path)!=digest:raise ValueError('artifact changed during execution')
         lines=logpath.read_text().splitlines()
@@ -90,22 +121,23 @@ def main():
         if rc or len(results)!=1 or any(lines.count(m)!=1 for m in markers) or any('duplicate' in x.lower() and 'class' in x.lower() for x in lines):raise ValueError('child or binding failed: '+str(logpath))
         result=results[0];differences=perf.validate_record(result,condition,{**paths,'cache':str(root)})
         perf.verify_inventory(result['provenance']['inventory'],approved)
-        if args.boundary_only:
+        if args.surface_only:validate_surfaces(result['surfaces'],args.surface_backing)
+        elif args.boundary_only:
             boundaries=result['boundaries']
             if [r['bytes_verified'] for r in boundaries]!=[1,255,256,257,4096,65535,(4<<20)-1,4<<20,(4<<20)+1]:raise ValueError('boundary sizes incomplete')
             if any(r['before']['buffer_live']!=r['after']['buffer_live'] or r['after']['live_sets'] or r['after']['free_failures'] for r in boundaries):raise ValueError('boundary retirement failed')
         else:validate_stress(result)
         modules=perf.captures(root);perf.verify_cache(root,token)
         rows.append(dict(condition=condition,resources=result['resources'],growth=result.get('growth',[]),buffers=result.get('buffers',[]),boundaries=result.get('boundaries',[]),
-                         qualification_records=result['records'],differences=differences,validated_modules=sum(modules.values())))
+                         surfaces=result.get('surfaces',[]),qualification_records=result['records'],differences=differences,validated_modules=sum(modules.values())))
         (root/'capture').rename(root/('capture-'+condition));(root/'capture').mkdir(mode=0o700)
-    report=dict(status='PASS',mode='buffer-boundaries' if args.boundary_only else 'allocation-growth',source_commit=proof['source_commit'],source_tree=proof['source_tree'],
+    report=dict(status='PASS',mode='surface-'+args.surface_backing if args.surface_only else 'buffer-boundaries' if args.boundary_only else 'allocation-growth',source_commit=proof['source_commit'],source_tree=proof['source_tree'],
                 artifact_hashes={k:perf.sha(paths[k]) for k in ('plugin','translator','icd','llvm')},
                 probe_sha256=perf.sha(exe),swift_sha256=perf.sha(swift),rows=rows,
-                limits=['Offscreen only, no desktop claim.']+(['Nine exact buffer copy sizes; no descriptor growth in this mode.'] if args.boundary_only else
+                limits=['Offscreen only, no desktop claim.']+(['220 pixel-checked 640x360 frames per process; callback/GPU completion is not presentation.','Source-prepared until actual Apple compilation and physical qualification.'] if args.surface_only else ['Nine exact buffer copy sizes; no descriptor growth in this mode.'] if args.boundary_only else
                     ['Each stress render checks its final 1024 pixels; each buffer wave verifies all 64 MiB copied.','Physical growth beyond 256 sets; not saturation of the 262144-set ceiling.']))
     (args.output/'results.json').write_text(json.dumps(report,indent=2)+'\n')
-    print('PASS: physical buffer boundaries/retirement' if args.boundary_only else 'PASS: physical descriptor growth/reuse/retirement and 3 x64 MiB verified buffer copy waves per process')
+    print('PASS: physical offscreen surface correctness and scheduling fixture' if args.surface_only else 'PASS: physical buffer boundaries/retirement' if args.boundary_only else 'PASS: physical descriptor growth/reuse/retirement and 3 x64 MiB verified buffer copy waves per process')
 
 
 if __name__=='__main__':main()

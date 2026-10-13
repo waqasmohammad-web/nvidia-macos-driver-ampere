@@ -17,6 +17,22 @@ func stats(_ samples: [Double]) -> [String: Double] {
             "p95_ms": s[min(s.count - 1, Int(ceil(Double(s.count) * 0.95)) - 1)] * 1000,
             "max_ms": s.last! * 1000, "samples": Double(s.count)]
 }
+// Render resolution and composition load are independent of the window/display mode.
+func argument(_ name:String)->String? {
+    guard let index=CommandLine.arguments.firstIndex(of:name) else {return nil}
+    guard index+1<CommandLine.arguments.count else {fail("missing \(name)")}
+    return CommandLine.arguments[index+1]
+}
+let renderParts=(argument("--render-size") ?? "640x360").split(separator:"x")
+guard renderParts.count==2,let renderWidth=Int(renderParts[0]),let renderHeight=Int(renderParts[1]),
+      (64...3840).contains(renderWidth),(64...2160).contains(renderHeight),
+      let compositeLayers=Int(argument("--composite-layers") ?? "0"),(0...16).contains(compositeLayers) else {fail("render workload parameters")}
+let compositionSource="""
+#include <metal_stdlib>
+using namespace metal;
+vertex float4 endgame_v(uint i [[vertex_id]]) {return float4(i==0?float2(-1,-1):(i==1?float2(3,-1):float2(-1,3)),0,1);}
+fragment float4 endgame_f(constant float4 &color [[buffer(0)]]) {return color;}
+"""
 guard let device = MTLCopyAllDevices().first(where: { $0.name.contains("3080 Ti") }),
       let queue = device.makeCommandQueue() else { fail("RTX 3080 Ti / queue unavailable") }
 print("device: \(device.name)"); fflush(stdout)
@@ -32,10 +48,26 @@ layer.device = device; layer.pixelFormat = .bgra8Unorm
 layer.framebufferOnly = true; layer.displaySyncEnabled = true
 let drawableCount=CommandLine.arguments.contains("--double-buffered") ? 2:3
 layer.maximumDrawableCount = drawableCount; layer.allowsNextDrawableTimeout = true
-layer.drawableSize = CGSize(width: 640, height: 360)
+layer.drawableSize = CGSize(width: renderWidth, height: renderHeight)
 view.wantsLayer = true; view.layer = layer
 window.contentView = view; window.center(); window.orderFront(nil)
 
+var compositionPipeline: MTLRenderPipelineState?
+if compositeLayers>0 {
+    do {
+        let library=try device.makeLibrary(source:compositionSource,options:nil)
+        let descriptor=MTLRenderPipelineDescriptor()
+        descriptor.vertexFunction=library.makeFunction(name:"endgame_v")
+        descriptor.fragmentFunction=library.makeFunction(name:"endgame_f")
+        descriptor.colorAttachments[0].pixelFormat = .bgra8Unorm
+        descriptor.colorAttachments[0].isBlendingEnabled=true
+        descriptor.colorAttachments[0].sourceRGBBlendFactor = .sourceAlpha
+        descriptor.colorAttachments[0].destinationRGBBlendFactor = .oneMinusSourceAlpha
+        descriptor.colorAttachments[0].sourceAlphaBlendFactor = .one
+        descriptor.colorAttachments[0].destinationAlphaBlendFactor = .oneMinusSourceAlpha
+        compositionPipeline=try device.makeRenderPipelineState(descriptor:descriptor)
+    } catch {fail("composition pipeline: \(error)")}
+}
 let lock = NSLock()
 var inFlight = 0, completed = 0, errors = 0, skipped = 0, attempted = 0
 var presented = [Int: Double](), acquisition = [Double](), gpu = [Double]()
@@ -95,6 +127,14 @@ func draw() {
     let phase = (attempted / 30) % 3
     pass.colorAttachments[0].clearColor = MTLClearColorMake(phase == 0 ? 1 : 0, phase == 1 ? 1 : 0, phase == 2 ? 1 : 0, 1)
     guard let encoder = commands.makeRenderCommandEncoder(descriptor: pass) else { fail("render encoder allocation") }
+    if let pipeline=compositionPipeline {
+        encoder.setRenderPipelineState(pipeline)
+        for index in 0..<compositeLayers {
+            var color=SIMD4<Float>(index%3 == 0 ? 1:0,index%3 == 1 ? 1:0,index%3 == 2 ? 1:0,0.25)
+            encoder.setFragmentBytes(&color,length:MemoryLayout<SIMD4<Float>>.size,index:0)
+            encoder.drawPrimitives(type:.triangle,vertexStart:0,vertexCount:3)
+        }
+    }
     encoder.endEncoding()
     let encodedAt = CACurrentMediaTime()
     encoding.append(encodedAt - acquired)
@@ -195,7 +235,7 @@ DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(6)) {
         "visibility_samples": states, "command_errors": failure, "outstanding": outstanding, "timer_skips": skipped,
         "preflight_ready":preflightReady,"preflight_wait_ms":preflightMs,
         "frame_trace":trace,
-        "drawable_count":drawableCount,
+        "drawable_count":drawableCount,"render_width":renderWidth,"render_height":renderHeight,"composite_layers":compositeLayers,
         "display_width": mode?.width ?? 0, "display_height": mode?.height ?? 0, "display_refresh_hz": mode?.refreshRate ?? 0,
         "presented_callbacks": callbackCount, "positive_presented_times": shown.count,
         "presented_frame_ids": shown.map { $0.key }, "presented_times": shown.map { $0.value },

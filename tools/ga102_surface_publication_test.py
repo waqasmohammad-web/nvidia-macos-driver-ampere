@@ -23,7 +23,7 @@ fixture = r'''
 typedef struct __IOSurface { unsigned seed; unsigned char cpu[4]; } Surface;
 typedef Surface *IOSurfaceRef;
 typedef int IOReturn;
-enum { kIOSurfaceLockReadOnly = 1 };
+enum { kIOSurfaceLockReadOnly = 1, kIOReturnSuccess = 0 };
 typedef struct { unsigned w,h,bpp; unsigned char gpu[4]; } Image;
 static dispatch_semaphore_t entered, release_read;
 static unsigned uploads, gpu_seed;
@@ -101,7 +101,7 @@ int main(int argc, char **argv) { @autoreleasepool {
 with tempfile.TemporaryDirectory() as directory:
     path = pathlib.Path(directory)
     (path / 'test.m').write_text(fixture + methods + checks)
-    subprocess.run(['clang', '-fobjc-arc', '-framework', 'Foundation',
+    subprocess.run(['clang', '-fblocks', '-fobjc-arc', '-framework', 'Foundation',
                     str(path / 'test.m'), '-o', str(path / 'test')], check=True)
     subprocess.run([str(path / 'test')], check=True)
     subprocess.run([str(path / 'test'), 'shared'], check=True)

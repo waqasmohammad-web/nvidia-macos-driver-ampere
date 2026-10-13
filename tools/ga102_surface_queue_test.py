@@ -58,5 +58,5 @@ int main(void){@autoreleasepool{
 '''
 with tempfile.TemporaryDirectory() as d:
  p=pathlib.Path(d);(p/'test.m').write_text(fixture+helpers+checks)
- subprocess.run(['clang','-fobjc-arc','-framework','Foundation',str(p/'test.m'),'-o',str(p/'test')],check=True)
+ subprocess.run(['clang','-fblocks','-fobjc-arc','-framework','Foundation',str(p/'test.m'),'-o',str(p/'test')],check=True)
  subprocess.run([str(p/'test')],check=True)

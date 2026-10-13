@@ -1,6 +1,10 @@
 """Opt-in transformation of an owned namespace snapshot, never production files."""
 import hashlib
 import json
+try:
+    from . import ga102_pool_instrumentation as pool_trace
+except ImportError:
+    import ga102_pool_instrumentation as pool_trace
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parents[1]
@@ -147,8 +151,20 @@ static int g_descriptor_state;''')
         (unsigned long long)poolNS, (unsigned long long)resourceNS, (unsigned long long)zeroNS,
         (unsigned long long)heapNS, g_bindless);
     return 0;''')
+    s=once(s, "on = pnvk_stage_import && g_extfd && g_linmod && !(e && e[0] == '1');",
+           "on = pnvk_stage_import && g_extfd && g_linmod && !(e && e[0] == '1') && !getenv(\"GA102_TEST_SURFACE_PRIVATE\");")
+    s=pool_trace.instrument(s)
     vk.write_text(s)
     with unit.open('a') as out:
+        out.write(pool_trace.EXPORT)
+        out.write('''
+__attribute__((visibility("default"))) unsigned ga102_perf_surface_backing(void *pointer) {
+    id object=(__bridge id)pointer;
+    if (![object isKindOfClass:[NVMTLGA102_Texture class]]) ga102_stop("surface object class mismatch");
+    NVMTLGA102_Texture *texture=object, *root=texture->_parent ? texture->_parent : texture;
+    return !root->_surf ? 0u : root->_vramOn ? 2u : 1u;
+}
+''')
         out.write('''
 __attribute__((visibility("default"))) const char *ga102_perf_snapshot(void) { return ga102_metrics_json(); }
 __attribute__((visibility("default"))) const char *ga102_perf_cache(void) { return ga102_owned_root(); }
@@ -190,5 +206,6 @@ __attribute__((visibility("default"))) const char *ga102_perf_image(unsigned kin
     return {'profile': 'ga102-graphics-v2', 'preparation_breakdown': preparation_breakdown,
             'metrics_header_sha256': hashlib.sha256(header.read_bytes()).hexdigest(),
             'transformer_sha256': hashlib.sha256(Path(__file__).read_bytes()).hexdigest(),
+            'pool_transformer_sha256': hashlib.sha256(Path(pool_trace.__file__).read_bytes()).hexdigest(),
             'transformed_source_sha256': {p.name:hashlib.sha256(p.read_bytes()).hexdigest() for p in source.iterdir() if p.is_file()},
             'limitations': 'Generated source only until Apple compilation/GPU qualification; internal sampler reflection is included in sampler ABI time, not separately instrumented.'}

@@ -15,6 +15,8 @@ def main():
     source = (ROOT / 'plugin/nvmtl_vk.c').read_text()
     start = source.index('#define NVMTL_UPSTAGE_KEEP')
     end = source.index('\nint nvmtl_vk_copy_buffer', start)
+    read_start=source.index('int nvmtl_vk_image_read(')
+    read_end=source.index('\nstatic void img_to(',read_start)
     unit = r'''
 #include <assert.h>
 #include <pthread.h>
@@ -25,7 +27,9 @@ def main():
 #include <vulkan/vulkan_core.h>
 #include "nvmtl_vk.h"
 static unsigned made, destroyed, submits, copies, barriers;
-static int fail_create, fail_begin, submit_result;
+static int fail_create, fail_begin, submit_result, reading;
+static VkImageLayout read_old;
+static nvk_buffer read_stage;
 static nvk_buffer *recorded;
 static void nvlog(const char *fmt, ...) { (void)fmt; }
 static uint32_t nvmtl_blocks(uint32_t n, uint32_t b) { return b ? (n+b-1)/b : n; }
@@ -41,6 +45,12 @@ static void pvkCmdPipelineBarrier(void *cb,VkPipelineStageFlags src,VkPipelineSt
  VkDependencyFlags flags,uint32_t nm,const VkMemoryBarrier *m,uint32_t nb,const VkBufferMemoryBarrier *b,
  uint32_t ni,const VkImageMemoryBarrier *i) {
  (void)cb;(void)flags;(void)m;(void)b;assert(!nm&&!nb&&ni==1);assert(i->subresourceRange.levelCount==1);
+ if(reading) {
+ assert(src==VK_PIPELINE_STAGE_ALL_COMMANDS_BIT&&dst==VK_PIPELINE_STAGE_TRANSFER_BIT);
+ assert(i->srcAccessMask==(VK_ACCESS_MEMORY_READ_BIT|VK_ACCESS_MEMORY_WRITE_BIT));
+ assert(i->dstAccessMask==VK_ACCESS_TRANSFER_READ_BIT&&i->oldLayout==read_old&&i->newLayout==VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+ barriers++;return;
+ }
  if(!barriers) {assert(src==VK_PIPELINE_STAGE_TOP_OF_PIPE_BIT&&dst==VK_PIPELINE_STAGE_TRANSFER_BIT);
  assert(i->oldLayout==VK_IMAGE_LAYOUT_UNDEFINED&&i->newLayout==VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);}
  else {assert(src==VK_PIPELINE_STAGE_TRANSFER_BIT&&dst==VK_PIPELINE_STAGE_FRAGMENT_SHADER_BIT);
@@ -50,8 +60,15 @@ static void pvkCmdPipelineBarrier(void *cb,VkPipelineStageFlags src,VkPipelineSt
 static void pvkCmdCopyBufferToImage(void *cb,VkBuffer b,VkImage i,VkImageLayout l,uint32_t n,const VkBufferImageCopy *r) {
  (void)cb;(void)i;assert(b==(VkBuffer)recorded->buf&&l==VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL&&n==1);assert(r->imageExtent.depth==1);copies++;
 }
-int nvmtl_vk_submit_wait_at(nvk_cmdbuf *c,const char *who) {assert(!strcmp(who,"surface upload")&&barriers==2);submits++;if(submit_result!=-2)c->cb=NULL;return submit_result;}
-''' + source[start:end] + r'''
+int nvmtl_vk_submit_wait_at(nvk_cmdbuf *c,const char *who) {assert(reading ? (!strcmp(who,"nvmtl_vk_image_read")&&barriers==1) : (!strcmp(who,"surface upload")&&barriers==2));submits++;if(submit_result!=-2)c->cb=NULL;return submit_result;}
+static int nvmtl_vk_stage(nvk_queue *q,size_t size,nvk_buffer *out) {
+ (void)q;assert(!nvmtl_vk_buffer_create(size,1,&read_stage));*out=read_stage;return 0;
+}
+static void pvkCmdCopyImageToBuffer(void *cb,void *img,VkImageLayout layout,void *buf,uint32_t count,const VkBufferImageCopy *region) {
+ (void)cb;(void)img;assert(layout==VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL&&buf==read_stage.buf&&count==1&&region->imageExtent.width==2);
+ for(unsigned i=0;i<16;i++) {((unsigned char*)read_stage.map)[i]=(unsigned char)(i+1);}copies++;
+}
+''' + source[start:end] + source[read_start:read_end] + r'''
 static void *worker(void *unused) {
  (void)unused;nvk_image image={.w=2,.h=2,.bpp=4};unsigned char pixels[16]={0};
  assert(!nvmtl_vk_image_write(NULL,&image,pixels,8));return NULL;
@@ -81,6 +98,21 @@ int main(int argc,char **argv) {
  st->uncertain=0;nvmtl_upstage_free(st);assert(!pthread_setspecific(g_upstage_key,NULL));submit_result=0;
  pthread_t thread;assert(!pthread_create(&thread,NULL,worker,NULL));assert(!pthread_join(thread,NULL));
  assert(made==destroyed);assert(copies==submits);
+ reading=1;
+ VkImageLayout layouts[]={VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,VK_IMAGE_LAYOUT_GENERAL,VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL,VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL};
+ for(unsigned k=0;k<4;k++) {
+     read_old=layouts[k];image.layout=read_old;unsigned char dst[24];memset(dst,77,sizeof dst);
+     assert(!nvmtl_vk_image_read(NULL,&image,dst,12));assert(image.layout==VK_IMAGE_LAYOUT_TRANSFER_SRC_OPTIMAL);
+     for(unsigned i=0;i<8;i++){assert(dst[i]==i+1);assert(dst[12+i]==i+9);}
+     for(unsigned i=8;i<12;i++)assert(dst[i]==77);
+     nvmtl_vk_buffer_destroy(&read_stage);
+ }
+ read_old=VK_IMAGE_LAYOUT_GENERAL;image.layout=read_old;submit_result=-1;
+ unsigned char failed_dst[24];memset(failed_dst,77,sizeof failed_dst);
+ assert(nvmtl_vk_image_read(NULL,&image,failed_dst,12)==-1&&image.layout==read_old);
+ for(unsigned i=0;i<24;i++)assert(failed_dst[i]==77);
+ nvmtl_vk_buffer_destroy(&read_stage);
+ assert(made==destroyed);
  puts("PASS: actual upload: pitched/tight copy, synchronous submit, reuse, >32MiB eviction, TLS exit, failures, uncertain lifetime");return 0;
 }
 '''

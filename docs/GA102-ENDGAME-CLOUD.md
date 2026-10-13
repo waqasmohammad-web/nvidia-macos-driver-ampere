@@ -135,3 +135,132 @@ bytes, live-range/accounting return, peak and retained capacity; report per-requ
 p50/p95/p99/max, >1 ms incidence and whole-frame totals. Include multithreaded
 mixed-size creation, CPU upload, render and event-dependent readback before a
 policy is considered suitable for application workloads.
+
+## Scheduling and representative workload fixtures
+
+The owned diagnostic build now records atomic pool request/failure counts,
+request duration, allocator lock wait, growth count/time and growth with enough
+aggregate free bytes (fragmented between holes/blocks). Production builds have
+no new timers. The generated C instrumentation compiles and passes the same
+actual allocator controls under ASan/UBSan (`--pool-telemetry`); source-transform
+controls require unique sites and reject double application. Counters cover host
+and VRAM pool attempts together, include failed growth, and snapshots should be
+compared after quiescence. Growth time includes CPU heap creation/mapping/logging,
+not an NVK compiler phase. Atomic fields are individually consistent, not a
+transactional snapshot. Instrumentation overhead needs a diagnostic/plain control.
+The profile records the helper transform hash and transformed-source hashes.
+
+New `surface_stress.swift` is inserted by the existing owned runner with
+`--surface-only`: eleven modes, twenty 640x360 exact-alpha/tolerance-one RGB
+readbacks per mode, per-process cold/reuse conditions. It retains all ordinary
+v2 qualification and image/cache/dependency/SPIR-V gates. It records actual
+backing (family/private), CPU frame preparation, commit/scheduled/completed
+callbacks, writer/reader GPU intervals and pool telemetry. Family imports must
+actually succeed; silent fallback is a failure. Test-only forced-private mode
+uses a separate `GA102_TEST_SURFACE_PRIVATE` knob in the copied source and leaves
+production config clearing intact. CPU-seed changes, partial alias updates and
+cross-queue shared-event dependencies are included. Callback ordering, coverage,
+backing mismatches, missing/nonfinite GPU timestamps, bad pixels and incomplete/
+regressing telemetry fail portable acceptance tests. Test controls are synthetic
+records and are never hardware evidence. Compilation and GPU behavior remain
+NEEDS MACOS VALIDATION, including current baseline behavior and timestamp support.
+
+After the separate Local session authorizes isolated execution, rebuild both arms
+using the latest harness commit, then run each with independently reviewed source
+ICD closure. Use fresh output directories for each arm/backing:
+
+```sh
+python3 tools/ga102_allocation_probe.py --surface-only --surface-backing family \
+  --plugin "$GA102_PLUGIN" --metallib "$GA102_METALLIB" \
+  --dependency-manifest "$GA102_DEPENDENCY_MANIFEST" \
+  --output "$GA102_SESSION/surface-family" --execute-reviewed
+python3 tools/ga102_allocation_probe.py --surface-only --surface-backing private \
+  --plugin "$GA102_PLUGIN" --metallib "$GA102_METALLIB" \
+  --dependency-manifest "$GA102_DEPENDENCY_MANIFEST" \
+  --output "$GA102_SESSION/surface-private" --execute-reviewed
+```
+
+These are offscreen scheduling/surface fixtures, not frame-pacing or display
+measurements. To move beyond small startup work without duplicating the already
+published presentation investigations, the existing six-second
+`ga102_metal_present.swift` fixture now accepts independent render resolution and
+0–16 full-target alpha-blended owned draws per frame. The window remains 640x360;
+render resolution can be 1920x1080, 2560x1440 or 3840x2160 without changing display
+mode. Existing eligibility, drawable acquisition, encode/commit/callback timings,
+GPU intervals, frame/surface identities and API presentation traces remain.
+Workload metadata is recorded with the result. Defaults preserve the old clear
+probe. The composition shader/PSO is prepared before the timed frame trace.
+
+This is a synthetic bandwidth/submission composition workload, not an application
+benchmark. It is source-prepared only. The existing runner still rejects explicit
+isolated plugin binding for windowed probes. **Do not install the Cloud candidate
+or bypass that gate to run it.** The following is for a later separately authorized
+installed-stack baseline session, not candidate qualification:
+
+```sh
+python3 tools/ga102_run_metal.py ga102_metal_present --display-linked \
+  --render-size 1920x1080 --composite-layers 4 --repeat 3 \
+  --result-json "$GA102_SESSION/pacing-1080p-four-layers.json"
+```
+
+Compare clear-only versus 4/8 layers at identical render size, display/visibility,
+queue depth and system load; retain p50/p95/p99/max, skipped frames, startup frames
+and steady intervals separately. Repeat timer/display-link and double/triple
+buffer controls as in the earlier pacing investigation. Match presented frame
+identities to independent owned-window capture with
+`ga102_visual_present.swift`, `ga102_pacing_validation.py`, and the existing
+capture/delivery validators before claiming visible delivery. A positive drawable
+`presentedTime` or completed GPU command alone does not prove compositor receipt
+or physical scanout. Capture permissions are never changed/requested to pass.
+Candidate desktop qualification still needs a separately reviewed route that
+proves the active system component/dependency images; it is not supplied here.
+
+## Architectural follow-up
+
+- `pool_buffer_create_in`: slow heap growth/mapping is under the global pool lock.
+  New lock-wait telemetry can separate allocator contention from raw allocation.
+  Coalescing helps fragmented reuse; it cannot remove capacity growth costs.
+- `nvmtl_surface_in_for_cb` and SurfaceOut: CPU import/readback is synchronous;
+  changing it to asynchronous requires destination-image retention, staging
+  ownership, seed/generation publication and queue/event dependencies together.
+  Fence removal by itself reintroduces use-after-free and stale content hazards.
+- `nvmtl_pump_buffers` / `nvmtlAdvancePart`: the single execution worker finishes
+  submissions across queues. A long wait/readback can delay otherwise independent
+  queues. Segment and callback traces should measure this before changing scheduling.
+  Do not parallelize the worker without reservation/part/event/ownership controls.
+- `waitUntilScheduled` in `NVMTLObjects.m`: WindowServer deliberately waits for
+  pixels before handing a surface to scanout because the display-pipe swap cannot
+  currently be ordered after an NVK fence. This is an architectural dependency;
+  shortening callbacks or changing the label cannot remove it safely.
+- Translation and synchronous Vulkan pipeline creation remain workload-sensitive:
+  warm sampler/compiler savings and cold linear regressions are retained in the
+  earlier evidence. Correlate actual compile/cache misses with late frame IDs
+  before optimizing more startup-only cases. No new translator/NVK compiler change
+  is made here; the native translator suite was not rerun for these non-translator
+  commits. The real validator remains available for subsequent source work.
+
+## Cloud validation and next command
+
+Final portable suite: **100 PASS** with `python3 -S`, no exclusions. C controls
+use GCC 14.2.0 / Python 3.12.14 on Linux and ASan+UBSan. Actual readback extraction
+additionally checks sampled/general/transfer-destination/transfer-source prior
+layouts, transfer-read dependency and pitched row padding. A baseline NVRM patch
+fails the detach oracle; candidate passes. The coalescing baseline fails the joined
+span oracle; candidate passes. Neither deliberate negative control ran on a GPU.
+Initial instrumentation extraction rejected an ambiguous lock site, and a captured
+readback test failed warning-as-error compilation; unique line matching and braces
+repaired those failures before success. Foundation fixture declarations were
+source-corrected, but their Apple compilation remains untested.
+
+Exact next Cloud command:
+`python3 tools/ga102_host_pool_test.py --pool-telemetry`.
+Exact next Local command: `python3 tools/ga102_surface_queue_test.py`, followed
+by the publication probe, **before** candidate Apple builds/GPU execution. Preserve
+all private Local experiments. No installation, reboot, wake/display/security
+change or physical performance claim is part of this handoff.
+
+The [normalized Cloud evidence](evidence/ga102-endgame-cloud.json) records source
+hashes, command/count summaries, negative controls, toolchain and scope limits.
+Readback failure-before-submit additionally restores its previous tracked layout;
+its captured-call test requires unchanged destination bytes and layout on failure.
+This avoids retrying a transition from a layout that never reached the GPU.

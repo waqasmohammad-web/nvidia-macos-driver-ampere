@@ -1,0 +1,90 @@
+{
+  "scope": "Linux source/CPU candidate only; no Apple compilation, physical GPU, presentation or desktop qualification",
+  "base_commit": "65b3ed56460ef047141c02f2d527b1837e92e813",
+  "branch": "dev/ga102-endgame-cloud",
+  "source_commits": {
+    "surface_upload": "7c85310",
+    "range_coalescing": "b8e1fd2"
+  },
+  "upstream_attribution": {
+    "queued_surface_and_fd_pool": "bee05d1e5d57fd448ad6bea9371d3a395b0eb385",
+    "synchronous_bounded_upload": "77e4c9839f5925a7087357d552790a7edcc978fa",
+    "recording_clear_prerequisite": "68ba3a8"
+  },
+  "toolchain": {
+    "python": "3.12.14",
+    "cc": "GCC 14.2.0",
+    "vulkan_headers": "b379292b2ab6df5771ba9870d53cf8b2c9295daf"
+  },
+  "portable_python": {
+    "command": "python3 -S -m unittest discover -s tools -p 'test_ga102_*.py'",
+    "passed": 100,
+    "failed": 0,
+    "exclusions": []
+  },
+  "asan_ubsan": {
+    "actual_source_extractions": [
+      "host pool growth/free/rollback/coalescing + 5000 varied-size non-overlap operations",
+      "generated pool telemetry against actual allocator controls",
+      "descriptor opener mutable/nonmutable, growth/ceiling/failure",
+      "NVK client detach/reuse/failure/1000 cycles",
+      "upload helper pitched/tight/reuse/eviction/TLS exit/failures/uncertain retention",
+      "readback sampled/storage/transfer layouts/dependencies/padding/pre-submit rollback"
+    ],
+    "calls": "Captured Vulkan/IOKit/heap test doubles; no driver execution",
+    "race_validation": "No TSan or Foundation concurrency qualification in this milestone"
+  },
+  "baseline_negative_controls": {
+    "fd_pool": "65b3ed5 fails detach assertion (SIGABRT)",
+    "coalescing": "65b3ed5 fails same-block 3 MiB joined span assertion (SIGABRT)"
+  },
+  "published_local_reanalysis": {
+    "requests_per_wave": 128,
+    "trials": 5,
+    "baseline_above_1ms_per_wave": [
+      4,
+      2,
+      2
+    ],
+    "candidate8_above_1ms_per_wave": [
+      16,
+      8,
+      8
+    ],
+    "conditions": [
+      "cold",
+      "reuse"
+    ],
+    "source": "docs/evidence/ga102-endgame-allocation.json",
+    "new_hardware_measurements": false
+  },
+  "licenses_unchanged": [
+    "LICENSE",
+    "NOTICE"
+  ],
+  "source_hashes": {
+    "plugin/nvmtl_vk.c": "c8fb8ec44defe4f5645ee3ab6095e8972d35f6082825a78d450861e43f0ed726",
+    "plugin/NVMTLObjects.m": "8a8015130a2bf72e5c23f0c58e31b65077b2cddd2272d6c963872c7e3810e9b3",
+    "plugin/NVMTLEventSync.m": "a9577aa37a198a71d8c1898601d1319385eb2b9be8d24e80fd559814653f3471",
+    "plugin/NVMTLDevice.m": "063a7d1c81e651fcd5687ed917a24c710eec215adf0fee06935bb1225bd00211",
+    "nvk/nvk-macos.patch": "450c47d45d5d3cd56195bf65104e0a93a9d5eec37e742527a67557487d632018",
+    "build/ga102_pool_instrumentation.py": "de11d23968620ce00dc462d184d8c07afcd569f3a7ac4f5269dca55587141e38",
+    "build/ga102_perf_instrumentation.py": "4c9d76e71b0e22c9a1a2926869bdd1e1cad22e6f5e01264162457ece8ab82e2c",
+    "tools/ga102_perf/surface_stress.swift": "85c70f8b02c09ad361b274a869c204dd51b417459f29619be7889c185a180caa",
+    "tools/ga102_metal_present.swift": "565ad4728bb5c911d8a6266bd04fcba75c961aea5d02d65427f6c4682f5a56f3"
+  },
+  "remaining": [
+    "Foundation probes and weak/map synchronization behavior",
+    "Apple plugin/Swift/composition builds",
+    "full patched source-NVK application/build/link/loader closure",
+    "physical surface family/private qualification and allocator workload timings",
+    "representative application/frame pacing/independent visible presentation measurements"
+  ],
+  "preserved_failures": [
+    "baseline detach negative control",
+    "baseline coalescing negative control",
+    "pool transform ambiguous lock match rejected then fixed",
+    "double telemetry application test fixed to reject",
+    "readback extraction misleading indentation rejected then fixed"
+  ]
+}

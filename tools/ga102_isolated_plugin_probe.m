@@ -147,6 +147,16 @@ const char *ga102_graphics_resources(void) {
     if (!fn) fail("allocation diagnostics unavailable");
     return fn();
 }
+const char *ga102_graphics_pool_trace(void) {
+    const char *(*fn)(void)=dlsym(performanceImage(),"ga102_perf_pool_trace");
+    if (!fn) fail("pool trace unavailable");
+    return fn();
+}
+unsigned ga102_graphics_surface_backing(void *pointer) {
+    unsigned (*fn)(void *)=dlsym(performanceImage(),"ga102_perf_surface_backing");
+    if (!fn) fail("surface backing probe unavailable");
+    return fn(pointer);
+}
 void ga102_graphics_check_object(void *pointer) {
     id object=(__bridge id)pointer;
     if (!object) fail("candidate object unavailable");

@@ -3811,3 +3811,32 @@ unrelated Swift edits and historical outputs remain preserved.
    broad concurrent queues and real desktop performance remain unqualified.
 4. Follow the updated cloud handover. Do not manufacture GPU evidence on Linux
    or install artifacts to continue these source investigations.
+
+
+### ENCORE Cloud source milestone (13 October 2026)
+
+Preserved in-progress surface work before fetching verified `65b3ed5`; the Cloud
+branch fast-forwarded and restored it without accessing Local Mac experiments.
+`7c85310` selectively ports queued surface publication/alias backing/NVRM detach
+and bounded synchronous uploads with uncertain-resource retention. `b8e1fd2`
+fixes actual allocator adjacent-hole coalescing without changing qualified block
+sizing/idle retention. Baseline controls fail detach and joined-span oracles;
+candidates pass C ASan/UBSan. Final standard-library suite passes 100 tests.
+
+Published warm waves have exactly 2/128 baseline versus 8/128 candidate requests
+above 1 ms in every trial, crossing the 5% quantile boundary. Fragmentation is a
+separate demonstrated source defect, not the asserted cause of those uniform
+wave timings. No adaptive policy is enabled and no new GPU latency is claimed.
+
+Owned-build telemetry records growth, aggregate fragmentation and lock waits.
+New source-prepared IOSurface fixture covers eleven modes with actual-backing
+checks, callback/GPU timelines and independent readback oracles. Existing windowed
+pacing probe gains explicit larger render targets and owned alpha-composition
+loads, while preserving its isolation/eligibility gates. Neither Apple compilation
+nor physical qualification occurred in Cloud. Read GA102-ENDGAME-CLOUD.md for
+attribution, commands, known limits and architectural findings.
+
+NEXT-STEPS: Cloud `python3 tools/ga102_host_pool_test.py --pool-telemetry`;
+Local `python3 tools/ga102_surface_queue_test.py` then publication controls,
+matched source-NVK/plugin builds and separately authorized surface qualification.
+Preserve the qualified installed stack and Local uncommitted experiments.

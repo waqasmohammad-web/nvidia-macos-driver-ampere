@@ -143,6 +143,8 @@ def main():
     parser.add_argument("--runloop-trace", action="store_true", help="Bounded own-client run-loop and framework event timings; no input-event recording")
     parser.add_argument("--reference-only", action="store_true", help="CA comparison without extra animated layers")
     parser.add_argument("--first-frame-half-period", action="store_true", help="Timing-only startup phase control; shifts first client draw by 8.333 ms")
+    parser.add_argument('--render-size',choices=['640x360','1920x1080','2560x1440','3840x2160'],help='Timing-probe render resolution; window/display mode unchanged')
+    parser.add_argument('--composite-layers',type=int,choices=range(17),help='Owned full-target alpha-blended draws per timing-probe frame')
     parser.add_argument("--double-buffered", action="store_true", help="Use two drawables in this probe's CAMetalLayer only; no framebuffer/display changes")
     parser.add_argument('--continuous', action='store_true', help='120 CA or Metal reference frames with one owned-window SCStream')
     parser.add_argument('--onscreen-every-frame', action='store_true', help='Diagnostic control: synchronous session/window queries on every continuous CA frame')
@@ -151,6 +153,8 @@ def main():
     parser.add_argument("--capture-bridge", action="store_true", help="Capture only the owned visual window via ScreenCaptureKit in this Python process; never requests permission")
     parser.add_argument("--result-json", type=Path, help="Save scoped visual-probe verdicts and numeric metrics, excluding raw logs and machine identities")
     args = parser.parse_args()
+    if (args.render_size or args.composite_layers is not None) and args.probe!='ga102_metal_present':
+        parser.error('render workload requires ga102_metal_present')
     if args.volatile_smoke and args.probe != 'ga102_metal_smoketest':
         parser.error('--volatile-smoke requires ga102_metal_smoketest')
     if args.namespaced_plugin and not args.plugin: parser.error('--namespaced-plugin requires --plugin')
@@ -282,6 +286,8 @@ def main():
                 command = [str(executable)] + (["--surface-comparison"] if args.surface_comparison else [])
                 if args.display_linked:
                     command.append("--display-linked")
+                if args.render_size:command.extend(['--render-size',args.render_size])
+                if args.composite_layers is not None:command.extend(['--composite-layers',str(args.composite_layers)])
                 if args.double_buffered:
                     command.append('--double-buffered')
                 if args.first_frame_half_period:command.append('--first-frame-half-period')

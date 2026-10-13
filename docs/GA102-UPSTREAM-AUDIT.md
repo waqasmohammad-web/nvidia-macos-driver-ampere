@@ -83,3 +83,20 @@ NEXT-STEPS: run `python3 tools/ga102_completion_lock_test.py`, then
 Prioritize an independently pinned queued-surface publication fixture and safe
 upload lifetime port before WC-copy optimization. Separately exercise physical
 pool growth beyond 256 simultaneous sets. Keep all installed components intact.
+
+## ENCORE Cloud selective port
+
+Cloud source commit `7c85310` on `dev/ga102-endgame-cloud` ports the queued writer,
+publication monitor/private alias cache and pooled-client detach pieces of
+`bee05d1`, the recording-local clear prerequisite from `68ba3a8`, and bounded
+synchronous upload staging from `77e4c98`. The existing base already uploaded
+synchronously and reused staging; no new throughput gain is claimed. Local
+uncertain-submission retention is preserved. Swizzle/storage twins are absent
+from this baseline and their later lifetime fixes are not independently imported.
+No kernel/display/installer or WC streaming-copy policy was adopted.
+
+Actual-source CPU sanitizer controls pass; the Objective-C maps/monitors,
+complete source ICD and GPU surface modes are still unqualified. See
+[GA102-ENDGAME-CLOUD.md](GA102-ENDGAME-CLOUD.md). Earlier table classifications
+retain the audit's original comparison point; this section records only the
+new selective Cloud source candidate.
