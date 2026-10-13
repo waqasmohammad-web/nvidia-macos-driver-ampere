@@ -3840,3 +3840,37 @@ NEXT-STEPS: Cloud `python3 tools/ga102_host_pool_test.py --pool-telemetry`;
 Local `python3 tools/ga102_surface_queue_test.py` then publication controls,
 matched source-NVK/plugin builds and separately authorized surface qualification.
 Preserve the qualified installed stack and Local uncommitted experiments.
+
+
+### ENDGAME ENCORE — final local source qualification
+
+Actual Darwin x86_64 / RTX 3080 Ti, baseline 65b3ed5 versus Cloud 706f226,
+with separate 7c85310 surface/upload arm. Both complete source NVK patches built
+against pinned Mesa and existing real NVIDIA headers; loader/namespace/dependency/
+cache/SPIR-V/pixel gates pass. Baseline family alias/private queued publication
+failures are retained. Surface and coalescing arms pass 960 cases each, including
+CPU lock/publication and exact alpha, plus mixed pitched/threaded/large uploads.
+
+Five paired first joined-span medians: cold 3.257674→0.189616 ms,
+reuse 2.878792→0.174222 ms; capacity 40→32 MiB. Uniform-wave p95 remains growth-bound;
+initial slower medians are not consistent in attribution repeats. A physical
+pool-timer-off control passes with unavailable telemetry explicitly recorded.
+Descriptor 1568-live/4352-reserved growth, zero-live retirement, full 64 MiB copies
+and original size boundaries pass. Python 107 PASS; actual-source sanitizer and
+Foundation controls pass. A fixture initially failed to free autorelease-held
+holes; those results are not fragmented-reuse evidence. See GA102-ENDGAME-ENCORE.md.
+
+Installed-stack 1080p clear/4/8 layers have GPU medians 0.033/0.184/0.323 ms.
+One startup timestamp trace remains NOT VERIFIED; new capture permission is
+unavailable. Screenshot alpha is fully opaque and ICC verifies, but physical
+versus capture blur root cause remains unresolved. Installed components and
+unrelated Swift edits are preserved; no candidate desktop improvement is claimed.
+
+### NEXT-STEPS
+
+Exact next portable command:
+`python3 -S -m unittest discover -s tools -p 'test_ga102_*.py'`.
+Prioritize cross-process surface/capture correctness and large synchronous imports.
+Keep fixed eight-MiB blocks and the retained p95 trade-off; no adaptive policy was
+qualified. Source-NVK artifacts remain private. Integrated deployment requires
+independent recoverable backups/rollback and active-image proof; Git is insufficient.

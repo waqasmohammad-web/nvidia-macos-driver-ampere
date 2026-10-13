@@ -1,3 +1,29 @@
+# ENCORE local qualification — current continuation
+
+Cloud source `706f226` is now physically qualified in isolated source-NVK/plugin
+processes. Read `GA102-ENDGAME-ENCORE.md` and its normalized evidence first.
+Both source ICDs built from complete pinned-Mesa patches. Baseline publication
+fails on actual family/private surfaces; surface-only and coalescing arms pass
+960 cases each with GPU and CPU pixel oracles. Mixed pitched/threaded/large uploads,
+physical descriptor growth/retirement, waves and threshold copies pass.
+
+Five paired joined-hole tests save 3.068 ms cold / 2.705 ms reused and avoid one
+8 MiB block. Uniform allocation p95 remains growth-bound and timings vary; no
+universal p95 or desktop gain is claimed. A real pool-timer-off GPU control passes.
+Installed composition is measured separately, with one unqualified startup trace.
+Screenshot alpha/profile checks narrow the hypotheses; root cause is unresolved
+and owned-window capture permission was unavailable, not requested/changed.
+
+Exact next portable command:
+`python3 -S -m unittest discover -s tools -p 'test_ga102_*.py'` (107 PASS on Darwin).
+Then `python3 tools/ga102_host_pool_test.py --pool-telemetry` and the actual upload
+control with real headers. Surface/fragmentation workloads require real telemetry;
+the explicit timing-off control cannot qualify those modes. Native Rust is unchanged.
+No installation, security/display/boot change or physical scanout claim occurred.
+Keep raw Local logs, images, binaries and source-build dependencies outside Git.
+
+---
+
 # ENCORE Cloud candidate — 13 October 2026
 
 Cloud branch `dev/ga102-endgame-cloud` is based on verified `65b3ed5`.
