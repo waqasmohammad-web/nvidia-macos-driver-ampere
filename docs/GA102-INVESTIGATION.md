@@ -3874,3 +3874,28 @@ Prioritize cross-process surface/capture correctness and large synchronous impor
 Keep fixed eight-MiB blocks and the retained p95 trade-off; no adaptive policy was
 qualified. Source-NVK artifacts remain private. Integrated deployment requires
 independent recoverable backups/rollback and active-image proof; Git is insufficient.
+
+
+### Integrated production installation — 13 October 2026
+
+Production release NVMTL/translator/source NVK built from verified 92fbfd7 and
+installed as a narrow user-space replacement. Source NVK now links macOS system
+zlib; canonical production classes/constructor and all existing kernel/display
+components are retained. Strict bundle signing is repaired by relocating unchanged
+runtime licenses to Resources. Exact originals/KCs/configs/EFI were backed up and
+independent copies hash verified. Owner confirmed independent Recovery/Data access.
+Actual in-OS rollback restored originals and passed a fresh production Metal
+dispatch; candidate was reinstalled. New Recovery script is syntax-checked only.
+
+Fresh production Metal mapped UUIDs match all three candidate images and compute,
+cross-process surface handoff and sampled alpha checks pass. WindowServer still
+maps original inodes until restart. Original matched presentation p95 is
+17.435/17.322 ms; one 32.673 ms interval fails the pacing gate. No candidate desktop
+benefit/keep decision is established. 111 Python tests pass. See
+GA102-INTEGRATED-DESKTOP.md and evidence/ga102-integrated-installation.json.
+
+NEXT-STEPS after authorized restart, exact first command:
+`/Users/waqy/Developer/ga102-integrated-session/active-metal-images`.
+Verify WindowServer candidate mappings and unchanged kernel UUIDs, then repeat
+matched presentation and real application/stability/capture tests. Do not interpret
+pre-restart application qualification as a candidate WindowServer comparison.

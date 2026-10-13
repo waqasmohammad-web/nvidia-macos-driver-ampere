@@ -1,0 +1,177 @@
+{
+  "schema_version": 1,
+  "production_source": "92fbfd7ced2f752d105f95242da854c9bbe7d46f",
+  "platform": "Darwin x86_64",
+  "os": "macOS 15.8.1",
+  "gpu": "RTX 3080 Ti / NVK GA102-A",
+  "mesa_base": "17ca6174dcc6cb22059ac343bc29f8af7800f42e",
+  "nvidia_headers": "610.57.04",
+  "build": {
+    "plugin": "release O1, production namespace and constructor; Apple clang 17 / SDK 15.5",
+    "translator": "Rust 1.99.0, release opt3/codegen16/incremental off, one job",
+    "nvk": "debugoptimized, one job, macOS zlib 1.2.12, real retained Mesa CLC/LLVM 19.1.7",
+    "binaries": {
+      "libvulkan_nouveau.dylib": {
+        "sha256": "ec8849463c61d559a29320fd2d340d7621b36550ed0ecd4736d9268adfe2b08b",
+        "size": 24212000
+      },
+      "NVMTLDriver": {
+        "sha256": "66d612697f393ce80cc17c25ee9cbd203a64f4583dcf791a884c86328fd483f2",
+        "size": 1380896
+      },
+      "libnvmtl_translate.dylib": {
+        "sha256": "60e239a170b56d21f2a1ddb6f74ff1f341308f42a7632c4ed04b0d1840b2284c",
+        "size": 14702464
+      }
+    },
+    "bundle_strict_signature": "PASS",
+    "runtime_licenses": "original bytes relocated to Resources for signing",
+    "hash_note": "build.binaries records standalone signed compiler artifacts; bundle signing changes NVMTLDriver signature bytes. installation images record final packaged bytes."
+  },
+  "recovery": {
+    "working_stack_archive_bytes": 424352586,
+    "working_stack_archive_sha256": "ad0916dedee1e421c20b71466d06f66a69a4ec04d38c760d2641e4786ac2289c",
+    "exact_stack_and_config_backup": true,
+    "kernel_collections_backup": true,
+    "efi_partitions_backed_up": 3,
+    "independent_copies_hash_verified": true,
+    "independent_current_data_access": "owner confirmed",
+    "new_recovery_script": "syntax PASS; Recovery execution not observed",
+    "in_os_rollback": "PASS: original exact snapshots restored, fresh original Metal GPU dispatch passed, candidate then reinstalled",
+    "rollback_original_gpu_correct": true
+  },
+  "installation": {
+    "installed_on_disk": true,
+    "targets": [
+      "NVMTLDriver.bundle",
+      "nvmtl/libvulkan_nouveau.dylib"
+    ],
+    "kernel_efi_security_changed": false,
+    "fresh_production_process": {
+      "own_process": true,
+      "windowserver": false,
+      "gpu_values_correct": true,
+      "images": [
+        {
+          "binary": "NVMTLDriver",
+          "mapped_uuid": "9276DA1F-436C-3EC4-A881-7E54E44F0356",
+          "sha256": "c845d7532b842de12b436035cdcb64e4874894e70aef0a4e6182b18854b33b7b"
+        },
+        {
+          "binary": "libvulkan_nouveau.dylib",
+          "mapped_uuid": "52210F7A-4A40-350B-A222-8CA14E15F34B",
+          "sha256": "ec8849463c61d559a29320fd2d340d7621b36550ed0ecd4736d9268adfe2b08b"
+        },
+        {
+          "binary": "libnvmtl_translate.dylib",
+          "mapped_uuid": "2B2B6E56-1A23-3AA7-9557-3C31BA8D3501",
+          "sha256": "60e239a170b56d21f2a1ddb6f74ff1f341308f42a7632c4ed04b0d1840b2284c"
+        }
+      ]
+    },
+    "windowserver": "still maps original file inodes before restart",
+    "restart": "pending",
+    "final_installation_completed": true,
+    "final_production_images": [
+      {
+        "binary": "NVMTLDriver",
+        "sha256": "c845d7532b842de12b436035cdcb64e4874894e70aef0a4e6182b18854b33b7b",
+        "mapped_uuid": "9276DA1F-436C-3EC4-A881-7E54E44F0356"
+      },
+      {
+        "binary": "libvulkan_nouveau.dylib",
+        "sha256": "ec8849463c61d559a29320fd2d340d7621b36550ed0ecd4736d9268adfe2b08b",
+        "mapped_uuid": "52210F7A-4A40-350B-A222-8CA14E15F34B"
+      },
+      {
+        "binary": "libnvmtl_translate.dylib",
+        "sha256": "60e239a170b56d21f2a1ddb6f74ff1f341308f42a7632c4ed04b0d1840b2284c",
+        "mapped_uuid": "2B2B6E56-1A23-3AA7-9557-3C31BA8D3501"
+      }
+    ]
+  },
+  "validation": {
+    "python_tests": 111,
+    "python_failures": 0,
+    "publication_failure_boundaries": 5,
+    "system_zlib_gpu_boundary_gate": "PASS cold/reuse, actual selected ICD image and real SPIR-V validation",
+    "production_compute": "PASS, exact mapped UUIDs and values 17/34/51/68",
+    "crossprocess_surface": "PASS, 8 serialized roundtrips / 262144 checked bytes",
+    "sampled_alpha_composition": "PASS, 4 private/IOSurface 16/32-layer cases"
+  },
+  "baseline": {
+    "workload": "1920x1080 render, 640x360 window, 8 alpha blended draws, current 3440x1440/60 Hz desktop",
+    "runs": [
+      {
+        "completed": 120,
+        "command_errors": 0,
+        "presentation": {
+          "max_ms": 17.535966999275843,
+          "p50_ms": 16.68584899925918,
+          "p95_ms": 17.434617000617436,
+          "p99_ms": 17.47115299986035,
+          "samples": 107
+        },
+        "gpu": {
+          "max_ms": 0.3686399995785905,
+          "p50_ms": 0.31846399997448316,
+          "p95_ms": 0.3553280002961401,
+          "p99_ms": 0.3655680002339068,
+          "samples": 120
+        },
+        "completion_latency": {
+          "max_ms": 1.577938000082213,
+          "p50_ms": 0.5382070003179251,
+          "p95_ms": 0.5856470006619929,
+          "p99_ms": 0.6239710000954801,
+          "samples": 120
+        },
+        "preflight_wait_ms": 263.3360969994101,
+        "positive_timestamps": 118,
+        "pacing_verdict": "PASS",
+        "late_intervals": 0
+      },
+      {
+        "completed": 120,
+        "command_errors": 0,
+        "presentation": {
+          "max_ms": 32.673487000465684,
+          "p50_ms": 16.7286289997719,
+          "p95_ms": 17.322064999461873,
+          "p99_ms": 17.488952000348945,
+          "samples": 108
+        },
+        "gpu": {
+          "max_ms": 0.3686399995785905,
+          "p50_ms": 0.3194880000592093,
+          "p95_ms": 0.35225599913246697,
+          "p99_ms": 0.3686399995785905,
+          "samples": 120
+        },
+        "completion_latency": {
+          "max_ms": 1.9353769994268077,
+          "p50_ms": 0.5351990002964158,
+          "p95_ms": 0.5827109998790547,
+          "p99_ms": 0.5933330003244919,
+          "samples": 120
+        },
+        "preflight_wait_ms": 263.68655699934607,
+        "positive_timestamps": 119,
+        "pacing_verdict": "FAIL",
+        "late_intervals": 1
+      }
+    ],
+    "planned_runs": 3,
+    "completed_runs": 2,
+    "stopped_after_pacing_failure": true,
+    "compiler_overlap_trace": "retained privately; excluded from matched baseline"
+  },
+  "desktop_candidate_performance": "NOT VERIFIED pending WindowServer restart",
+  "screenshot_physical_discrepancy": "UNRESOLVED",
+  "remaining_regressions": [
+    "fixed 8 MiB blocks put growth into uniform-wave p95",
+    "large pitched import preparation regression not yet related to a desktop workload",
+    "previous framebuffer candidate boot failure; replacement retired",
+    "screen capture permission unavailable in prior observations"
+  ]
+}
